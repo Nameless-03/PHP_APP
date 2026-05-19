@@ -32,7 +32,21 @@ class StoreServicioRequest extends FormRequest
             'duracion' => ['required', 'integer', 'min:1'], // in minutes
             'ubicacion' => ['nullable', 'string', 'max:255'],
             'activo' => ['boolean'],
-            'id_categoria' => ['required', 'exists:categorias,id'],
+            'id_categoria' => ['required', function ($attribute, $value, $fail) {
+                if (is_numeric($value)) {
+                    if (!\DB::table('categorias')->where('id', $value)->exists()) {
+                        $fail('La categoría seleccionada no existe.');
+                    }
+                } else {
+                    if (is_string($value)) {
+                        if (empty(trim($value))) {
+                            $fail('El nombre de la nueva categoría no puede estar vacío.');
+                        }
+                    } else {
+                        $fail('Categoría inválida.');
+                    }
+                }
+            }],
         ];
     }
 }
