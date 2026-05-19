@@ -106,4 +106,64 @@ class ReservaService
 
         return $reserva;
     }
+
+    /**
+     * Cancelar una reserva validando políticas.
+     */
+    public function cancelar(Reserva $reserva, \App\Models\Usuario $usuario): Reserva
+    {
+        // Si el usuario es cliente, validar política de 10 horas
+        if ($usuario->esCliente()) {
+            $horasFaltantes = now()->diffInHours(Carbon::parse($reserva->fecha_hora_inicio), false);
+            
+            if ($horasFaltantes < 10) {
+                throw new Exception("Política de cancelación: No puedes cancelar con menos de 10 horas de anticipación.");
+            }
+        }
+
+        return $this->cambiarEstado($reserva, EstadoReservaEnum::CANCELADA);
+    }
+
+    /**
+     * Reprogramar una reserva validando disponibilidad.
+     */
+    public function reprogramar(Reserva $reserva, string $nuevaFechaHora, \App\Models\Usuario $usuario): Reserva
+    {
+        return DB::transaction(function () use ($reserva, $nuevaFechaHora, $usuario) {
+            $nuevoInicio = Carbon::parse($nuevaFechaHora);
+            $nuevoFin = (clone $nuevoInicio)->addMinutes($reserva->servicio->duracion);
+
+            if ($nuevoInicio->isPast()) {
+                throw new Exception("No puedes reprogramar para una fecha en el pasado.");
+            }
+
+            // Validar que el nuevo horario esté disponible (ignorando esta misma reserva)
+            $solapamiento = Reserva::where('id_servicio', $reserva->id_servicio)
+                ->where('id', '!=', $reserva->id) // Ignorar la reserva actual
+                ->whereIn('estado', [EstadoReservaEnum::PENDIENTE->value, EstadoReservaEnum::CONFIRMADA->value, EstadoReservaEnum::PAGADA->value])
+                ->where(function ($query) use ($nuevoInicio, $nuevoFin) {
+                    $query->whereBetween('fecha_hora_inicio', [$nuevoInicio, $nuevoFin])
+                          ->orWhereBetween('fecha_hora_fin', [$nuevoInicio, $nuevoFin])
+                          ->orWhere(function ($q) use ($nuevoInicio, $nuevoFin) {
+                              $q->where('fecha_hora_inicio', '<=', $nuevoInicio)
+                                ->where('fecha_hora_fin', '>=', $nuevoFin);
+                          });
+                })
+                ->lockForUpdate()
+                ->exists();
+
+            if ($solapamiento) {
+                throw new Exception("El horario seleccionado ya no está disponible.");
+            }
+
+            // Actualizar horas y volver a pendiente
+            $reserva->update([
+                'fecha_hora_inicio' => $nuevoInicio,
+                'fecha_hora_fin' => $nuevoFin,
+                'estado' => EstadoReservaEnum::PENDIENTE
+            ]);
+
+            return $reserva->fresh();
+        });
+    }
 }

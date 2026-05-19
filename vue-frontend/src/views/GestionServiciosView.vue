@@ -241,7 +241,7 @@ onMounted(async () => {
             'Accept': 'application/json'
           }
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           const apiServices = data.data || data
@@ -294,7 +294,7 @@ const saveService = async () => {
 
   const token = localStorage.getItem('auth_token')
   const catVal = service.value.category
-  
+
   // Si catVal es un objeto (ej: {id: 1, nombre: "Tecnología"}), enviamos el id.
   // Si es un string (nueva categoría), enviamos el string.
   const idCategoria = (typeof catVal === 'object' && catVal !== null) ? catVal.id : catVal
@@ -339,10 +339,10 @@ const saveService = async () => {
     form.value.reset()
     service.value.modality = 'presencial'
     service.value.category = null
-    
+
     // Recargar las categorías de la API en caso de que se haya creado una nueva
     await loadCategories()
-    
+
   } catch (err) {
     errorMsg.value = err.message || 'Error al guardar el servicio. Intenta de nuevo.'
   } finally {
