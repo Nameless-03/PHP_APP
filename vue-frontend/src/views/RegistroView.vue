@@ -178,8 +178,8 @@ const handleRegister = async () => {
 
   try {
     const endpoint = roleTab.value === 'cliente' 
-      ? 'http://localhost:8000/api/auth/register/cliente' 
-      : 'http://localhost:8000/api/auth/register/profesional'
+      ? 'http://localhost/api/auth/register/cliente' 
+      : 'http://localhost/api/auth/register/profesional'
       
     const payload = {
       nombre: formData.value.nombre,
