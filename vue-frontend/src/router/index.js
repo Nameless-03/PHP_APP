@@ -5,6 +5,8 @@ import PanelPrincipalView from '../views/PanelPrincipalView.vue'
 import PerfilProfesionalView from '../views/PerfilProfesionalView.vue'
 import GestionServiciosView from '../views/GestionServiciosView.vue'
 
+import MisHorariosView from '../views/MisHorariosView.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -36,6 +38,11 @@ const router = createRouter({
       path: '/services',
       name: 'services',
       component: GestionServiciosView
+    },
+    {
+      path: '/mis-horarios',
+      name: 'mis-horarios',
+      component: MisHorariosView
     }
   ]
 })
