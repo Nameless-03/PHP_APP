@@ -57,6 +57,10 @@ class UsuarioController extends Controller
             'nombre' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:usuarios,email,' . $id,
             'password' => 'sometimes|string|min:8|confirmed',
+            'descripcion' => 'sometimes|nullable|string',
+            'experiencia' => 'sometimes|nullable|string',
+            'ubicacion' => 'sometimes|nullable|string',
+            'modalidad_preferida' => 'sometimes|string|in:presencial,remota,hibrida',
         ]);
 
         $usuario = $this->usuarioService->obtenerPorId($id);

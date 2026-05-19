@@ -4,6 +4,7 @@ import RegistroView from '../views/RegistroView.vue'
 import PanelPrincipalView from '../views/PanelPrincipalView.vue'
 import PerfilProfesionalView from '../views/PerfilProfesionalView.vue'
 import GestionServiciosView from '../views/GestionServiciosView.vue'
+import BusquedaServiciosView from '../views/BusquedaServiciosView.vue'
 
 import MisHorariosView from '../views/MisHorariosView.vue'
 
@@ -40,9 +41,15 @@ const router = createRouter({
       component: GestionServiciosView
     },
     {
+<<<<<<< Updated upstream
       path: '/mis-horarios',
       name: 'mis-horarios',
       component: MisHorariosView
+=======
+      path: '/buscar',
+      name: 'search',
+      component: BusquedaServiciosView
+>>>>>>> Stashed changes
     }
   ]
 })

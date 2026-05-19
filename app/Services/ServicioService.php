@@ -35,12 +35,36 @@ class ServicioService
             $query->where('modalidad', $filtros['modalidad']);
         }
 
-        if (isset($filtros['precio_min']) && isset($filtros['precio_max'])) {
-            $query->whereBetween('precio', [$filtros['precio_min'], $filtros['precio_max']]);
+        if (isset($filtros['precio_min'])) {
+            $query->where('precio', '>=', $filtros['precio_min']);
+        }
+        
+        if (isset($filtros['precio_max'])) {
+            $query->where('precio', '<=', $filtros['precio_max']);
         }
 
         if (isset($filtros['keyword'])) {
-            $query->where('nombre', 'LIKE', '%' . $filtros['keyword'] . '%');
+            $keyword = strtolower($filtros['keyword']);
+            $query->where(function ($q) use ($keyword) {
+                $q->whereRaw('LOWER(servicios.nombre) LIKE ?', ['%' . $keyword . '%'])
+                  ->orWhereRaw('LOWER(servicios.descripcion) LIKE ?', ['%' . $keyword . '%'])
+                  ->orWhereHas('profesional.usuario', function ($q2) use ($keyword) {
+                      $q2->whereRaw('LOWER(usuarios.nombre) LIKE ?', ['%' . $keyword . '%']);
+                  });
+            });
+        }
+
+        if (isset($filtros['ubicacion'])) {
+            $ubicacion = strtolower($filtros['ubicacion']);
+            $query->whereHas('profesional', function ($q) use ($ubicacion) {
+                $q->whereRaw('LOWER(ubicacion) LIKE ?', ['%' . $ubicacion . '%']);
+            });
+        }
+
+        if (isset($filtros['reputacion'])) {
+            $query->whereHas('profesional', function ($q) use ($filtros) {
+                $q->where('reputacion', '>=', $filtros['reputacion']);
+            });
         }
 
         return $query->get();
