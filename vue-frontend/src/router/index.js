@@ -44,7 +44,12 @@ const router = createRouter({
       path: '/buscar',
       name: 'search',
       component: BusquedaServiciosView
-    }
+    },
+    {
+      path: '/mis-horarios',
+      name: 'mis-horarios',
+      component: MisHorariosView
+    },
   ]
 })
 
