@@ -1,16 +1,45 @@
 <template>
-  <v-container fluid class="fill-height auth-container pa-0">
+  <v-container fluid class="fill-height pa-0">
     <v-row no-gutters class="fill-height">
-      <!-- Right Panel: Form (Swapped for variety) -->
-      <v-col cols="12" md="6" class="d-flex align-center justify-center form-panel">
-        <v-card class="glass-card pa-10" width="100%" max-width="500" elevation="0">
-          <h2 class="text-h4 font-weight-bold mb-2 text-primary">Crear Cuenta</h2>
-          <p class="text-body-1 text-medium-emphasis mb-6">Únete a nuestra plataforma profesional</p>
+      
+      <!-- Left Panel -->
+      <v-col cols="12" md="5" class="brand-sidebar d-none d-md-flex flex-column align-center justify-center text-center pa-10">
+        <div class="decorative-circle circle-1"></div>
+        <div class="decorative-circle circle-2"></div>
+        
+        <div style="z-index: 1;">
+          <v-icon size="80" color="white" class="mb-6 float-animation">mdi-rocket-launch</v-icon>
+          <h1 class="text-h3 font-weight-bold text-white mb-4">Únete a Nosotros</h1>
+          <p class="text-h6 text-white font-weight-light opacity-80 px-4">
+            Crea tu cuenta para empezar a conectar con clientes y profesionales de todo el mundo.
+          </p>
+        </div>
+      </v-col>
 
-          <v-tabs v-model="roleTab" color="primary" grow class="mb-6 rounded-lg bg-white elevation-1">
-            <v-tab value="cliente" class="text-none font-weight-bold">Soy Cliente</v-tab>
-            <v-tab value="profesional" class="text-none font-weight-bold">Soy Profesional</v-tab>
-          </v-tabs>
+      <!-- Right Panel -->
+      <v-col cols="12" md="7" class="d-flex align-center justify-center bg-grey-lighten-4 pa-6">
+        <v-card class="form-card pa-8 rounded-xl elevation-3" width="100%" max-width="550">
+          <div class="text-center mb-6">
+            <h2 class="text-h4 font-weight-bold text-grey-darken-4 mb-2">Crear Cuenta</h2>
+            <p class="text-body-1 text-grey-darken-1">Comienza tu viaje con nosotros hoy mismo.</p>
+          </div>
+
+          <!-- Role Selection using Vuetify Button Toggle -->
+          <v-btn-toggle
+            v-model="roleTab"
+            mandatory
+            color="primary"
+            class="w-100 mb-6 custom-toggle rounded-lg elevation-0 bg-grey-lighten-3"
+          >
+            <v-btn value="cliente" class="flex-grow-1 text-none font-weight-bold">
+              <v-icon start>mdi-account</v-icon>
+              Soy Cliente
+            </v-btn>
+            <v-btn value="profesional" class="flex-grow-1 text-none font-weight-bold">
+              <v-icon start>mdi-briefcase</v-icon>
+              Soy Profesional
+            </v-btn>
+          </v-btn-toggle>
 
           <v-form @submit.prevent="handleRegister" ref="form">
             <v-text-field
@@ -35,46 +64,55 @@
               bg-color="white"
             ></v-text-field>
 
-            <v-text-field
-              v-model="formData.password"
-              :rules="[rules.required, rules.minLength]"
-              :type="showPassword ? 'text' : 'password'"
-              label="Contraseña"
-              prepend-inner-icon="mdi-lock-outline"
-              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              @click:append-inner="showPassword = !showPassword"
-              variant="outlined"
-              color="primary"
-              class="mb-2"
-              bg-color="white"
-            ></v-text-field>
-
-            <v-text-field
-              v-model="formData.password_confirmation"
-              :rules="[rules.required, rules.matchPassword]"
-              type="password"
-              label="Confirmar Contraseña"
-              prepend-inner-icon="mdi-lock-check-outline"
-              variant="outlined"
-              color="primary"
-              class="mb-6"
-              bg-color="white"
-            ></v-text-field>
+            <v-row>
+              <v-col cols="12" sm="6" class="pb-0">
+                <v-text-field
+                  v-model="formData.password"
+                  :rules="[rules.required, rules.minLength]"
+                  :type="showPassword ? 'text' : 'password'"
+                  label="Contraseña"
+                  prepend-inner-icon="mdi-lock-outline"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showPassword = !showPassword"
+                  variant="outlined"
+                  color="primary"
+                  bg-color="white"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" class="pb-0">
+                <v-text-field
+                  v-model="formData.password_confirmation"
+                  :rules="[rules.required, rules.matchPassword]"
+                  type="password"
+                  label="Confirmar"
+                  prepend-inner-icon="mdi-lock-check-outline"
+                  variant="outlined"
+                  color="primary"
+                  class="mb-2"
+                  bg-color="white"
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
             <!-- Specific fields for Profesional -->
             <v-expand-transition>
-              <div v-if="roleTab === 'profesional'">
+              <div v-if="roleTab === 'profesional'" class="mt-2">
                 <v-select
                   v-model="formData.modalidad_preferida"
                   :items="['presencial', 'remota', 'hibrida']"
                   label="Modalidad Preferida"
+                  prepend-inner-icon="mdi-domain"
                   variant="outlined"
                   color="primary"
                   bg-color="white"
-                  class="mb-6"
+                  class="mb-2"
                 ></v-select>
               </div>
             </v-expand-transition>
+
+            <v-alert v-if="error" type="error" variant="tonal" class="mb-6 rounded-lg">
+              {{ error }}
+            </v-alert>
 
             <v-btn
               type="submit"
@@ -82,34 +120,20 @@
               size="x-large"
               block
               :loading="isLoading"
-              class="text-none font-weight-bold mb-6 rounded-lg elevation-2"
+              class="text-none font-weight-bold mb-6 rounded-lg elevation-3 gradient-btn"
             >
               Registrarse
+              <v-icon end>mdi-arrow-right</v-icon>
             </v-btn>
 
-            <v-alert v-if="error" type="error" variant="tonal" class="mb-4">
-              {{ error }}
-            </v-alert>
-
-            <div class="text-center text-body-1">
+            <div class="text-center text-body-1 text-grey-darken-1">
               ¿Ya tienes una cuenta?
-              <router-link to="/login" class="text-decoration-none text-primary font-weight-bold">
+              <router-link to="/login" class="text-decoration-none text-primary font-weight-bold ml-1">
                 Inicia sesión
               </router-link>
             </div>
           </v-form>
         </v-card>
-      </v-col>
-
-      <!-- Left Panel: Branding / Imagery -->
-      <v-col cols="12" md="6" class="d-none d-md-flex align-center justify-center brand-panel">
-        <div class="text-center px-10">
-          <v-icon size="80" color="white" class="mb-6">mdi-rocket-launch-outline</v-icon>
-          <h1 class="text-h3 font-weight-bold text-white mb-4">Impulsa tu Carrera</h1>
-          <p class="text-h6 text-white font-weight-light opacity-80">
-            Únete a miles de profesionales y clientes que ya están conectando.
-          </p>
-        </div>
       </v-col>
     </v-row>
   </v-container>
@@ -147,18 +171,13 @@ const rules = {
 
 const handleRegister = async () => {
   const { valid } = await form.value.validate()
-  
   if (!valid) return
 
   isLoading.value = true
   error.value = ''
 
   try {
-    // Simulating API Call to Laravel Backend
-    // const endpoint = roleTab.value === 'cliente' ? '/api/auth/register/cliente' : '/api/auth/register/profesional'
-    // const response = await fetch(endpoint, { ... })
     await new Promise(resolve => setTimeout(resolve, 1500))
-    
     console.log(`Registrando ${roleTab.value}:`, formData.value)
     router.push('/dashboard')
   } catch (err) {
@@ -170,33 +189,66 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-.auth-container {
-  background-color: #FDFBF5;
-}
-
-.brand-panel {
-  background: linear-gradient(135deg, #A6987A 0%, #8C6D46 100%);
+.brand-sidebar {
+  background: linear-gradient(135deg, #4F46E5 0%, #312E81 100%);
   position: relative;
   overflow: hidden;
 }
 
-.brand-panel::before {
-  content: '';
+.decorative-circle {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: url('https://www.transparenttextures.com/patterns/cubes.png');
-  opacity: 0.1;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+  backdrop-filter: blur(5px);
+  z-index: 0;
 }
 
-.form-panel {
-  background-color: #FDFBF5;
+.circle-1 {
+  width: 300px;
+  height: 300px;
+  top: -50px;
+  left: -100px;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.7) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 24px !important;
-  box-shadow: 0 8px 32px 0 rgba(140, 109, 70, 0.1) !important;
+.circle-2 {
+  width: 400px;
+  height: 400px;
+  bottom: -150px;
+  right: -100px;
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+
+.form-card {
+  background-color: #ffffff;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-card:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08) !important;
+}
+
+.custom-toggle .v-btn.v-btn--active {
+  background-color: #ffffff;
+  color: #4F46E5 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+}
+
+.gradient-btn {
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%) !important;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gradient-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4) !important;
 }
 </style>
