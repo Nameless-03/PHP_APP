@@ -9,9 +9,9 @@ const myCustomTheme = {
   colors: {
     background: '#FDFBF5',
     surface: '#FFFFFF',
-    primary: '#8C6D46', // Marrón cálido elegante
-    secondary: '#D4C5A3', // Beige dorado
-    accent: '#A6987A',
+    primary: '#D4C5A3', // Un beige principal
+    secondary: '#8C6D46', // Un marrón cálido como secundario
+    accent: '#A6987A', // Un tono intermedio para acentos
     error: '#B71C1C',
     info: '#2196F3',
     success: '#4CAF50',

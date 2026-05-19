@@ -86,6 +86,6 @@ const logout = () => {
 
 <style scoped>
 .bg-primary-darken-1 {
-  background-color: #312E81 !important;
+  background-color: #8C6D46 !important;
 }
 </style>

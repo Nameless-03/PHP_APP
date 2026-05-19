@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
-import DashboardView from '../views/DashboardView.vue'
-import ProfessionalProfileView from '../views/ProfessionalProfileView.vue'
-import ServiceManagementView from '../views/ServiceManagementView.vue'
+import InicioSesionView from '../views/InicioSesionView.vue'
+import RegistroView from '../views/RegistroView.vue'
+import PanelPrincipalView from '../views/PanelPrincipalView.vue'
+import PerfilProfesionalView from '../views/PerfilProfesionalView.vue'
+import GestionServiciosView from '../views/GestionServiciosView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,27 +15,27 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: LoginView
+      component: InicioSesionView
     },
     {
       path: '/register',
       name: 'register',
-      component: RegisterView
+      component: RegistroView
     },
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: DashboardView
+      component: PanelPrincipalView
     },
     {
       path: '/profile',
       name: 'profile',
-      component: ProfessionalProfileView
+      component: PerfilProfesionalView
     },
     {
       path: '/services',
       name: 'services',
-      component: ServiceManagementView
+      component: GestionServiciosView
     }
   ]
 })
