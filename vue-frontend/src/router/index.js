@@ -7,6 +7,7 @@ import GestionServiciosView from '../views/GestionServiciosView.vue'
 import BusquedaServiciosView from '../views/BusquedaServiciosView.vue'
 
 import MisHorariosView from '../views/MisHorariosView.vue'
+import MisReservasView from '../views/MisReservasView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -49,6 +50,11 @@ const router = createRouter({
       path: '/mis-horarios',
       name: 'mis-horarios',
       component: MisHorariosView
+    },
+    {
+      path: '/mis-reservas',
+      name: 'mis-reservas',
+      component: MisReservasView
     },
   ]
 })
