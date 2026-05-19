@@ -71,6 +71,20 @@
                 ></v-text-field>
               </v-col>
 
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="service.id_categoria"
+                  :items="categoriasList"
+                  item-title="nombre"
+                  item-value="id"
+                  :rules="[rules.required]"
+                  label="Categoría del Servicio"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-shape-outline"
+                  color="primary"
+                ></v-select>
+              </v-col>
+
               <v-col cols="12">
                 <p class="text-subtitle-2 text-medium-emphasis mb-2">Modalidad de Atención</p>
                 <v-btn-toggle
@@ -183,25 +197,34 @@ const service = ref({
   description: '',
   duration: '',
   price: '',
-  modality: 'presencial'
+  modality: 'presencial',
+  id_categoria: null
 })
 
 const publishedServices = ref([])
+const categoriasList = ref([])
 
 onMounted(async () => {
   const token = localStorage.getItem('auth_token')
   if (!token) return
 
   try {
-    const response = await fetch('http://localhost:8000/api/servicios', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
-    })
+    const [servResponse, catResponse] = await Promise.all([
+      fetch('http://localhost:8000/api/servicios', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }),
+      fetch('http://localhost:8000/api/categorias', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+    ])
     
-    if (response.ok) {
-      const data = await response.json()
+    if (servResponse.ok) {
+      const data = await servResponse.json()
       // Si la API devuelve los servicios en un array 'data'
       const apiServices = data.data || data
       publishedServices.value = apiServices.map(s => ({
@@ -211,6 +234,11 @@ onMounted(async () => {
         price: s.precio,
         modality: s.modalidad
       }))
+    }
+
+    if (catResponse.ok) {
+      const catData = await catResponse.json()
+      categoriasList.value = catData.data || catData
     }
   } catch (error) {
     console.error('Error fetching services:', error)
@@ -264,7 +292,7 @@ const saveService = async () => {
         duracion: parseInt(service.value.duration),
         precio: parseFloat(service.value.price),
         modalidad: service.value.modality,
-        id_categoria: 1
+        id_categoria: service.value.id_categoria
       })
     })
 
@@ -288,6 +316,7 @@ const saveService = async () => {
     successMsg.value = 'Servicio guardado exitosamente.'
     form.value.reset()
     service.value.modality = 'presencial'
+    service.value.id_categoria = null
     
   } catch (err) {
     errorMsg.value = err.message || 'Error al guardar el servicio. Intenta de nuevo.'
@@ -300,6 +329,7 @@ const saveService = async () => {
 const resetForm = () => {
   form.value.reset()
   service.value.modality = 'presencial'
+  service.value.id_categoria = null
   errorMsg.value = ''
   successMsg.value = ''
 }
