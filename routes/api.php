@@ -56,6 +56,7 @@ Route::prefix('disponibilidad')->group(function () {
 
     Route::middleware(['auth:sanctum', 'role:profesional'])->group(function () {
         Route::post('/', [DisponibilidadController::class, 'store']);
+        Route::put('/{disponibilidad}', [DisponibilidadController::class, 'update']);
         Route::delete('/{disponibilidad}', [DisponibilidadController::class, 'destroy']);
     });
 });

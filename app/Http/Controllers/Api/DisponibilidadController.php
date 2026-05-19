@@ -55,6 +55,29 @@ class DisponibilidadController extends Controller
     }
 
     /**
+     * Update the specified resource in storage.
+     */
+    public function update(StoreDisponibilidadRequest $request, Disponibilidad $disponibilidad): JsonResponse
+    {
+        $this->authorize('update', $disponibilidad);
+
+        $data = $request->validated();
+        
+        try {
+            $disponibilidad = $this->disponibilidadService->actualizar($disponibilidad, $data);
+
+            return response()->json([
+                'message' => 'Disponibilidad actualizada exitosamente',
+                'data' => new DisponibilidadResource($disponibilidad),
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 422);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Disponibilidad $disponibilidad): JsonResponse
