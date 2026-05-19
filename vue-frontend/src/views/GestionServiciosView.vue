@@ -47,12 +47,14 @@
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="service.duration"
-                  :rules="[rules.required]"
-                  label="Duración Estimada"
-                  placeholder="Ej: 2 semanas, 1 mes, etc."
+                  :rules="[rules.required, rules.isInteger]"
+                  label="Duración Estimada (Minutos)"
+                  placeholder="Ej: 60"
                   variant="outlined"
+                  type="number"
                   prepend-inner-icon="mdi-clock-outline"
                   color="primary"
+                  bg-color="white"
                 ></v-text-field>
               </v-col>
 
@@ -146,7 +148,7 @@
                   <p class="text-body-2 text-medium-emphasis text-truncate mb-2">{{ item.description }}</p>
                   <div class="d-flex justify-space-between align-center">
                     <span class="text-caption font-weight-medium text-grey-darken-1">
-                      <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon> {{ item.duration }}
+                      <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon> {{ item.duration }} min
                     </span>
                     <span class="text-subtitle-2 font-weight-bold text-success">
                       ${{ item.price }} USD
@@ -168,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
 const form = ref(null)
@@ -184,28 +186,39 @@ const service = ref({
   modality: 'presencial'
 })
 
-const publishedServices = ref([
-  {
-    name: 'Consultoría Estratégica Inicial',
-    description: 'Revisión exhaustiva de procesos de negocio y planificación.',
-    duration: '2 semanas',
-    price: '450.00',
-    modality: 'remota'
-  },
-  {
-    name: 'Implementación de Software MVP',
-    description: 'Desarrollo de un producto mínimo viable en 1 mes para validar tu idea.',
-    duration: '1 mes',
-    price: '1200.00',
-    modality: 'hibrida'
+const publishedServices = ref([])
+
+onMounted(async () => {
+  const token = localStorage.getItem('auth_token')
+  if (!token) return
+
+  try {
+    const response = await fetch('http://localhost:8000/api/servicios', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      // Si la API devuelve los servicios en un array 'data'
+      publishedServices.value = data.data || data
+    }
+  } catch (error) {
+    console.error('Error fetching services:', error)
   }
-])
+})
 
 const rules = {
   required: value => !!value || 'Este campo es obligatorio.',
   isNumber: value => {
     const pattern = /^\d+(\.\d{1,2})?$/
     return pattern.test(value) || 'Debe ser un número válido (ej: 150.00).'
+  },
+  isInteger: value => {
+    const pattern = /^\d+$/
+    return pattern.test(value) || 'Debe ser un número entero (ej: 60).'
   }
 }
 
@@ -228,19 +241,47 @@ const saveService = async () => {
   errorMsg.value = ''
   successMsg.value = ''
 
+  const token = localStorage.getItem('auth_token')
+
   try {
-    // Simulating API Call
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    const response = await fetch('http://localhost:8000/api/servicios', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        nombre: service.value.name,
+        descripcion: service.value.description,
+        duracion: parseInt(service.value.duration),
+        precio: parseFloat(service.value.price),
+        modalidad: service.value.modality,
+        id_categoria: 1
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error al guardar el servicio')
+    }
     
-    // Add to mock list
-    publishedServices.value.unshift({ ...service.value })
+    // Add to list and map properties to match UI expectations
+    publishedServices.value.unshift({
+      name: data.nombre,
+      description: data.descripcion,
+      duration: data.duracion,
+      price: data.precio,
+      modality: data.modalidad
+    })
     
     successMsg.value = 'Servicio guardado exitosamente.'
     form.value.reset()
-    service.value.modality = 'presencial' // reset to default
+    service.value.modality = 'presencial'
     
   } catch (err) {
-    errorMsg.value = 'Error al guardar el servicio. Intenta de nuevo.'
+    errorMsg.value = err.message || 'Error al guardar el servicio. Intenta de nuevo.'
   } finally {
     isLoading.value = false
     setTimeout(() => { successMsg.value = '' }, 3000)

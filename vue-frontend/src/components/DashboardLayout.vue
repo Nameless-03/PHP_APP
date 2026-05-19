@@ -28,7 +28,7 @@
       <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-view-dashboard" title="Panel Principal" value="dashboard" to="/dashboard"></v-list-item>
         <v-list-item prepend-icon="mdi-account-details" title="Mi Perfil" value="profile" to="/profile"></v-list-item>
-        <v-list-item prepend-icon="mdi-briefcase-edit" title="Mis Servicios" value="services" to="/services"></v-list-item>
+        <v-list-item v-if="isProfesional" prepend-icon="mdi-briefcase-edit" title="Mis Servicios" value="services" to="/services"></v-list-item>
       </v-list>
 
       <template v-slot:append>
@@ -53,7 +53,7 @@
           </v-badge>
         </v-btn>
         <v-avatar color="primary" class="ml-4" size="40">
-          <span class="text-white font-weight-bold">PR</span>
+          <span class="text-white font-weight-bold">{{ userInitials }}</span>
         </v-avatar>
       </v-app-bar>
 
@@ -78,6 +78,25 @@ const props = defineProps({
 const router = useRouter()
 const drawer = ref(true)
 const rail = ref(false)
+const isProfesional = ref(false)
+const userInitials = ref('US')
+
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      isProfesional.value = user.role === 'profesional'
+      if (user.nombre) {
+        userInitials.value = user.nombre.substring(0, 2).toUpperCase()
+      }
+    } catch (e) {
+      console.error('Error parsing user data', e)
+    }
+  }
+})
 
 const logout = () => {
   router.push('/login')

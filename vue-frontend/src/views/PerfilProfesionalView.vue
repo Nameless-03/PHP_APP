@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
 const form = ref(null)
@@ -144,17 +144,45 @@ const successMsg = ref('')
 const errorMsg = ref('')
 
 const profile = ref({
-  name: 'Juan Pérez',
-  specialty: 'Desarrollador Full Stack',
-  description: 'Desarrollador con más de 5 años de experiencia...',
-  location: 'Madrid, España',
-  phone: '+34 600 000 000',
-  website: 'https://juanperez.dev'
+  name: '',
+  specialty: '',
+  description: '',
+  location: '',
+  phone: '',
+  website: ''
 })
 
 const rules = {
   required: value => !!value || 'Este campo es requerido.'
 }
+
+onMounted(async () => {
+  const token = localStorage.getItem('auth_token')
+  if (!token) return
+
+  try {
+    const response = await fetch('http://localhost:8000/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.user) {
+        profile.value.name = data.user.nombre || ''
+        profile.value.specialty = data.user.profesional?.especialidad || ''
+        profile.value.description = data.user.profesional?.descripcion || ''
+        profile.value.location = data.user.profesional?.ubicacion || ''
+        profile.value.phone = data.user.profesional?.telefono || ''
+        profile.value.website = data.user.profesional?.sitio_web || ''
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error)
+  }
+})
 
 const saveProfile = async () => {
   const { valid } = await form.value.validate()
@@ -169,24 +197,51 @@ const saveProfile = async () => {
   errorMsg.value = ''
   successMsg.value = ''
 
+  const token = localStorage.getItem('auth_token')
+  const userStr = localStorage.getItem('user')
+  let userId = ''
+  
+  if (userStr) {
+    const user = JSON.parse(userStr)
+    userId = user.id
+  }
+
   try {
-    // Simulating API Call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    console.log('Perfil guardado:', profile.value)
+    const response = await fetch(`http://localhost:8000/api/usuarios/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        nombre: profile.value.name,
+        especialidad: profile.value.specialty,
+        descripcion: profile.value.description,
+        ubicacion: profile.value.location,
+        telefono: profile.value.phone,
+        sitio_web: profile.value.website
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error al actualizar el perfil')
+    }
+
+    console.log('Perfil guardado:', data)
     successMsg.value = '¡Perfil actualizado exitosamente!'
   } catch (err) {
-    errorMsg.value = 'Ocurrió un error al guardar el perfil. Intenta de nuevo.'
+    errorMsg.value = err.message || 'Ocurrió un error al guardar el perfil. Intenta de nuevo.'
   } finally {
     isLoading.value = false
-    // Hide success message after 3 seconds
     setTimeout(() => { successMsg.value = '' }, 3000)
   }
 }
 
 const resetForm = () => {
   form.value.reset()
-  errorMsg.value = ''
-  successMsg.value = ''
 }
 </script>
 

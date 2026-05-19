@@ -114,11 +114,32 @@ const handleLogin = async () => {
   error.value = ''
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    console.log('Login attempt:', { email: email.value, password: password.value })
+    const response = await fetch('http://localhost:8000/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error de autenticación')
+    }
+    
+    // Guardar token y datos del usuario en localStorage
+    localStorage.setItem('auth_token', data.token)
+    localStorage.setItem('user', JSON.stringify(data.user))
+    
+    console.log('Login exitoso:', data)
     router.push('/dashboard')
   } catch (err) {
-    error.value = 'Credenciales incorrectas. Por favor, intenta de nuevo.'
+    error.value = 'Credenciales incorrectas o problema de conexión. Por favor, intenta de nuevo.'
   } finally {
     isLoading.value = false
   }
