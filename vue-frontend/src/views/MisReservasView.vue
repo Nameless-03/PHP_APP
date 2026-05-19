@@ -44,8 +44,21 @@
               </v-row>
 
               <v-row v-else>
+                <!-- PROFESIONAL: Mi Agenda -->
+                <v-col cols="12" md="4">
+                  <v-hover v-slot="{ isHovering, props }">
+                    <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="h-100 rounded-xl cursor-pointer transition-swing border-panel d-flex flex-column align-center text-center pa-6" @click="abrirAgenda">
+                      <v-avatar color="primary" size="80" variant="tonal" class="mb-4">
+                        <v-icon size="40">mdi-calendar-month</v-icon>
+                      </v-avatar>
+                      <h2 class="text-h6 font-weight-bold mb-2 text-grey-darken-3">Mi Agenda</h2>
+                      <p class="text-body-2 text-medium-emphasis">Visualiza y navega por tus turnos diarios programados.</p>
+                    </v-card>
+                  </v-hover>
+                </v-col>
+
                 <!-- PROFESIONAL: Confirmar Reservas -->
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-hover v-slot="{ isHovering, props }">
                     <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="h-100 rounded-xl cursor-pointer transition-swing border-panel d-flex flex-column align-center text-center pa-6" @click="abrirPendientes">
                       <v-avatar color="warning" size="80" variant="tonal" class="mb-4">
@@ -58,7 +71,7 @@
                 </v-col>
 
                 <!-- PROFESIONAL: Historial -->
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-hover v-slot="{ isHovering, props }">
                     <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="h-100 rounded-xl cursor-pointer transition-swing border-panel d-flex flex-column align-center text-center pa-6" @click="abrirHistorial">
                       <v-avatar color="secondary" size="80" variant="tonal" class="mb-4">
@@ -218,6 +231,112 @@
       </v-row>
     </v-fade-transition>
 
+    <!-- PROFESIONAL: MI AGENDA -->
+    <v-fade-transition leave-absolute>
+      <v-row v-if="currentView === 'agenda'" justify="center" align="start" class="mt-4">
+        <v-col cols="12" md="10" lg="8">
+          <v-btn variant="text" prepend-icon="mdi-arrow-left" class="mb-4 text-none font-weight-bold" @click="currentView = 'menu'">
+            Volver al menú
+          </v-btn>
+
+          <v-card class="elevation-4 rounded-xl overflow-hidden border-card">
+            <v-card-text class="pa-0">
+              <div class="brand-header pa-6 text-white d-flex align-center" style="background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);">
+                <v-icon size="36" class="mr-4">mdi-calendar-month</v-icon>
+                <div>
+                  <h1 class="text-h5 font-weight-bold mb-0">Mi Agenda de Turnos</h1>
+                  <p class="text-subtitle-2 opacity-90 mb-0">Navega y consulta tus reservas diarias</p>
+                </div>
+              </div>
+            </v-card-text>
+
+            <v-card-text class="pa-6 bg-grey-lighten-4">
+              <!-- CONTROLES DE FECHA -->
+              <v-card class="rounded-lg border-panel pa-4 mb-6" elevation="0">
+                <v-row align="center" justify="space-between">
+                  <v-col cols="12" sm="auto" class="d-flex align-center justify-center gap-2">
+                    <v-btn icon="mdi-chevron-left" variant="tonal" color="primary" @click="anteriorDia"></v-btn>
+                    <v-btn color="primary" class="text-none font-weight-bold" @click="irAHoy">Hoy</v-btn>
+                    <v-btn icon="mdi-chevron-right" variant="tonal" color="primary" @click="siguienteDia"></v-btn>
+                  </v-col>
+                  
+                  <v-col cols="12" sm="5" class="py-0">
+                    <v-text-field
+                      v-model="fechaSeleccionada"
+                      type="date"
+                      label="Seleccionar fecha"
+                      variant="outlined"
+                      density="compact"
+                      color="primary"
+                      hide-details
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <v-divider class="my-4"></v-divider>
+
+                <!-- FECHA SELECCIONADA CON FORMATO EN ESPAÑOL -->
+                <div class="text-center">
+                  <h3 class="text-h6 font-weight-bold text-grey-darken-3 text-capitalize">
+                    {{ formatDateLong(fechaSeleccionada) }}
+                  </h3>
+                </div>
+              </v-card>
+
+              <!-- CARGANDO -->
+              <div v-if="cargandoHistorial" class="text-center py-8">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              </div>
+
+              <!-- LISTADO DE TURNOS -->
+              <v-row v-else-if="reservasFiltradasPorFecha.length > 0">
+                <v-col cols="12" v-for="reserva in reservasFiltradasPorFecha" :key="reserva.id">
+                  <v-card class="rounded-lg border-panel" elevation="0">
+                    <v-card-text class="d-flex align-center flex-wrap">
+                      <!-- HORA EN GRANDE -->
+                      <div class="time-block text-center mr-6 px-4 py-2 bg-white rounded-lg border-panel" style="min-width: 100px;">
+                        <span class="text-h6 font-weight-bold text-primary">{{ formatTime(reserva.fecha_hora_inicio) }}</span>
+                        <v-divider class="my-1"></v-divider>
+                        <span class="text-caption text-medium-emphasis">Inicio</span>
+                      </div>
+
+                      <!-- INFORMACIÓN DEL TURNO -->
+                      <div class="flex-grow-1 mr-4">
+                        <h4 class="text-h6 font-weight-bold text-grey-darken-3 mb-1">
+                          {{ reserva.servicio?.nombre }}
+                        </h4>
+                        <p class="text-body-2 mb-0">
+                          <strong>Cliente:</strong> {{ reserva.cliente?.nombre || 'No especificado' }} <br>
+                          <strong>Duración:</strong> {{ reserva.servicio?.duracion }} mins
+                        </p>
+                      </div>
+
+                      <!-- ESTADO Y ACCIONES -->
+                      <div class="d-flex align-center gap-2 mt-3 mt-sm-0">
+                        <v-chip size="small" :color="getColorEstado(reserva.estado)" class="font-weight-bold text-uppercase mr-2">
+                          {{ reserva.estado }}
+                        </v-chip>
+                        <v-btn color="secondary" variant="outlined" class="text-none font-weight-bold" @click="verDetallesReserva(reserva)">
+                          Ver Detalles
+                        </v-btn>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+
+              <!-- ESTADO VACÍO (NO HAY TURNOS AGENDADOS) -->
+              <div v-else class="text-center py-12 bg-white rounded-lg border-panel">
+                <v-icon size="64" color="grey">mdi-calendar-blank</v-icon>
+                <h3 class="mt-4 text-h6 font-weight-bold text-grey-darken-3">No hay turnos agendados</h3>
+                <p class="text-body-1 text-medium-emphasis">No tienes turnos o reservas programadas para este día.</p>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-fade-transition>
+
     <!-- AMBOS: HISTORIAL DE RESERVAS -->
     <v-fade-transition leave-absolute>
       <v-row v-if="currentView === 'historial'" justify="center" align="start" class="mt-4">
@@ -283,6 +402,114 @@
         </v-col>
       </v-row>
     </v-fade-transition>
+
+    <!-- DETALLES DE RESERVA DIALOG -->
+    <v-dialog v-model="detalleDialog" max-width="500px">
+      <v-card class="rounded-xl overflow-hidden">
+        <v-card-title class="brand-header text-white pa-4 d-flex justify-space-between align-center">
+          <div class="d-flex align-center">
+            <v-icon class="mr-2">mdi-calendar-clock</v-icon>
+            <span class="text-h6 font-weight-bold">Detalle del Turno</span>
+          </div>
+          <v-spacer></v-spacer>
+          <v-btn icon="mdi-close" variant="text" color="white" @click="detalleDialog = false"></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <div v-if="reservaSeleccionada">
+            <!-- Servicio y Estado -->
+            <div class="d-flex align-center justify-space-between mb-4">
+              <h3 class="text-h6 font-weight-bold text-grey-darken-3">{{ reservaSeleccionada.servicio?.nombre }}</h3>
+              <v-chip size="small" :color="getColorEstado(reservaSeleccionada.estado)" class="font-weight-bold text-uppercase">
+                {{ reservaSeleccionada.estado }}
+              </v-chip>
+            </div>
+
+            <v-divider class="mb-4"></v-divider>
+
+            <!-- Datos de Fecha/Hora/Duración -->
+            <v-row class="mb-2">
+              <v-col cols="6" class="py-1">
+                <div class="text-caption text-medium-emphasis">Fecha</div>
+                <div class="text-body-1 font-weight-semibold">{{ formatDateShort(reservaSeleccionada.fecha_hora_inicio).split(' ')[0] }}</div>
+              </v-col>
+              <v-col cols="6" class="py-1">
+                <div class="text-caption text-medium-emphasis">Horario</div>
+                <div class="text-body-1 font-weight-semibold">
+                  {{ formatTime(reservaSeleccionada.fecha_hora_inicio) }} - {{ formatTime(reservaSeleccionada.fecha_hora_fin) }}
+                </div>
+              </v-col>
+              <v-col cols="6" class="py-1">
+                <div class="text-caption text-medium-emphasis">Duración</div>
+                <div class="text-body-1 font-weight-semibold">{{ reservaSeleccionada.servicio?.duracion }} minutos</div>
+              </v-col>
+              <v-col cols="6" class="py-1">
+                <div class="text-caption text-medium-emphasis">Precio</div>
+                <div class="text-body-1 font-weight-semibold text-success">${{ reservaSeleccionada.servicio?.precio }}</div>
+              </v-col>
+              <v-col cols="6" class="py-1">
+                <div class="text-caption text-medium-emphasis">Modalidad</div>
+                <div class="text-body-1 font-weight-semibold text-capitalize">{{ reservaSeleccionada.servicio?.modalidad }}</div>
+              </v-col>
+              <v-col cols="6" class="py-1" v-if="reservaSeleccionada.servicio?.ubicacion">
+                <div class="text-caption text-medium-emphasis">Ubicación</div>
+                <div class="text-body-1 font-weight-semibold">{{ reservaSeleccionada.servicio?.ubicacion }}</div>
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-4"></v-divider>
+
+            <!-- Información del Cliente -->
+            <h4 class="text-subtitle-1 font-weight-bold text-grey-darken-3 mb-2">Información del Cliente</h4>
+            
+            <div class="d-flex align-center mb-3">
+              <v-avatar color="primary" variant="tonal" size="40" class="mr-3">
+                <v-icon>mdi-account</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-caption text-medium-emphasis">Nombre</div>
+                <div class="text-body-1 font-weight-medium">{{ reservaSeleccionada.cliente?.nombre || 'No especificado' }}</div>
+              </div>
+            </div>
+
+            <div class="d-flex align-center mb-3" v-if="reservaSeleccionada.cliente?.email">
+              <v-avatar color="secondary" variant="tonal" size="40" class="mr-3">
+                <v-icon>mdi-email</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-caption text-medium-emphasis">Correo electrónico</div>
+                <div class="text-body-1 font-weight-medium">{{ reservaSeleccionada.cliente?.email }}</div>
+              </div>
+            </div>
+
+            <div class="d-flex align-center mb-3" v-if="reservaSeleccionada.cliente?.telefono">
+              <v-avatar color="success" variant="tonal" size="40" class="mr-3">
+                <v-icon>mdi-phone</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-caption text-medium-emphasis">Teléfono</div>
+                <div class="text-body-1 font-weight-medium">{{ reservaSeleccionada.cliente?.telefono }}</div>
+              </div>
+            </div>
+
+            <!-- Observaciones -->
+            <div v-if="reservaSeleccionada.observaciones" class="mt-4">
+              <v-divider class="mb-4"></v-divider>
+              <div class="text-caption text-medium-emphasis">Observaciones del Cliente</div>
+              <v-alert type="info" variant="tonal" class="mt-1 text-body-2 rounded-lg pa-2" density="compact" icon="mdi-information-outline">
+                {{ reservaSeleccionada.observaciones }}
+              </v-alert>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-grey-lighten-4 d-flex justify-end">
+          <v-btn color="primary" variant="flat" class="text-none font-weight-bold px-4 rounded-lg" @click="detalleDialog = false">
+            Entendido
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
       {{ snackbar.text }}
@@ -397,15 +624,76 @@ if (isCliente.value) {
   // En onMounted es mas fácil, pero dejémoslo ondemand
 }
 
-// === HISTORIAL Y PENDIENTES ===
+// === HISTORIAL, PENDIENTES Y AGENDA ===
 const reservasBackend = ref([])
 const cargandoHistorial = ref(false)
+
+const fechaSeleccionada = ref(new Date().toISOString().split('T')[0])
+const detalleDialog = ref(false)
+const reservaSeleccionada = ref(null)
 
 const reservasPendientes = computed(() => reservasBackend.value.filter(r => r.estado === 'pendiente'))
 const reservasHistorial = computed(() => {
   if (isCliente.value) return reservasBackend.value // Cliente ve todas en historial
   return reservasBackend.value.filter(r => r.estado !== 'pendiente') // Profesional ve solo procesadas
 })
+
+const reservasFiltradasPorFecha = computed(() => {
+  if (!fechaSeleccionada.value) return []
+  return reservasBackend.value.filter(r => {
+    if (!r.fecha_hora_inicio) return false
+    const datePart = r.fecha_hora_inicio.substring(0, 10)
+    return datePart === fechaSeleccionada.value
+  }).sort((a, b) => new Date(a.fecha_hora_inicio) - new Date(b.fecha_hora_inicio))
+})
+
+const anteriorDia = () => {
+  const current = new Date(fechaSeleccionada.value + 'T12:00:00')
+  current.setDate(current.getDate() - 1)
+  fechaSeleccionada.value = current.toISOString().split('T')[0]
+}
+
+const siguienteDia = () => {
+  const current = new Date(fechaSeleccionada.value + 'T12:00:00')
+  current.setDate(current.getDate() + 1)
+  fechaSeleccionada.value = current.toISOString().split('T')[0]
+}
+
+const irAHoy = () => {
+  fechaSeleccionada.value = new Date().toISOString().split('T')[0]
+}
+
+const abrirAgenda = () => {
+  currentView.value = 'agenda'
+  cargarHistorialReservas()
+}
+
+const abrirPendientes = () => {
+  currentView.value = 'pendientes'
+  cargarHistorialReservas()
+}
+
+const abrirHistorial = () => {
+  currentView.value = 'historial'
+  cargarHistorialReservas()
+}
+
+const verDetallesReserva = (reserva) => {
+  reservaSeleccionada.value = reserva
+  detalleDialog.value = true
+}
+
+const formatTime = (dateString) => {
+  if (!dateString) return ''
+  const d = new Date(dateString)
+  return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+const formatDateLong = (dateString) => {
+  if (!dateString) return ''
+  const d = new Date(dateString + 'T12:00:00')
+  return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
 
 const cargarHistorialReservas = async () => {
   cargandoHistorial.value = true
@@ -418,16 +706,6 @@ const cargarHistorialReservas = async () => {
   } catch (err) { console.error(err) } finally {
     cargandoHistorial.value = false
   }
-}
-
-const abrirHistorial = () => {
-  currentView.value = 'historial'
-  cargarHistorialReservas()
-}
-
-const abrirPendientes = () => {
-  currentView.value = 'pendientes'
-  cargarHistorialReservas()
 }
 
 const cambiarEstadoReserva = async (id, estado) => {

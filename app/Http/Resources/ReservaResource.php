@@ -25,10 +25,12 @@ class ReservaResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             
             // Relaciones opcionales
-            'cliente' => clone $this->whenLoaded('cliente', function () {
+            'cliente' => $this->whenLoaded('cliente', function () {
                 return [
                     'id_usuario' => $this->cliente->id_usuario,
                     'nombre' => $this->cliente->usuario ? $this->cliente->usuario->nombre : null,
+                    'email' => $this->cliente->usuario ? $this->cliente->usuario->email : null,
+                    'telefono' => $this->cliente->telefono,
                 ];
             }),
             'servicio' => new ServicioResource($this->whenLoaded('servicio')),

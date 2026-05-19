@@ -72,6 +72,22 @@
               </v-col>
 
               <v-col cols="12">
+                <v-combobox
+                  v-model="service.category"
+                  :items="categoriesList"
+                  item-title="nombre"
+                  item-value="id"
+                  label="Categoría del Servicio"
+                  placeholder="Selecciona una categoría o escribe una nueva..."
+                  variant="outlined"
+                  prepend-inner-icon="mdi-shape-outline"
+                  color="primary"
+                  :rules="[rules.required]"
+                  hide-no-data
+                ></v-combobox>
+              </v-col>
+
+              <v-col cols="12">
                 <p class="text-subtitle-2 text-medium-emphasis mb-2">Modalidad de Atención</p>
                 <v-btn-toggle
                   v-model="service.modality"
@@ -145,6 +161,10 @@
                       {{ item.modality }}
                     </v-chip>
                   </div>
+                  <div v-if="item.category" class="d-flex align-center mb-2">
+                    <v-icon size="x-small" class="mr-1" color="grey">mdi-shape-outline</v-icon>
+                    <span class="text-caption text-medium-emphasis">{{ item.category }}</span>
+                  </div>
                   <p class="text-body-2 text-medium-emphasis text-truncate mb-2">{{ item.description }}</p>
                   <div class="d-flex justify-space-between align-center">
                     <span class="text-caption font-weight-medium text-grey-darken-1">
@@ -183,38 +203,62 @@ const service = ref({
   description: '',
   duration: '',
   price: '',
-  modality: 'presencial'
+  modality: 'presencial',
+  category: null
 })
 
+const categoriesList = ref([])
 const publishedServices = ref([])
+
+const loadCategories = async () => {
+  try {
+    const response = await fetch('http://localhost:8000/api/categorias', {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    if (response.ok) {
+      const data = await response.json()
+      categoriesList.value = data.data || data
+    }
+  } catch (error) {
+    console.error('Error loading categories:', error)
+  }
+}
 
 onMounted(async () => {
   const token = localStorage.getItem('auth_token')
   if (!token) return
 
-  try {
-    const response = await fetch('http://localhost:8000/api/servicios', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
+  // Cargar categorías y servicios en paralelo
+  await Promise.all([
+    loadCategories(),
+    (async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/servicios', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          const apiServices = data.data || data
+          publishedServices.value = apiServices.map(s => ({
+            name: s.nombre,
+            description: s.descripcion,
+            duration: s.duracion,
+            price: s.precio,
+            modality: s.modalidad,
+            category: s.categoria?.nombre || 'Sin categoría'
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error)
       }
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      // Si la API devuelve los servicios en un array 'data'
-      const apiServices = data.data || data
-      publishedServices.value = apiServices.map(s => ({
-        name: s.nombre,
-        description: s.descripcion,
-        duration: s.duracion,
-        price: s.precio,
-        modality: s.modalidad
-      }))
-    }
-  } catch (error) {
-    console.error('Error fetching services:', error)
-  }
+    })()
+  ])
 })
 
 const rules = {
@@ -249,6 +293,11 @@ const saveService = async () => {
   successMsg.value = ''
 
   const token = localStorage.getItem('auth_token')
+  const catVal = service.value.category
+  
+  // Si catVal es un objeto (ej: {id: 1, nombre: "Tecnología"}), enviamos el id.
+  // Si es un string (nueva categoría), enviamos el string.
+  const idCategoria = (typeof catVal === 'object' && catVal !== null) ? catVal.id : catVal
 
   try {
     const response = await fetch('http://localhost:8000/api/servicios', {
@@ -264,7 +313,7 @@ const saveService = async () => {
         duracion: parseInt(service.value.duration),
         precio: parseFloat(service.value.price),
         modalidad: service.value.modality,
-        id_categoria: 1
+        id_categoria: idCategoria
       })
     })
 
@@ -282,12 +331,17 @@ const saveService = async () => {
       description: s.descripcion,
       duration: s.duracion,
       price: s.precio,
-      modality: s.modalidad
+      modality: s.modalidad,
+      category: s.categoria?.nombre || 'Sin categoría'
     })
     
     successMsg.value = 'Servicio guardado exitosamente.'
     form.value.reset()
     service.value.modality = 'presencial'
+    service.value.category = null
+    
+    // Recargar las categorías de la API en caso de que se haya creado una nueva
+    await loadCategories()
     
   } catch (err) {
     errorMsg.value = err.message || 'Error al guardar el servicio. Intenta de nuevo.'
@@ -300,6 +354,7 @@ const saveService = async () => {
 const resetForm = () => {
   form.value.reset()
   service.value.modality = 'presencial'
+  service.value.category = null
   errorMsg.value = ''
   successMsg.value = ''
 }

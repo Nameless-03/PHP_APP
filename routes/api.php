@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ExcepcionAgendaController;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\TurnosDisponiblesController;
+use App\Http\Controllers\Api\CategoriaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +40,9 @@ Route::prefix('usuarios')->middleware('auth:sanctum')->group(function () {
     Route::get('/{id}', [UsuarioController::class, 'show']);
     Route::put('/{id}', [UsuarioController::class, 'update']);
 });
+
+// Categorías
+Route::get('/categorias', [CategoriaController::class, 'index']);
 
 // Catálogo de Servicios (Público para ver, protegido para crear/editar)
 Route::prefix('servicios')->group(function () {
