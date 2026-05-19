@@ -10,46 +10,48 @@ Set-Location $projectRoot
 # --- 1. BACKEND (Laravel) ---
 Write-Host "`n[1/4] Verificando Backend (Laravel/Docker)..." -ForegroundColor Yellow
 
-$backendPath = Join-Path $projectRoot "laravel-temp"
-if (Test-Path $backendPath) {
-    Set-Location $backendPath
+$backendPath = $projectRoot
+Set-Location $backendPath
 
-    # Verificar e instalar dependencias de PHP (Necesario para construir Sail la primera vez)
-    if (Test-Path "composer.json") {
-        if (Test-Path "vendor") {
-            Write-Host "Las dependencias de PHP ya están instaladas. Saltando..." -ForegroundColor Green
-        } else {
-            Write-Host "Instalando dependencias de Composer..." -ForegroundColor Yellow
-            $composerPhar = Join-Path $projectRoot "composer.phar"
-            if (Test-Path $composerPhar) {
-                php $composerPhar install
-            } else {
-                composer install
-            }
-        }
-    }
-
-    # Configuración del entorno
-    if (-not (Test-Path ".env")) {
-        if (Test-Path ".env.example") {
-            Write-Host "Copiando .env.example a .env..." -ForegroundColor Yellow
-            Copy-Item ".env.example" ".env"
-        } else {
-            Write-Host "Advertencia: No se encontró .env ni .env.example" -ForegroundColor Red
-        }
-    }
-
-    if (Test-Path "docker-compose.yml") {
-        Write-Host "[2/4] Iniciando contenedores Docker (Laravel Sail)..." -ForegroundColor Green
-        # Iniciamos Docker, luego generamos la key (solo funciona si el contenedor está arriba) y opcionalmente corremos migraciones
-        Start-Process "cmd.exe" -ArgumentList "/k title Backend Docker && cd ""$backendPath"" && docker-compose up -d && echo Generando Key... && docker-compose exec -T laravel.test php artisan key:generate && echo Contenedores en ejecucion!"
+# Verificar e instalar dependencias de PHP (Necesario para construir Sail la primera vez)
+if (Test-Path "composer.json") {
+    if (Test-Path "vendor") {
+        Write-Host "Las dependencias de PHP ya están instaladas. Saltando..." -ForegroundColor Green
     } else {
-        Write-Host "[2/4] Iniciando servidor local (PHP Artisan)..." -ForegroundColor Green
-        Start-Process "cmd.exe" -ArgumentList "/k title Backend Laravel && cd ""$backendPath"" && php artisan serve"
+        Write-Host "Instalando dependencias de Composer..." -ForegroundColor Yellow
+        $composerPhar = Join-Path $projectRoot "composer.phar"
+        if (Test-Path $composerPhar) {
+            php $composerPhar install
+        } else {
+            composer install
+        }
     }
+}
 
+# Configuración del entorno
+if (-not (Test-Path ".env")) {
+    if (Test-Path ".env.example") {
+        Write-Host "Copiando .env.example a .env..." -ForegroundColor Yellow
+        Copy-Item ".env.example" ".env"
+    } else {
+        Write-Host "Advertencia: No se encontró .env ni .env.example" -ForegroundColor Red
+    }
+}
+
+if (Test-Path "docker-compose.yml") {
+    Write-Host "[2/4] Iniciando contenedores Docker (Laravel Sail)..." -ForegroundColor Green
+    
+    $rebuild = Read-Host "¿Deseas forzar la limpieza y reconstrucción de los contenedores? (s/N)"
+    if ($rebuild -match "^[sS]") {
+        Write-Host "      Limpiando contenedores antiguos y forzando reconstrucción (Esto tomará varios minutos)..." -ForegroundColor Yellow
+        Start-Process "cmd.exe" -ArgumentList "/k title Backend Docker && cd ""$backendPath"" && docker-compose down && docker-compose up --build --force-recreate"
+    } else {
+        Write-Host "      (Nota: Si es la primera vez, Docker puede tardar entre 5 a 15 minutos descargando la imagen. ¡Paciencia!)" -ForegroundColor Cyan
+        Start-Process "cmd.exe" -ArgumentList "/k title Backend Docker && cd ""$backendPath"" && docker-compose up"
+    }
 } else {
-    Write-Host "No se encontró el directorio laravel-temp para el Backend." -ForegroundColor Red
+    Write-Host "[2/4] Iniciando servidor local (PHP)..." -ForegroundColor Green
+    Start-Process "cmd.exe" -ArgumentList "/k title Backend Laravel && cd ""$backendPath"" && php artisan serve"
 }
 
 # --- 2. FRONTEND (Vue) ---
