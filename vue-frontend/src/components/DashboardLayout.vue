@@ -99,8 +99,30 @@ onMounted(() => {
   }
 })
 
-const logout = () => {
+const logout = async () => {
+  const token = localStorage.getItem('auth_token')
+
+  // Limpiar el estado de autenticación en el cliente de inmediato
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user')
+
+  // Redirigir a la pantalla de Inicio de Sesión
   router.push('/login')
+
+  // Opcional y recomendado: invalidar el token en el servidor en segundo plano
+  if (token) {
+    try {
+      await fetch('http://localhost:8000/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      })
+    } catch (e) {
+      console.error('Error al revocar el token en el servidor:', e)
+    }
+  }
 }
 </script>
 
