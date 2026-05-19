@@ -7,6 +7,8 @@ Write-Host "=================================================" -ForegroundColor 
 # Mover a la raíz del proyecto
 Set-Location $projectRoot
 
+$runMigrations = Read-Host "¿Deseas inicializar el proyecto (key:generate, migraciones y seeders)? (Recomendado la primera vez) (s/N)"
+
 # --- 1. BACKEND (Laravel) ---
 Write-Host "`n[1/4] Verificando Backend (Laravel/Docker)..." -ForegroundColor Yellow
 
@@ -41,17 +43,30 @@ if (-not (Test-Path ".env")) {
 if (Test-Path "docker-compose.yml") {
     Write-Host "[2/4] Iniciando contenedores Docker (Laravel Sail)..." -ForegroundColor Green
     
+    $migrateCmd = ""
+    $dockerMode = "up"
+    if ($runMigrations -match "^[sS]") {
+        $dockerMode = "up -d"
+        $migrateCmd = " && echo Esperando a que la base de datos inicie (15s)... && timeout /t 15 && docker-compose exec laravel.test php artisan key:generate && docker-compose exec laravel.test php artisan migrate --seed && echo Listo, adjuntando logs... && docker-compose logs -f"
+    }
+
     $rebuild = Read-Host "¿Deseas forzar la limpieza y reconstrucción de los contenedores? (s/N)"
     if ($rebuild -match "^[sS]") {
         Write-Host "      Limpiando contenedores antiguos y forzando reconstrucción (Esto tomará varios minutos)..." -ForegroundColor Yellow
-        Start-Process "cmd.exe" -ArgumentList "/k title Backend Docker && cd ""$backendPath"" && docker-compose down && docker-compose up --build --force-recreate"
+        Start-Process "cmd.exe" -ArgumentList "/k title Backend Docker && cd ""$backendPath"" && docker-compose down && docker-compose up --build -d $migrateCmd"
     } else {
         Write-Host "      (Nota: Si es la primera vez, Docker puede tardar entre 5 a 15 minutos descargando la imagen. ¡Paciencia!)" -ForegroundColor Cyan
-        Start-Process "cmd.exe" -ArgumentList "/k title Backend Docker && cd ""$backendPath"" && docker-compose up"
+        Start-Process "cmd.exe" -ArgumentList "/k title Backend Docker && cd ""$backendPath"" && docker-compose $dockerMode $migrateCmd"
     }
 } else {
     Write-Host "[2/4] Iniciando servidor local (PHP)..." -ForegroundColor Green
-    Start-Process "cmd.exe" -ArgumentList "/k title Backend Laravel && cd ""$backendPath"" && php artisan serve"
+    
+    $migrateCmdLocal = ""
+    if ($runMigrations -match "^[sS]") {
+        $migrateCmdLocal = "php artisan key:generate && php artisan migrate --seed && "
+    }
+    
+    Start-Process "cmd.exe" -ArgumentList "/k title Backend Laravel && cd ""$backendPath"" && $migrateCmdLocal php artisan serve"
 }
 
 # --- 2. FRONTEND (Vue) ---
@@ -62,10 +77,11 @@ if (Test-Path $vuePath) {
     Set-Location $vuePath
     
     # Instalar dependencias de NPM
-    if (Test-Path "node_modules") {
-        Write-Host "Las dependencias de NPM ya están instaladas. Saltando..." -ForegroundColor Green
+    # Validamos que no solo exista node_modules, sino también los binarios (ej. vite)
+    if ((Test-Path "node_modules") -and ((Test-Path "node_modules\.bin\vite") -or (Test-Path "node_modules\.bin\vite.cmd"))) {
+        Write-Host "Las dependencias de NPM ya están instaladas correctamente. Saltando..." -ForegroundColor Green
     } else {
-        Write-Host "Instalando dependencias de NPM..." -ForegroundColor Yellow
+        Write-Host "Instalando dependencias de NPM (esto puede tardar un poco)..." -ForegroundColor Yellow
         npm install
     }
     
