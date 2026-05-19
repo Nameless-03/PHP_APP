@@ -8,6 +8,7 @@ import BusquedaServiciosView from '../views/BusquedaServiciosView.vue'
 
 import MisHorariosView from '../views/MisHorariosView.vue'
 import MisReservasView from '../views/MisReservasView.vue'
+import MiAgendaView from '../views/MiAgendaView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -60,6 +61,12 @@ const router = createRouter({
       path: '/mis-reservas',
       name: 'mis-reservas',
       component: MisReservasView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mi-agenda',
+      name: 'mi-agenda',
+      component: MiAgendaView,
       meta: { requiresAuth: true }
     }
   ]
