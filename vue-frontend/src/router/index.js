@@ -41,15 +41,9 @@ const router = createRouter({
       component: GestionServiciosView
     },
     {
-<<<<<<< Updated upstream
-      path: '/mis-horarios',
-      name: 'mis-horarios',
-      component: MisHorariosView
-=======
       path: '/buscar',
       name: 'search',
       component: BusquedaServiciosView
->>>>>>> Stashed changes
     }
   ]
 })
