@@ -1,0 +1,114 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║              PLATAFORMA DE GESTIÓN DE SERVICIOS - LARAVEL 11                  ║
+║                         Script de Instalación Automático                      ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+🚀 INICIO RÁPIDO - Elige Una Opción:
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 1. INSTALACIÓN AUTOMÁTICA (RECOMENDADO)                                       │
+│                                                                               │
+│    Solo necesitas hacer doble clic en uno de estos archivos:                 │
+│                                                                               │
+│    📁 instalar.bat                                                           │
+│    📁 install.ps1                                                            │
+│                                                                               │
+│    El script hará todo automáticamente:                                      │
+│    ✓ Verifica PHP 8.2+                                                       │
+│    ✓ Descarga e instala Composer                                             │
+│    ✓ Crea proyecto Laravel 11                                                │
+│    ✓ Instala LiveKit, OAuth Google, PayPal                                   │
+│    ✓ Configura variables de entorno                                          │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 2. O USA TU CONSOLA (PowerShell)                                              │
+│                                                                               │
+│    Abre PowerShell y ejecuta:                                                │
+│    $ Set-ExecutionPolicy Bypass -Scope Process -Force                        │
+│    $ .\install.ps1                                                           │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+📋 ARCHIVOS DISPONIBLES:
+
+Instalación:
+  📄 install.ps1                    → Script principal de instalación
+  📄 instalar.bat                   → Atajo para ejecutar por doble clic
+  📄 README_INSTALACION.md          → Documentación completa
+  📄 GUIA_RAPIDA.md                → Guía rápida para empezar
+
+Configuración Post-Instalación:
+  📄 configure.ps1                  → Configurador interactivo
+  📄 configurar.bat                 → Atajo para ejecutar por doble clic
+
+📚 DOCUMENTACIÓN:
+
+  1. GUIA_RAPIDA.md              → Lee esto primero (2 min)
+  2. README_INSTALACION.md       → Documentación completa (10 min)
+  3. CapaNegocio/                → Tu lógica de negocio PHP
+
+⚠️ REQUISITOS MÍNIMOS:
+
+  ✓ Windows 10 o posterior
+  ✓ PowerShell 5.0 o superior
+  ✓ 5 GB de espacio libre
+  ✓ Conexión a Internet
+
+🎯 PASO A PASO:
+
+  1. Lee GUIA_RAPIDA.md (2 minutos)
+
+  2. Haz doble clic en: instalar.bat
+
+  3. Sigue las instrucciones que aparecen en pantalla
+
+  4. Proporciona datos de:
+     - PostgreSQL (base de datos)
+     - LiveKit (opcional, videollamadas)
+     - Google OAuth (opcional, login)
+     - PayPal (opcional, pagos)
+
+  5. Al terminar, haz doble clic en: configurar.bat
+
+  6. Elige la opción 4 para iniciar el servidor
+
+  7. Abre http://localhost:8000 en el navegador
+
+✨ EL SCRIPT INSTALA:
+
+  ✓ PHP 8.2+
+  ✓ Composer
+  ✓ Laravel 11
+  ✓ PostgreSQL (opcional)
+
+  Paquetes PHP:
+  ✓ Laravel Sanctum (autenticación API)
+  ✓ LiveKit SDK (videollamadas)
+  ✓ Guzzle (cliente HTTP)
+  ✓ Laravel Socialite (OAuth)
+  ✓ PayPal SDK (pagos)
+  ✓ Predis (Redis)
+  ✓ Y más...
+
+🆘 PROBLEMAS?
+
+  • Error "PHP no instalado"    → Ver GUIA_RAPIDA.md
+  • Error "Cannot execute"      → Ver README_INSTALACION.md
+  • Error de base de datos      → Ver README_INSTALACION.md
+  • ¿Otra cosa?                 → Consulta la documentación
+
+📞 CONTACTO:
+
+  Si tienes problemas o preguntas, contacta al equipo de desarrollo
+  con el mensaje de error específico.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+¿LISTO? HAZ DOBLE CLIC EN: instalar.bat
+
+═══════════════════════════════════════════════════════════════════════════════
+
