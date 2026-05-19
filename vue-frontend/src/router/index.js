@@ -47,21 +47,21 @@ const router = createRouter({
     {
       path: '/buscar',
       name: 'search',
-      component: BusquedaServiciosView
+      component: BusquedaServiciosView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/mis-horarios',
       name: 'mis-horarios',
       component: MisHorariosView,
       meta: { requiresAuth: true }
-    }
-      component: MisHorariosView
     },
     {
       path: '/mis-reservas',
       name: 'mis-reservas',
-      component: MisReservasView
-    },
+      component: MisReservasView,
+      meta: { requiresAuth: true }
+    }
   ]
 })
 
