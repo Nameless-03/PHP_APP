@@ -29,34 +29,60 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: PanelPrincipalView
+      component: PanelPrincipalView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/profile',
       name: 'profile',
-      component: PerfilProfesionalView
+      component: PerfilProfesionalView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/services',
       name: 'services',
-      component: GestionServiciosView
+      component: GestionServiciosView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/buscar',
       name: 'search',
-      component: BusquedaServiciosView
+      component: BusquedaServiciosView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/mis-horarios',
       name: 'mis-horarios',
-      component: MisHorariosView
+      component: MisHorariosView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/mis-reservas',
       name: 'mis-reservas',
-      component: MisReservasView
-    },
+      component: MisReservasView,
+      meta: { requiresAuth: true }
+    }
   ]
 })
 
+// Guardia de navegación global (Navigation Guard) para proteger rutas
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('auth_token')
+
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!isAuthenticated) {
+      // Si la ruta requiere autenticación y no hay token, redirigir a login
+      next({ name: 'login' })
+    } else {
+      next() // Permitir la navegación
+    }
+  } else if ((to.name === 'login' || to.name === 'register') && isAuthenticated) {
+    // Si el usuario ya está autenticado e intenta ir a login o registro, redirigir a dashboard
+    next({ name: 'dashboard' })
+  } else {
+    next() // En cualquier otro caso, continuar navegación
+  }
+})
+
 export default router
+
