@@ -177,11 +177,45 @@ const handleRegister = async () => {
   error.value = ''
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    console.log(`Registrando ${roleTab.value}:`, formData.value)
-    router.push('/dashboard')
+    const endpoint = roleTab.value === 'cliente' 
+      ? 'http://localhost:8000/api/auth/register/cliente' 
+      : 'http://localhost:8000/api/auth/register/profesional'
+      
+    const payload = {
+      nombre: formData.value.nombre,
+      email: formData.value.email,
+      password: formData.value.password,
+      password_confirmation: formData.value.password_confirmation,
+    }
+
+    if (roleTab.value === 'profesional') {
+      payload.modalidad_preferida = formData.value.modalidad_preferida
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      let errorMessage = data.message || 'Error en el registro';
+      if (data.errors) {
+        const firstErrorKey = Object.keys(data.errors)[0];
+        errorMessage = data.errors[firstErrorKey][0];
+      }
+      throw new Error(errorMessage)
+    }
+    
+    console.log(`Usuario registrado con éxito:`, data)
+    router.push('/login')
   } catch (err) {
-    error.value = 'Ocurrió un error al registrar. Intenta de nuevo.'
+    error.value = err.message || 'Ocurrió un error al registrar. Intenta de nuevo.'
   } finally {
     isLoading.value = false
   }
