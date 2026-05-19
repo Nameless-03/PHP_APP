@@ -86,6 +86,7 @@ Route::prefix('reservas')->middleware('auth:sanctum')->group(function () {
 
     // Cambiar estado (confirmar, cancelar, etc)
     Route::patch('/{reserva}/estado', [ReservaController::class, 'updateEstado']);
+    Route::patch('/{reserva}/reprogramar', [ReservaController::class, 'reprogramar']);
 });
 
 // Pagos
