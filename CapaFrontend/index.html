@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Meetings</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <v-app>
+            <v-main>
+                <v-container fluid class="fill-height pa-0">
+                    <v-row no-gutters class="fill-height">
+                        <!-- Left Panel -->
+                        <v-col cols="12" md="6" class="left-panel d-none d-md-flex">
+                            <div>
+                                <div class="d-flex align-center justify-center mb-12">
+                                    <v-icon large color="white">mdi-briefcase-variant</v-icon>
+                                </div>
+                                <h1 class="welcome-title">
+                                    Bienvenido
+                                </h1>
+                                <p class="welcome-paragraph">
+                                    Organiza tus reuniones de negocio de forma eficiente y profesional.
+                                </p>
+                            </div>
+                        </v-col>
+
+                        <!-- Right Panel -->
+                        <v-col cols="12" md="6" class="right-panel d-flex align-center justify-center">
+                            <!-- Login View -->
+                            <v-sheet v-if="currentPage === 'login'" color="transparent" width="100%" max-width="450" class="pa-8">
+                                <h2 class="text-h4 font-weight-light mb-8">Iniciar Sesión</h2>
+                                <v-form>
+                                    <v-text-field label="Correo Electrónico" v-model="loginForm.email" solo rounded flat background-color="white" class="mb-4"></v-text-field>
+                                    <v-text-field label="Contraseña" v-model="loginForm.password" type="password" solo rounded flat background-color="white"></v-text-field>
+                                    <div class="d-flex align-center mt-2">
+                                        <v-checkbox label="Recordarme"></v-checkbox>
+                                        <v-spacer></v-spacer>
+                                        <a href="#" class="text-decoration-none" style="color: #8C6D46;">¿Olvidó su contraseña?</a>
+                                    </div>
+                                    <v-btn block large class="white login-button mt-6" color="transparent">Login</v-btn>
+                                    <div class="text-center mt-12">
+                                        <p class="mb-4">¿No tienes una cuenta?</p>
+                                        <v-btn block large class="register-button-gradient" @click="switchTo('register')">Registrarse</v-btn>
+                                    </div>
+                                </v-form>
+                            </v-sheet>
+
+                            <!-- Register View -->
+                            <v-sheet v-else-if="currentPage === 'register'" color="transparent" width="100%" max-width="450" class="pa-8">
+                                <h2 class="text-h4 font-weight-light mb-8">Crear Cuenta</h2>
+                                <v-form>
+                                    <v-text-field label="Nombre Completo" v-model="registerForm.name" solo rounded flat background-color="white" class="mb-4"></v-text-field>
+                                    <v-text-field label="Correo Electrónico" v-model="registerForm.email" solo rounded flat background-color="white" class="mb-4"></v-text-field>
+                                    <v-text-field label="Contraseña" v-model="registerForm.password" type="password" solo rounded flat background-color="white"></v-text-field>
+                                    <v-btn block large class="register-button-gradient mt-8" @click="register">Crear Cuenta</v-btn>
+                                    <div class="text-center mt-12">
+                                        <a href="#" class="text-decoration-none" style="color: #8C6D46;" @click.prevent="switchTo('login')">Volver a Inicio de Sesión</a>
+                                    </div>
+                                </v-form>
+                            </v-sheet>
+
+                            <!-- Success Message -->
+                            <v-sheet v-else-if="currentPage === 'success'" color="transparent" width="100%" max-width="450" class="pa-8 text-center">
+                                <v-icon size="80" color="green">mdi-check-circle-outline</v-icon>
+                                <h2 class="text-h4 font-weight-light mt-6 mb-4">¡Registro Exitoso!</h2>
+                                <p>Ahora puedes iniciar sesión con tu nueva cuenta.</p>
+                                <v-btn class="mt-8" color="primary" @click="switchTo('login')">Ir a Inicio de Sesión</v-btn>
+                            </v-sheet>
+                        </v-col>
+                    </v-row>
+                </v-container>
+            </v-main>
+        </v-app>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="TemaProyecto.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
