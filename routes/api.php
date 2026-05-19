@@ -5,8 +5,10 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Api\ServicioController;
 use App\Http\Controllers\Api\DisponibilidadController;
+use App\Http\Controllers\Api\ExcepcionAgendaController;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\PagoController;
+use App\Http\Controllers\Api\TurnosDisponiblesController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +43,7 @@ Route::prefix('usuarios')->middleware('auth:sanctum')->group(function () {
 // Catálogo de Servicios (Público para ver, protegido para crear/editar)
 Route::prefix('servicios')->group(function () {
     Route::get('/', [ServicioController::class, 'index']);
+    Route::get('/{servicio}/turnos', [TurnosDisponiblesController::class, 'index']);
     Route::get('/{id}', [ServicioController::class, 'show']);
 
     Route::middleware(['auth:sanctum', 'role:profesional'])->group(function () {
@@ -58,6 +61,16 @@ Route::prefix('disponibilidad')->group(function () {
         Route::post('/', [DisponibilidadController::class, 'store']);
         Route::put('/{disponibilidad}', [DisponibilidadController::class, 'update']);
         Route::delete('/{disponibilidad}', [DisponibilidadController::class, 'destroy']);
+    });
+});
+
+// Reglas de Agenda / Excepciones (Protegido)
+Route::prefix('excepciones-agenda')->group(function () {
+    Route::get('/{idProfesional}', [ExcepcionAgendaController::class, 'index']);
+
+    Route::middleware(['auth:sanctum', 'role:profesional'])->group(function () {
+        Route::post('/', [ExcepcionAgendaController::class, 'store']);
+        Route::delete('/{excepcion_agenda}', [ExcepcionAgendaController::class, 'destroy']);
     });
 });
 

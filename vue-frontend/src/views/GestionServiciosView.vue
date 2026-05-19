@@ -203,7 +203,14 @@ onMounted(async () => {
     if (response.ok) {
       const data = await response.json()
       // Si la API devuelve los servicios en un array 'data'
-      publishedServices.value = data.data || data
+      const apiServices = data.data || data
+      publishedServices.value = apiServices.map(s => ({
+        name: s.nombre,
+        description: s.descripcion,
+        duration: s.duracion,
+        price: s.precio,
+        modality: s.modalidad
+      }))
     }
   } catch (error) {
     console.error('Error fetching services:', error)
@@ -267,13 +274,15 @@ const saveService = async () => {
       throw new Error(data.message || 'Error al guardar el servicio')
     }
     
+    const s = data.data || data
+    
     // Add to list and map properties to match UI expectations
     publishedServices.value.unshift({
-      name: data.nombre,
-      description: data.descripcion,
-      duration: data.duracion,
-      price: data.precio,
-      modality: data.modalidad
+      name: s.nombre,
+      description: s.descripcion,
+      duration: s.duracion,
+      price: s.precio,
+      modality: s.modalidad
     })
     
     successMsg.value = 'Servicio guardado exitosamente.'

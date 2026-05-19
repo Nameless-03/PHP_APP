@@ -4,7 +4,10 @@ import RegistroView from '../views/RegistroView.vue'
 import PanelPrincipalView from '../views/PanelPrincipalView.vue'
 import PerfilProfesionalView from '../views/PerfilProfesionalView.vue'
 import GestionServiciosView from '../views/GestionServiciosView.vue'
+import BusquedaServiciosView from '../views/BusquedaServiciosView.vue'
+
 import MisHorariosView from '../views/MisHorariosView.vue'
+import MisReservasView from '../views/MisReservasView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,11 +45,23 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/buscar',
+      name: 'search',
+      component: BusquedaServiciosView
+    },
+    {
       path: '/mis-horarios',
       name: 'mis-horarios',
       component: MisHorariosView,
       meta: { requiresAuth: true }
     }
+      component: MisHorariosView
+    },
+    {
+      path: '/mis-reservas',
+      name: 'mis-reservas',
+      component: MisReservasView
+    },
   ]
 })
 

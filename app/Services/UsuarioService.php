@@ -34,7 +34,26 @@ class UsuarioService
             $data['password'] = Hash::make($data['password']);
         }
 
-        $usuario->update($data);
+        $usuarioData = [];
+        if (array_key_exists('nombre', $data)) $usuarioData['nombre'] = $data['nombre'];
+        if (array_key_exists('email', $data)) $usuarioData['email'] = $data['email'];
+        if (array_key_exists('password', $data)) $usuarioData['password'] = $data['password'];
+
+        if (!empty($usuarioData)) {
+            $usuario->update($usuarioData);
+        }
+
+        if ($usuario->esProfesional() && $usuario->profesional) {
+            $profData = [];
+            if (array_key_exists('descripcion', $data)) $profData['descripcion'] = $data['descripcion'];
+            if (array_key_exists('experiencia', $data)) $profData['experiencia'] = $data['experiencia'];
+            if (array_key_exists('ubicacion', $data)) $profData['ubicacion'] = $data['ubicacion'];
+            if (array_key_exists('modalidad_preferida', $data)) $profData['modalidad_preferida'] = $data['modalidad_preferida'];
+
+            if (!empty($profData)) {
+                $usuario->profesional->update($profData);
+            }
+        }
 
         return $usuario->fresh(['cliente', 'profesional', 'admin']);
     }

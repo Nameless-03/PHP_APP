@@ -38,11 +38,11 @@
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="profile.specialty"
+                  v-model="profile.experiencia"
                   :rules="[rules.required]"
-                  label="Especialidad o Rubro principal"
+                  label="Experiencia Profesional (Ej. 5 años)"
                   variant="outlined"
-                  prepend-inner-icon="mdi-star-circle-outline"
+                  prepend-inner-icon="mdi-briefcase-outline"
                   color="primary"
                 ></v-text-field>
               </v-col>
@@ -65,7 +65,7 @@
               <v-col cols="12" class="mt-4">
                 <h3 class="text-subtitle-1 font-weight-bold text-primary mb-4">
                   <v-icon start color="primary">mdi-map-marker-radius</v-icon>
-                  Ubicación y Contacto
+                  Ubicación y Preferencias
                 </h3>
               </v-col>
               <v-col cols="12" md="6">
@@ -79,24 +79,15 @@
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="profile.phone"
+                <v-select
+                  v-model="profile.modalidad"
+                  :items="['presencial', 'remota', 'hibrida']"
                   :rules="[rules.required]"
-                  label="Teléfono de Contacto"
+                  label="Modalidad Preferida"
                   variant="outlined"
-                  prepend-inner-icon="mdi-phone-outline"
+                  prepend-inner-icon="mdi-laptop"
                   color="primary"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="profile.website"
-                  label="Sitio Web (Opcional)"
-                  variant="outlined"
-                  prepend-inner-icon="mdi-web"
-                  color="primary"
-                  placeholder="https://www.tuempresa.com"
-                ></v-text-field>
+                ></v-select>
               </v-col>
             </v-row>
 
@@ -145,11 +136,10 @@ const errorMsg = ref('')
 
 const profile = ref({
   name: '',
-  specialty: '',
+  experiencia: '',
   description: '',
   location: '',
-  phone: '',
-  website: ''
+  modalidad: 'presencial'
 })
 
 const rules = {
@@ -172,11 +162,10 @@ onMounted(async () => {
       const data = await response.json()
       if (data.user) {
         profile.value.name = data.user.nombre || ''
-        profile.value.specialty = data.user.profesional?.especialidad || ''
+        profile.value.experiencia = data.user.profesional?.experiencia || ''
         profile.value.description = data.user.profesional?.descripcion || ''
         profile.value.location = data.user.profesional?.ubicacion || ''
-        profile.value.phone = data.user.profesional?.telefono || ''
-        profile.value.website = data.user.profesional?.sitio_web || ''
+        profile.value.modalidad = data.user.profesional?.modalidad_preferida || 'presencial'
       }
     }
   } catch (error) {
@@ -216,11 +205,10 @@ const saveProfile = async () => {
       },
       body: JSON.stringify({
         nombre: profile.value.name,
-        especialidad: profile.value.specialty,
+        experiencia: profile.value.experiencia,
         descripcion: profile.value.description,
         ubicacion: profile.value.location,
-        telefono: profile.value.phone,
-        sitio_web: profile.value.website
+        modalidad_preferida: profile.value.modalidad
       })
     })
 

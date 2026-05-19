@@ -14,11 +14,10 @@
               <p v-else class="text-body-1 opacity-80 mb-6">
                 Bienvenido a tu panel de control. Desde aquí puedes buscar servicios, reservar turnos y gestionar tus citas con profesionales.
               </p>
-              
               <v-btn v-if="isProfesional" color="white" class="text-primary font-weight-bold rounded-lg px-6" elevation="2" to="/profile">
                 Completar Perfil
               </v-btn>
-              <v-btn v-else color="white" class="text-primary font-weight-bold rounded-lg px-6" elevation="2">
+              <v-btn v-else color="white" class="text-primary font-weight-bold rounded-lg px-6" elevation="2" @click="router.push('/buscar')">
                 Explorar Servicios
               </v-btn>
             </v-col>
@@ -67,14 +66,17 @@
             Usa el buscador para filtrar por especialidad, nombre o tipo de servicio que necesitas.
           </p>
           <v-text-field
+            v-model="searchQuery"
             variant="outlined"
             prepend-inner-icon="mdi-magnify"
+            append-inner-icon="mdi-arrow-right"
             label="Buscar servicios..."
             color="primary"
             bg-color="grey-lighten-4"
             class="mb-2"
-            rounded
             hide-details
+            @keyup.enter="handleSearch"
+            @click:append-inner="handleSearch"
           ></v-text-field>
         </v-card>
       </v-col>
@@ -84,7 +86,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+
+const router = useRouter()
 
 const getInitialName = () => {
   const userStr = localStorage.getItem('user')
@@ -112,47 +117,57 @@ const userName = ref(getInitialName())
 const isProfesional = ref(getIsProfesional())
 const activeServicesCount = ref(0)
 const avgRating = ref('0.0')
+const searchQuery = ref('')
+
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    router.push({ name: 'search', query: { q: searchQuery.value.trim() } })
+  } else {
+    router.push({ name: 'search' })
+  }
+}
 
 onMounted(async () => {
   const token = localStorage.getItem('auth_token')
   if (!token) return
 
   try {
-    const response = await fetch('http://localhost:8000/api/auth/me', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json'
+    }
+
+    // Ejecutar ambas peticiones en paralelo si es profesional
+    const promises = [
+      fetch('http://localhost:8000/api/auth/me', { headers })
+    ]
+
+    if (isProfesional.value) {
+      promises.push(fetch('http://localhost:8000/api/servicios', { headers }))
+    }
+
+    const responses = await Promise.all(promises)
+    const authResponse = responses[0]
+
+    if (authResponse.ok) {
+      const data = await authResponse.json()
       if (data.user && data.user.nombre) {
         userName.value = data.user.nombre.split(' ')[0]
         isProfesional.value = data.user.role === 'profesional'
         
-        // Actualizar calificación si el usuario es profesional y tiene el perfil cargado
         if (isProfesional.value && data.user.profesional) {
           avgRating.value = Number(data.user.profesional.reputacion).toFixed(1)
         }
       }
     }
-    
-    // Obtener cantidad de servicios activos
-    if (isProfesional.value) {
-      const servResponse = await fetch('http://localhost:8000/api/servicios', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      })
-      
+
+    if (isProfesional.value && responses[1]) {
+      const servResponse = responses[1]
       if (servResponse.ok) {
         const servData = await servResponse.json()
         activeServicesCount.value = servData.data ? servData.data.length : 0
       }
     }
-
   } catch (error) {
     console.error('Error fetching dashboard data:', error)
   }
