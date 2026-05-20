@@ -35,10 +35,10 @@
 
       <template v-slot:append>
         <div class="pa-2">
-          <v-btn block color="error" variant="tonal" prepend-icon="mdi-logout" @click="logout" v-show="!rail">
+          <v-btn v-if="!rail" block color="error" variant="tonal" prepend-icon="mdi-logout" @click="logout">
             Cerrar Sesión
           </v-btn>
-          <v-btn icon color="error" variant="tonal" @click="logout" v-show="rail" class="mx-auto d-flex">
+          <v-btn v-else icon color="error" variant="tonal" @click="logout" class="mx-auto d-flex">
             <v-icon>mdi-logout</v-icon>
           </v-btn>
         </div>
@@ -101,6 +101,8 @@ onMounted(() => {
 })
 
 const logout = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user')
   router.push('/login')
 }
 </script>

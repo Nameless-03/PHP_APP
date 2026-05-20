@@ -29,7 +29,20 @@ class ServicioService
      */
     public function listarTodos(array $filtros = []): Collection
     {
-        $query = Servicio::with(['profesional.usuario', 'categoria'])->where('activo', true);
+        $query = Servicio::with(['profesional.usuario', 'categoria']);
+
+        // Conditionally filter by active
+        $incluirInactivos = isset($filtros['incluir_inactivos']) && 
+            ($filtros['incluir_inactivos'] == true || $filtros['incluir_inactivos'] === '1' || $filtros['incluir_inactivos'] === 'true');
+
+        if (!$incluirInactivos) {
+            $query->where('activo', true);
+        }
+
+        // Filter by professional
+        if (isset($filtros['id_profesional'])) {
+            $query->where('id_profesional', $filtros['id_profesional']);
+        }
 
         if (isset($filtros['modalidad'])) {
             $query->where('modalidad', $filtros['modalidad']);
@@ -48,6 +61,7 @@ class ServicioService
             $query->where(function ($q) use ($keyword) {
                 $q->whereRaw('LOWER(servicios.nombre) LIKE ?', ['%' . $keyword . '%'])
                   ->orWhereRaw('LOWER(servicios.descripcion) LIKE ?', ['%' . $keyword . '%'])
+                  ->orWhereRaw('LOWER(servicios.ubicacion) LIKE ?', ['%' . $keyword . '%'])
                   ->orWhereHas('profesional.usuario', function ($q2) use ($keyword) {
                       $q2->whereRaw('LOWER(usuarios.nombre) LIKE ?', ['%' . $keyword . '%']);
                   });
@@ -56,8 +70,11 @@ class ServicioService
 
         if (isset($filtros['ubicacion'])) {
             $ubicacion = strtolower($filtros['ubicacion']);
-            $query->whereHas('profesional', function ($q) use ($ubicacion) {
-                $q->whereRaw('LOWER(ubicacion) LIKE ?', ['%' . $ubicacion . '%']);
+            $query->where(function ($q) use ($ubicacion) {
+                $q->whereRaw('LOWER(servicios.ubicacion) LIKE ?', ['%' . $ubicacion . '%'])
+                  ->orWhereHas('profesional', function ($q2) use ($ubicacion) {
+                      $q2->whereRaw('LOWER(ubicacion) LIKE ?', ['%' . $ubicacion . '%']);
+                  });
             });
         }
 

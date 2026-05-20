@@ -142,8 +142,19 @@ onMounted(async () => {
       fetch('http://localhost:8000/api/auth/me', { headers })
     ]
 
+    let serviciosUrl = 'http://localhost:8000/api/servicios'
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        if (user.id && user.role === 'profesional') {
+          serviciosUrl += `?id_profesional=${user.id}`
+        }
+      } catch (e) {}
+    }
+
     if (isProfesional.value) {
-      promises.push(fetch('http://localhost:8000/api/servicios', { headers }))
+      promises.push(fetch(serviciosUrl, { headers }))
     }
 
     const responses = await Promise.all(promises)
