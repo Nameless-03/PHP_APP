@@ -157,13 +157,23 @@ class ReservaService
             }
 
             // Actualizar horas y volver a pendiente
+            $estadoAnterior = $reserva->estado->value;
             $reserva->update([
                 'fecha_hora_inicio' => $nuevoInicio,
                 'fecha_hora_fin' => $nuevoFin,
                 'estado' => EstadoReservaEnum::PENDIENTE
             ]);
 
-            return $reserva->fresh();
+            $reservaRenovada = $reserva->fresh();
+            
+            // Notificar a ambas partes sobre la reprogramación
+            $clienteUser = $reservaRenovada->cliente->usuario;
+            $profesionalUser = $reservaRenovada->servicio->profesional->usuario;
+            
+            $clienteUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
+            $profesionalUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
+
+            return $reservaRenovada;
         });
     }
 }
