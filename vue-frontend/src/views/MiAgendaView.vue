@@ -87,6 +87,30 @@
                             </v-chip>
                           </div>
                           
+                          <!-- Modalidad y Ubicación -->
+                          <div class="d-flex align-center flex-wrap mb-3" style="gap: 8px;">
+                            <v-chip 
+                              size="x-small" 
+                              :color="getModalityColor(reserva.servicio?.modalidad)" 
+                              variant="tonal" 
+                              class="font-weight-bold text-uppercase"
+                            >
+                              {{ reserva.servicio?.modalidad || 'Presencial' }}
+                            </v-chip>
+                            <v-tooltip v-if="reserva.servicio?.ubicacion" text="Ver en el mapa" location="top">
+                              <template v-slot:activator="{ props }">
+                                <span 
+                                  v-bind="props" 
+                                  class="location-link d-inline-flex align-center cursor-pointer" 
+                                  @click.stop="openMap(reserva.servicio)"
+                                >
+                                  <v-icon size="x-small" color="primary" class="mr-1">mdi-map-marker</v-icon>
+                                  <span class="text-primary font-weight-bold">{{ reserva.servicio.ubicacion }}</span>
+                                </span>
+                              </template>
+                            </v-tooltip>
+                          </div>
+                          
                           <div class="d-flex align-center mt-2">
                             <v-avatar color="grey-lighten-3" size="32" class="mr-3">
                               <v-icon size="20" color="grey-darken-1">mdi-account</v-icon>
@@ -120,18 +144,89 @@
         </v-row>
       </v-col>
     </v-row>
+
+    <!-- Map Dialog -->
+    <v-dialog v-model="mapDialog" max-width="700" persistent>
+      <v-card class="rounded-xl overflow-hidden">
+        <div class="map-dialog-header pa-4 d-flex align-center justify-space-between">
+          <div class="d-flex align-center">
+            <v-icon color="white" class="mr-3" size="28">mdi-map-marker-radius</v-icon>
+            <div>
+              <div class="text-h6 font-weight-bold text-white">{{ selectedService?.nombre }}</div>
+              <div class="text-caption text-white" style="opacity: 0.85;">{{ selectedService?.ubicacion }}</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" @click="closeMap" size="small">
+            <v-icon color="white">mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="mapLoading" class="d-flex flex-column align-center justify-center" style="height: 400px;">
+          <v-progress-circular indeterminate color="primary" size="48" class="mb-4"></v-progress-circular>
+          <div class="text-body-1 text-medium-emphasis">Buscando ubicación...</div>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="mapError" class="d-flex flex-column align-center justify-center pa-8" style="height: 400px;">
+          <v-icon size="64" color="warning" class="mb-4">mdi-map-marker-question</v-icon>
+          <div class="text-h6 font-weight-bold text-grey-darken-2 mb-2">Ubicación no encontrada</div>
+          <div class="text-body-2 text-medium-emphasis text-center mb-4">
+            No se pudo encontrar la dirección:<br/>
+            <strong>"{{ selectedService?.ubicacion }}"</strong>
+          </div>
+          <v-btn color="primary" variant="tonal" class="text-none" @click="closeMap">
+            Cerrar
+          </v-btn>
+        </div>
+
+        <!-- Map Container -->
+        <div v-else id="map-container" style="height: 400px; width: 100%;"></div>
+
+        <div v-if="!mapLoading && !mapError" class="pa-4 bg-grey-lighten-4">
+          <div class="d-flex align-center justify-space-between">
+            <div class="d-flex align-center">
+              <v-icon size="small" class="mr-2" color="primary">mdi-information-outline</v-icon>
+              <span class="text-caption text-medium-emphasis">Ubicación aproximada basada en la dirección</span>
+            </div>
+            <v-btn 
+              v-if="mapCoords" 
+              size="small" 
+              color="primary" 
+              variant="tonal" 
+              class="text-none"
+              :href="`https://www.google.com/maps/search/?api=1&query=${mapCoords.lat},${mapCoords.lng}`"
+              target="_blank"
+            >
+              <v-icon size="small" class="mr-1">mdi-google-maps</v-icon>
+              Abrir en Google Maps
+            </v-btn>
+          </div>
+        </div>
+      </v-card>
+    </v-dialog>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 // --- ESTADO ---
 const fechaSeleccionada = ref(new Date())
 const reservas = ref([])
 const cargando = ref(true)
 const isCliente = ref(false)
+
+// Map state
+const mapDialog = ref(false)
+const mapLoading = ref(false)
+const mapError = ref(false)
+const selectedService = ref(null)
+const mapCoords = ref(null)
+let mapInstance = null
 
 // --- COMPUTADAS ---
 const turnosDelDia = computed(() => {
@@ -172,6 +267,108 @@ const cargarReservas = async () => {
   }
 }
 
+// ===== Map Functions =====
+const openMap = async (service) => {
+  selectedService.value = service
+  mapDialog.value = true
+  mapLoading.value = true
+  mapError.value = false
+  mapCoords.value = null
+
+  try {
+    // Geocode the address using Nominatim (OpenStreetMap free API)
+    const address = encodeURIComponent(service.ubicacion)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${address}&limit=1`,
+      { headers: { 'Accept-Language': 'es' } }
+    )
+    const results = await response.json()
+
+    if (results.length === 0) {
+      mapError.value = true
+      return
+    }
+
+    const { lat, lon } = results[0]
+    mapCoords.value = { lat: parseFloat(lat), lng: parseFloat(lon) }
+    mapLoading.value = false
+
+    // Wait for DOM to render the map container
+    await nextTick()
+    setTimeout(() => initMap(), 100)
+  } catch (error) {
+    console.error('Geocoding error:', error)
+    mapError.value = true
+  } finally {
+    mapLoading.value = false
+  }
+}
+
+const initMap = () => {
+  const container = document.getElementById('map-container')
+  if (!container || !mapCoords.value) return
+
+  // Destroy previous map instance if it exists
+  if (mapInstance) {
+    mapInstance.remove()
+    mapInstance = null
+  }
+
+  const { lat, lng } = mapCoords.value
+
+  mapInstance = L.map('map-container').setView([lat, lng], 15)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(mapInstance)
+
+  // Custom marker icon
+  const customIcon = L.divIcon({
+    html: `<div class="custom-marker">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="#8C6D46">
+               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+             </svg>
+           </div>`,
+    className: 'custom-div-icon',
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+  })
+
+  const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance)
+
+  // Popup with service info
+  const popupContent = `
+    <div style="font-family: Inter, sans-serif; min-width: 200px;">
+      <div style="font-weight: 700; font-size: 14px; color: #333; margin-bottom: 4px;">
+        ${selectedService.value.nombre}
+      </div>
+      <div style="font-size: 12px; color: #666; margin-bottom: 6px;">
+        📍 ${selectedService.value.ubicacion}
+      </div>
+      <div style="display: flex; gap: 12px; font-size: 12px; color: #888;">
+        <span>⏱ ${selectedService.value.duracion} min</span>
+        <span style="color: #2e7d32; font-weight: 600;">$${selectedService.value.precio}</span>
+      </div>
+    </div>
+  `
+  marker.bindPopup(popupContent).openPopup()
+
+  // Force map to recalculate its size
+  setTimeout(() => mapInstance.invalidateSize(), 200)
+}
+
+const closeMap = () => {
+  mapDialog.value = false
+  if (mapInstance) {
+    mapInstance.remove()
+    mapInstance = null
+  }
+  selectedService.value = null
+  mapCoords.value = null
+}
+
 // --- UTILS ---
 const formatTime = (dateStr) => {
   const d = new Date(dateStr)
@@ -191,6 +388,15 @@ const getColorEstado = (estado) => ({
   pagada: 'primary', 
   finalizada: 'grey' 
 }[estado] || 'grey')
+
+const getModalityColor = (modality) => {
+  switch (modality) {
+    case 'remota': return 'info'
+    case 'presencial': return 'primary'
+    case 'hibrida': return 'deep-purple'
+    default: return 'grey'
+  }
+}
 
 onMounted(() => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -213,5 +419,42 @@ onMounted(() => {
 .overflow-auto::-webkit-scrollbar-thumb {
   background-color: rgba(140, 109, 70, 0.2);
   border-radius: 10px;
+}
+.location-link {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+.location-link:hover {
+  background-color: rgba(var(--v-theme-primary), 0.08);
+}
+.map-dialog-header {
+  background: linear-gradient(135deg, #8C6D46 0%, #6B5235 100%);
+}
+</style>
+
+<style>
+/* Leaflet overrides (unscoped needed) */
+.custom-div-icon {
+  background: transparent;
+  border: none;
+}
+.custom-marker {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));
+  animation: marker-bounce 0.5s ease-out;
+}
+@keyframes marker-bounce {
+  0% { transform: translateY(-20px); opacity: 0; }
+  60% { transform: translateY(4px); }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+}
+.leaflet-popup-tip {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
 }
 </style>

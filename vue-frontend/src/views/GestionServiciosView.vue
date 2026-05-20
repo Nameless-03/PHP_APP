@@ -298,6 +298,9 @@ onMounted(async () => {
   const token = localStorage.getItem('auth_token')
   if (!token) return
 
+  // Load categories first
+  await loadCategories()
+
   let idProfesional = null
   const userStr = localStorage.getItem('user')
   if (userStr) {
@@ -330,41 +333,14 @@ onMounted(async () => {
         price: s.precio,
         modality: s.modalidad,
         location: s.ubicacion || '',
-        active: s.activo !== undefined ? s.activo : true
+        active: s.activo !== undefined ? s.activo : true,
+        category: s.categoria?.nombre || 'Sin categoría',
+        categoryObj: s.categoria ? { id: s.categoria.id, nombre: s.categoria.nombre } : (s.id_categoria ? { id: s.id_categoria, nombre: 'Categoría ' + s.id_categoria } : null)
       }))
     }
   } catch (error) {
     console.error('Error fetching services:', error)
   }
-  // Cargar categorías y servicios en paralelo
-  await Promise.all([
-    loadCategories(),
-    (async () => {
-      try {
-        const response = await fetch('http://localhost:8000/api/servicios', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          const apiServices = data.data || data
-          publishedServices.value = apiServices.map(s => ({
-            name: s.nombre,
-            description: s.descripcion,
-            duration: s.duracion,
-            price: s.precio,
-            modality: s.modalidad,
-            category: s.categoria?.nombre || 'Sin categoría'
-          }))
-        }
-      } catch (error) {
-        console.error('Error fetching services:', error)
-      }
-    })()
-  ])
 })
 
 const rules = {
@@ -405,6 +381,10 @@ const saveService = async () => {
       ? `http://localhost:8000/api/servicios/${editingServiceId.value}`
       : 'http://localhost:8000/api/servicios'
       
+    const resolvedCategoryId = service.value.category 
+      ? (typeof service.value.category === 'object' ? (service.value.category.id || service.value.category.nombre) : service.value.category)
+      : 1
+
     const response = await fetch(url, {
       method: isEditing.value ? 'PUT' : 'POST',
       headers: {
@@ -420,7 +400,7 @@ const saveService = async () => {
         modalidad: service.value.modality,
         ubicacion: service.value.modality !== 'remota' ? service.value.location : null,
         activo: service.value.active,
-        id_categoria: 1
+        id_categoria: resolvedCategoryId
       })
     })
 
@@ -443,7 +423,9 @@ const saveService = async () => {
           price: s.precio,
           modality: s.modalidad,
           location: s.ubicacion || '',
-          active: s.activo !== undefined ? s.activo : true
+          active: s.activo !== undefined ? s.activo : true,
+          category: s.categoria?.nombre || 'Sin categoría',
+          categoryObj: s.categoria ? { id: s.categoria.id, nombre: s.categoria.nombre } : (s.id_categoria ? { id: s.id_categoria, nombre: 'Categoría ' + s.id_categoria } : null)
         }
       }
       successMsg.value = 'Servicio actualizado exitosamente.'
@@ -457,12 +439,15 @@ const saveService = async () => {
         price: s.precio,
         modality: s.modalidad,
         location: s.ubicacion || '',
-        active: s.activo !== undefined ? s.activo : true
+        active: s.activo !== undefined ? s.activo : true,
+        category: s.categoria?.nombre || 'Sin categoría',
+        categoryObj: s.categoria ? { id: s.categoria.id, nombre: s.categoria.nombre } : (s.id_categoria ? { id: s.id_categoria, nombre: 'Categoría ' + s.id_categoria } : null)
       })
       successMsg.value = 'Servicio guardado exitosamente.'
       form.value.reset()
       service.value.modality = 'presencial'
       service.value.active = true
+      service.value.category = null
     }
     
   } catch (err) {
@@ -483,7 +468,8 @@ const editService = (item) => {
     price: String(item.price),
     modality: item.modality,
     location: item.location || '',
-    active: item.active
+    active: item.active,
+    category: item.categoryObj || null
   }
 }
 
@@ -528,6 +514,7 @@ const resetForm = () => {
   form.value.reset()
   service.value.modality = 'presencial'
   service.value.active = true
+  service.value.category = null
   errorMsg.value = ''
   successMsg.value = ''
 }

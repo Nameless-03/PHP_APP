@@ -31,7 +31,21 @@ class UpdateServicioRequest extends FormRequest
             'duracion' => ['sometimes', 'integer', 'min:1'],
             'ubicacion' => ['nullable', 'string', 'max:255'],
             'activo' => ['sometimes', 'boolean'],
-            'id_categoria' => ['sometimes', 'exists:categorias,id'],
+            'id_categoria' => ['sometimes', function ($attribute, $value, $fail) {
+                if (is_numeric($value)) {
+                    if (!\DB::table('categorias')->where('id', $value)->exists()) {
+                        $fail('La categoría seleccionada no existe.');
+                    }
+                } else {
+                    if (is_string($value)) {
+                        if (empty(trim($value))) {
+                            $fail('El nombre de la nueva categoría no puede estar vacío.');
+                        }
+                    } else {
+                        $fail('Categoría inválida.');
+                    }
+                }
+            }],
         ];
     }
 }

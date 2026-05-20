@@ -256,7 +256,7 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'

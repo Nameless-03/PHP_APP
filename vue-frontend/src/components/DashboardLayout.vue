@@ -152,7 +152,7 @@ const getAuthHeaders = () => ({
 
 const cargarNotificaciones = async () => {
   try {
-    const res = await fetch('http://localhost:8000/api/notificaciones', { headers: getAuthHeaders() })
+    const res = await fetch('http://localhost:8000/api/auth/notificaciones', { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       notificaciones.value = data.data || []
@@ -164,7 +164,7 @@ const cargarNotificaciones = async () => {
 
 const marcarComoLeida = async (id) => {
   try {
-    await fetch(`http://localhost:8000/api/notificaciones/${id}/marcar-leida`, {
+    await fetch(`http://localhost:8000/api/auth/notificaciones/${id}/marcar-leida`, {
       method: 'PATCH',
       headers: getAuthHeaders()
     })
