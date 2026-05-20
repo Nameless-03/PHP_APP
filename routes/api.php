@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\TurnosDisponiblesController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\CalificacionController;
+use App\Http\Controllers\Api\NotificacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,10 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::put('/password', [AuthController::class, 'changePassword']);
+        
+        // Notificaciones
+        Route::get('/notificaciones', [NotificacionController::class, 'index']);
+        Route::patch('/notificaciones/{id}/marcar-leida', [NotificacionController::class, 'marcarLeida']);
     });
 });
 
