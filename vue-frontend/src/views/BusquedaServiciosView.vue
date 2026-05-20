@@ -168,7 +168,7 @@
                   <span v-if="service.ubicacion" class="mx-2">•</span>
                   <v-icon v-if="service.ubicacion" size="small" class="mr-1">mdi-map-marker-outline</v-icon> {{ service.ubicacion }}
                 </div>
-                <v-btn block color="primary" class="text-none font-weight-bold elevation-1 rounded-lg">
+                <v-btn block color="primary" class="text-none font-weight-bold elevation-1 rounded-lg" @click="reservarServicio(service.id)">
                   Reservar Turno
                 </v-btn>
               </div>
@@ -182,10 +182,11 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
 const route = useRoute()
+const router = useRouter()
 const isLoading = ref(true)
 const services = ref([])
 let searchTimeout = null
@@ -213,7 +214,7 @@ const fetchServices = async () => {
     const queryParams = new URLSearchParams()
     
     if (filters.value.keyword) queryParams.append('keyword', filters.value.keyword)
-    if (filters.value.precio_max && filters.value.precio_max < 500) queryParams.append('precio_max', filters.value.precio_max)
+    if (filters.value.precio_max !== null && filters.value.precio_max !== '' && filters.value.precio_max < 500) queryParams.append('precio_max', filters.value.precio_max)
     if (filters.value.modalidad) queryParams.append('modalidad', filters.value.modalidad)
     if (filters.value.reputacion > 0) queryParams.append('reputacion', filters.value.reputacion)
 
@@ -263,6 +264,10 @@ const getModalityColor = (modality) => {
     case 'hibrida': return 'deep-purple'
     default: return 'grey'
   }
+}
+
+const reservarServicio = (id_servicio) => {
+  router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: id_servicio } })
 }
 </script>
 

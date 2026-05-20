@@ -381,7 +381,10 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+
+const route = useRoute()
 
 // Estado General
 const currentView = ref('menu') // menu, reservar, pendientes, reprogramar, cancelar, historial
@@ -412,6 +415,13 @@ const getAuthHeaders = () => ({
 onMounted(() => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   isCliente.value = user.role !== 'profesional'
+  
+  if (route.query.action === 'reservar' && isCliente.value) {
+    currentView.value = 'reservar'
+    if (route.query.servicio) {
+      formData.value.id_servicio = parseInt(route.query.servicio)
+    }
+  }
 })
 
 // === FLUJOS DE VISTA ===
