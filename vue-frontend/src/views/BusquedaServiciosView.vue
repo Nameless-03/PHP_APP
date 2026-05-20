@@ -180,7 +180,7 @@
                   </v-tooltip>
                   <span v-else-if="!service.ubicacion"></span>
                 </div>
-                <v-btn block color="primary" class="text-none font-weight-bold elevation-1 rounded-lg">
+                <v-btn block color="primary" class="text-none font-weight-bold elevation-1 rounded-lg" @click="reservarServicio(service.id)">
                   Reservar Turno
                 </v-btn>
               </div>
@@ -262,6 +262,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 const route = useRoute()
+const router = useRouter()
 const isLoading = ref(true)
 const services = ref([])
 let searchTimeout = null
@@ -297,7 +298,7 @@ const fetchServices = async () => {
     const queryParams = new URLSearchParams()
     
     if (filters.value.keyword) queryParams.append('keyword', filters.value.keyword)
-    if (filters.value.precio_max && filters.value.precio_max < 500) queryParams.append('precio_max', filters.value.precio_max)
+    if (filters.value.precio_max !== null && filters.value.precio_max !== '' && filters.value.precio_max < 500) queryParams.append('precio_max', filters.value.precio_max)
     if (filters.value.modalidad) queryParams.append('modalidad', filters.value.modalidad)
     if (filters.value.reputacion > 0) queryParams.append('reputacion', filters.value.reputacion)
 
@@ -449,6 +450,10 @@ const getModalityColor = (modality) => {
     case 'hibrida': return 'deep-purple'
     default: return 'grey'
   }
+}
+
+const reservarServicio = (id_servicio) => {
+  router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: id_servicio } })
 }
 </script>
 

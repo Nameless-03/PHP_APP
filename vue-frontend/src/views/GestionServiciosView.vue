@@ -72,6 +72,22 @@
               </v-col>
 
               <v-col cols="12">
+                <v-combobox
+                  v-model="service.category"
+                  :items="categoriesList"
+                  item-title="nombre"
+                  item-value="id"
+                  label="Categoría del Servicio"
+                  placeholder="Selecciona una categoría o escribe una nueva..."
+                  variant="outlined"
+                  prepend-inner-icon="mdi-shape-outline"
+                  color="primary"
+                  :rules="[rules.required]"
+                  hide-no-data
+                ></v-combobox>
+              </v-col>
+
+              <v-col cols="12">
                 <p class="text-subtitle-2 text-medium-emphasis mb-2">Modalidad de Atención</p>
                 <v-btn-toggle
                   v-model="service.modality"
@@ -187,6 +203,10 @@
                       {{ item.modality }}
                     </v-chip>
                   </div>
+                  <div v-if="item.category" class="d-flex align-center mb-2">
+                    <v-icon size="x-small" class="mr-1" color="grey">mdi-shape-outline</v-icon>
+                    <span class="text-caption text-medium-emphasis">{{ item.category }}</span>
+                  </div>
                   <p class="text-body-2 text-medium-emphasis text-truncate mb-2">{{ item.description }}</p>
                   <div v-if="item.location" class="d-flex align-center text-caption text-medium-emphasis mb-2">
                     <v-icon size="small" class="mr-1" color="primary">mdi-map-marker</v-icon>
@@ -253,9 +273,26 @@ const service = ref({
   active: true
 })
 
+const categoriesList = ref([])
 const publishedServices = ref([])
 const isEditing = ref(false)
 const editingServiceId = ref(null)
+
+const loadCategories = async () => {
+  try {
+    const response = await fetch('http://localhost:8000/api/categorias', {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    if (response.ok) {
+      const data = await response.json()
+      categoriesList.value = data.data || data
+    }
+  } catch (error) {
+    console.error('Error loading categories:', error)
+  }
+}
 
 onMounted(async () => {
   const token = localStorage.getItem('auth_token')
@@ -299,6 +336,35 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching services:', error)
   }
+  // Cargar categorías y servicios en paralelo
+  await Promise.all([
+    loadCategories(),
+    (async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/servicios', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const apiServices = data.data || data
+          publishedServices.value = apiServices.map(s => ({
+            name: s.nombre,
+            description: s.descripcion,
+            duration: s.duracion,
+            price: s.precio,
+            modality: s.modalidad,
+            category: s.categoria?.nombre || 'Sin categoría'
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error)
+      }
+    })()
+  ])
 })
 
 const rules = {

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Servicio;
+use App\Models\Categoria;
 use Illuminate\Database\Eloquent\Collection;
 
 class ServicioService
@@ -12,8 +13,9 @@ class ServicioService
      */
     public function crear(array $data): Servicio
     {
-        // El id_profesional vendrá inyectado desde el Controller (auth()->id())
-        return Servicio::create($data);
+        $data = $this->resolverCategoria($data);
+        $servicio = Servicio::create($data);
+        return $servicio->load(['profesional.usuario', 'categoria']);
     }
 
     /**
@@ -92,6 +94,7 @@ class ServicioService
      */
     public function actualizar(Servicio $servicio, array $data): Servicio
     {
+        $data = $this->resolverCategoria($data);
         $servicio->update($data);
         return $servicio->fresh(['profesional.usuario', 'categoria']);
     }
@@ -102,5 +105,19 @@ class ServicioService
     public function eliminar(Servicio $servicio): bool
     {
         return $servicio->delete();
+    }
+
+    /**
+     * Resuelve el id_categoria si es un nombre de categoría en lugar de un ID numérico.
+     */
+    private function resolverCategoria(array $data): array
+    {
+        if (isset($data['id_categoria']) && !is_numeric($data['id_categoria'])) {
+            $categoria = Categoria::firstOrCreate([
+                'nombre' => trim($data['id_categoria'])
+            ]);
+            $data['id_categoria'] = $categoria->id;
+        }
+        return $data;
     }
 }

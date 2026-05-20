@@ -88,17 +88,57 @@ class ReservaController extends Controller
         $this->authorize('updateEstado', $reserva);
 
         $nuevoEstado = EstadoReservaEnum::from($request->validated()['estado']);
+        $usuario = $request->user();
         
-        // Aquí se podrían agregar validaciones extra (ej: el cliente solo puede cancelar, no confirmar)
-        if ($request->user()->esCliente() && $nuevoEstado !== EstadoReservaEnum::CANCELADA) {
+        // El cliente solo puede cancelar
+        if ($usuario->esCliente() && $nuevoEstado !== EstadoReservaEnum::CANCELADA) {
             return response()->json(['message' => 'Los clientes solo pueden cancelar reservas.'], 403);
         }
 
-        $reservaActualizada = $this->reservaService->cambiarEstado($reserva, $nuevoEstado);
+        try {
+            if ($nuevoEstado === EstadoReservaEnum::CANCELADA) {
+                $reservaActualizada = $this->reservaService->cancelar($reserva, $usuario);
+            } else {
+                $reservaActualizada = $this->reservaService->cambiarEstado($reserva, $nuevoEstado);
+            }
 
-        return response()->json([
-            'message' => 'Estado de la reserva actualizado',
-            'data' => new ReservaResource($reservaActualizada),
+            return response()->json([
+                'message' => 'Estado de la reserva actualizado',
+                'data' => new ReservaResource($reservaActualizada),
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 422);
+        }
+    }
+
+    /**
+     * Reprogramar una reserva
+     */
+    public function reprogramar(Request $request, Reserva $reserva): JsonResponse
+    {
+        $this->authorize('updateEstado', $reserva); // Reutilizamos misma policy de acceso
+
+        $request->validate([
+            'fecha_hora_inicio' => ['required', 'date_format:Y-m-d H:i:s', 'after:now']
         ]);
+
+        try {
+            $reservaActualizada = $this->reservaService->reprogramar(
+                $reserva, 
+                $request->fecha_hora_inicio, 
+                $request->user()
+            );
+
+            return response()->json([
+                'message' => 'Reserva reprogramada exitosamente',
+                'data' => new ReservaResource($reservaActualizada),
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 422);
+        }
     }
 }

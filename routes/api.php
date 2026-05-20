@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\DisponibilidadController;
 use App\Http\Controllers\Api\ExcepcionAgendaController;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\PagoController;
+use App\Http\Controllers\Api\TurnosDisponiblesController;
+use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\CalificacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,9 +42,13 @@ Route::prefix('usuarios')->middleware('auth:sanctum')->group(function () {
     Route::put('/{id}', [UsuarioController::class, 'update']);
 });
 
+// Categorías
+Route::get('/categorias', [CategoriaController::class, 'index']);
+
 // Catálogo de Servicios (Público para ver, protegido para crear/editar)
 Route::prefix('servicios')->group(function () {
     Route::get('/', [ServicioController::class, 'index']);
+    Route::get('/{servicio}/turnos', [TurnosDisponiblesController::class, 'index']);
     Route::get('/{id}', [ServicioController::class, 'show']);
 
     Route::middleware(['auth:sanctum', 'role:profesional'])->group(function () {
@@ -84,6 +91,10 @@ Route::prefix('reservas')->middleware('auth:sanctum')->group(function () {
 
     // Cambiar estado (confirmar, cancelar, etc)
     Route::patch('/{reserva}/estado', [ReservaController::class, 'updateEstado']);
+    Route::patch('/{reserva}/reprogramar', [ReservaController::class, 'reprogramar']);
+    
+    // Calificar reserva finalizada
+    Route::post('/{reserva}/calificar', [CalificacionController::class, 'calificar']);
 });
 
 // Pagos

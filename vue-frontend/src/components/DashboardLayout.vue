@@ -28,9 +28,11 @@
       <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-view-dashboard" title="Panel Principal" value="dashboard" to="/dashboard"></v-list-item>
         <v-list-item prepend-icon="mdi-account-details" title="Mi Perfil" value="profile" to="/profile"></v-list-item>
-        <v-list-item prepend-icon="mdi-magnify" title="Buscar Servicios" value="search" to="/buscar"></v-list-item>
+        <v-list-item v-if="!isProfesional" prepend-icon="mdi-magnify" title="Buscar Servicios" value="search" to="/buscar"></v-list-item>
         <v-list-item v-if="isProfesional" prepend-icon="mdi-briefcase-edit" title="Mis Servicios" value="services" to="/services"></v-list-item>
         <v-list-item v-if="isProfesional" prepend-icon="mdi-calendar-clock" title="Mis Horarios" value="schedule" to="/mis-horarios"></v-list-item>
+        <v-list-item prepend-icon="mdi-calendar-check" title="Mis Reservas" value="reservas" to="/mis-reservas"></v-list-item>
+        <v-list-item prepend-icon="mdi-calendar-multiselect" title="Mi Agenda" value="agenda" to="/mi-agenda"></v-list-item>
       </v-list>
 
       <template v-slot:append>
@@ -100,10 +102,30 @@ onMounted(() => {
   }
 })
 
-const logout = () => {
+const logout = async () => {
+  const token = localStorage.getItem('auth_token')
+
+  // Limpiar el estado de autenticación en el cliente de inmediato
   localStorage.removeItem('auth_token')
   localStorage.removeItem('user')
+
+  // Redirigir a la pantalla de Inicio de Sesión
   router.push('/login')
+
+  // Opcional y recomendado: invalidar el token en el servidor en segundo plano
+  if (token) {
+    try {
+      await fetch('http://localhost:8000/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      })
+    } catch (e) {
+      console.error('Error al revocar el token en el servidor:', e)
+    }
+  }
 }
 </script>
 

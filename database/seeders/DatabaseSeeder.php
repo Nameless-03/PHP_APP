@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Categoria;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,7 +11,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $categorias = [
+        $this->call([
+            CategoriaSeeder::class,
+        ]);
+$categorias = [
             [
                 'nombre' => 'Desarrollo Web & IT',
                 'descripcion' => 'Servicios de programación, desarrollo de software, diseño de sistemas y soporte técnico.',
