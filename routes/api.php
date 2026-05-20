@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\TurnosDisponiblesController;
 use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\CalificacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,6 +91,10 @@ Route::prefix('reservas')->middleware('auth:sanctum')->group(function () {
 
     // Cambiar estado (confirmar, cancelar, etc)
     Route::patch('/{reserva}/estado', [ReservaController::class, 'updateEstado']);
+    Route::patch('/{reserva}/reprogramar', [ReservaController::class, 'reprogramar']);
+    
+    // Calificar reserva finalizada
+    Route::post('/{reserva}/calificar', [CalificacionController::class, 'calificar']);
 });
 
 // Pagos

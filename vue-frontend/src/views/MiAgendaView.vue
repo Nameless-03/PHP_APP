@@ -57,25 +57,29 @@
                 </div>
 
                 <div v-else-if="turnosDelDia.length > 0">
-                  <v-timeline side="end" align="start" truncate-line="both">
-                    <v-timeline-item 
-                      v-for="reserva in turnosDelDia" 
+                  <div class="timeline-container">
+                    <div 
+                      v-for="(reserva, index) in turnosDelDia" 
                       :key="reserva.id" 
-                      :dot-color="getColorEstado(reserva.estado)"
-                      size="small"
-                      fill-dot
+                      class="d-flex mb-4"
                     >
-                      <template v-slot:opposite>
-                        <div class="pt-1 text-right">
-                          <strong class="text-subtitle-1 font-weight-bold">{{ formatTime(reserva.fecha_hora_inicio) }}</strong>
-                          <div class="text-caption text-medium-emphasis">{{ reserva.servicio?.duracion }} min</div>
-                        </div>
-                      </template>
+                      <!-- Columna de Hora -->
+                      <div class="mr-4 text-right pt-2" style="min-width: 65px;">
+                        <strong class="text-subtitle-1 font-weight-bold text-primary">{{ formatTime(reserva.fecha_hora_inicio) }}</strong>
+                        <div class="text-caption text-medium-emphasis">{{ reserva.servicio?.duracion }} min</div>
+                      </div>
                       
-                      <v-card class="elevation-2 rounded-lg border-panel">
+                      <!-- Columna de Línea/Punto -->
+                      <div class="d-flex flex-column align-center mr-4 pt-3">
+                        <v-icon :color="getColorEstado(reserva.estado)" size="16">mdi-circle</v-icon>
+                        <div v-if="index !== turnosDelDia.length - 1" class="flex-grow-1 mt-2" style="width: 2px; background-color: rgba(140, 109, 70, 0.2); min-height: 50px;"></div>
+                      </div>
+                      
+                      <!-- Columna de Tarjeta -->
+                      <v-card class="elevation-2 rounded-lg border-panel flex-grow-1">
                         <v-card-text class="pa-4">
                           <div class="d-flex justify-space-between align-start mb-2">
-                            <h4 class="text-subtitle-1 font-weight-bold text-primary mb-0">
+                            <h4 class="text-subtitle-1 font-weight-bold text-grey-darken-3 mb-0">
                               {{ reserva.servicio?.nombre }}
                             </h4>
                             <v-chip size="x-small" :color="getColorEstado(reserva.estado)" class="text-uppercase font-weight-bold">
@@ -99,8 +103,8 @@
                           </div>
                         </v-card-text>
                       </v-card>
-                    </v-timeline-item>
-                  </v-timeline>
+                    </div>
+                  </div>
                 </div>
 
                 <div v-else class="text-center py-12 px-4 d-flex flex-column align-center justify-center h-100 opacity-70">

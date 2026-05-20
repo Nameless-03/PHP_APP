@@ -355,6 +355,7 @@
                     <th class="text-left font-weight-bold">Fecha/Hora</th>
                     <th class="text-left font-weight-bold">Servicio</th>
                     <th class="text-left font-weight-bold">Estado</th>
+                    <th class="text-left font-weight-bold">Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -362,6 +363,17 @@
                     <td class="font-weight-medium">{{ formatDateShort(reserva.fecha_hora_inicio) }}</td>
                     <td>{{ reserva.servicio?.nombre }}</td>
                     <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ reserva.estado }}</v-chip></td>
+                    <td>
+                      <v-btn 
+                        v-if="isCliente && puedeCalificar(reserva)" 
+                        color="warning" 
+                        size="small" 
+                        variant="tonal"
+                        @click="abrirCalificar(reserva)"
+                      >
+                        <v-icon left size="16" class="mr-1">mdi-star</v-icon> Calificar
+                      </v-btn>
+                    </td>
                   </tr>
                 </tbody>
               </v-table>
@@ -371,6 +383,46 @@
         </v-col>
       </v-row>
     </v-fade-transition>
+
+    <!-- MODAL CALIFICAR -->
+    <v-dialog v-model="dialogCalificar" max-width="500">
+      <v-card class="rounded-xl border-card">
+        <v-card-text class="pa-0">
+          <div class="brand-header pa-4 text-white d-flex align-center" style="background: linear-gradient(135deg, #E6A822 0%, #D48C00 100%);">
+            <v-icon size="32" class="mr-3">mdi-star-circle</v-icon>
+            <h2 class="text-h6 font-weight-bold mb-0">Calificar Servicio</h2>
+          </div>
+        </v-card-text>
+        <v-card-text class="pa-6 text-center">
+          <p class="text-body-1 mb-4">¿Qué te pareció el servicio <strong>{{ reservaACalificar?.servicio?.nombre }}</strong>?</p>
+          
+          <v-rating
+            v-model="formCalificacion.puntuacion"
+            color="warning"
+            active-color="warning"
+            hover
+            half-increments="false"
+            size="x-large"
+            class="mb-4"
+          ></v-rating>
+          
+          <v-textarea
+            v-model="formCalificacion.comentario"
+            label="Déjale un comentario al profesional (opcional)"
+            variant="outlined"
+            rows="3"
+            color="warning"
+            counter="500"
+          ></v-textarea>
+        </v-card-text>
+        <v-card-actions class="pa-4 bg-grey-lighten-4 justify-end">
+          <v-btn variant="text" color="grey" @click="dialogCalificar = false" class="text-none">Cancelar</v-btn>
+          <v-btn color="warning" variant="elevated" @click="enviarCalificacion" :loading="isLoading" class="text-none font-weight-bold px-4" :disabled="!formCalificacion.puntuacion">
+            Enviar Calificación
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" location="top">
       {{ snackbar.text }}
@@ -396,6 +448,12 @@ const isCliente = ref(true)
 const errorForm = ref('')
 const formData = ref({ id_servicio: null, fecha: '', hora: '' })
 const reservaSeleccionada = ref(null)
+
+// Modal Calificar
+const dialogCalificar = ref(false)
+const reservaACalificar = ref(null)
+const formCalificacion = ref({ puntuacion: 0, comentario: '' })
+const calificacionesEnviadas = ref(new Set())
 
 // Datos
 const serviciosList = ref([])
@@ -568,6 +626,48 @@ const cambiarEstadoReserva = async (id, estado) => {
     snackbar.value = { show: true, text: estado === 'cancelada' ? 'Turno cancelado' : `Reserva ${estado}`, color: estado === 'cancelada' ? 'error' : 'success' }
     await cargarRegistros()
   } catch (err) {
+    snackbar.value = { show: true, text: err.message, color: 'error' }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// === LOGICA: CALIFICAR ===
+const puedeCalificar = (reserva) => {
+  if (calificacionesEnviadas.value.has(reserva.id)) return false
+  const esFechaPasada = new Date(reserva.fecha_hora_fin || reserva.fecha_hora_inicio) < new Date()
+  const estadoValido = ['finalizada', 'pagada', 'confirmada'].includes(reserva.estado)
+  return estadoValido && esFechaPasada
+}
+
+const abrirCalificar = (reserva) => {
+  reservaACalificar.value = reserva
+  formCalificacion.value = { puntuacion: 0, comentario: '' }
+  dialogCalificar.value = true
+}
+
+const enviarCalificacion = async () => {
+  if (!formCalificacion.value.puntuacion || !reservaACalificar.value) return
+  isLoading.value = true
+  
+  try {
+    const res = await fetch(`http://localhost:8000/api/reservas/${reservaACalificar.value.id}/calificar`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(formCalificacion.value)
+    })
+
+    if (!res.ok) throw new Error((await res.json()).message || 'Error al calificar')
+
+    snackbar.value = { show: true, text: '¡Gracias por calificar el servicio!', color: 'success' }
+    calificacionesEnviadas.value.add(reservaACalificar.value.id)
+    dialogCalificar.value = false
+    reservaACalificar.value = null
+  } catch (err) {
+    if (err.message === 'Esta reserva ya fue calificada.') {
+      calificacionesEnviadas.value.add(reservaACalificar.value.id)
+      dialogCalificar.value = false
+    }
     snackbar.value = { show: true, text: err.message, color: 'error' }
   } finally {
     isLoading.value = false
