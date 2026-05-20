@@ -14,7 +14,7 @@ class CompraPaquete extends Model
      *
      * @var string
      */
-    protected $table = 'compras_paquetes';
+    protected $table = 'compras_paquete';
 
     /**
      * Los atributos que son asignables en masa.
@@ -72,6 +72,14 @@ class CompraPaquete extends Model
     public function pagos()
     {
         return $this->hasMany(Pago::class, 'id_compra');
+    }
+
+    /**
+     * Relación uno a muchos con Reserva.
+     */
+    public function reservas()
+    {
+        return $this->hasMany(Reserva::class, 'id_compra_paquete');
     }
 
     /**

@@ -46,6 +46,10 @@ class ServicioService
             $query->where('id_profesional', $filtros['id_profesional']);
         }
 
+        if (isset($filtros['id_profesional'])) {
+            $query->where('id_profesional', $filtros['id_profesional']);
+        }
+
         if (isset($filtros['modalidad'])) {
             $query->where('modalidad', $filtros['modalidad']);
         }

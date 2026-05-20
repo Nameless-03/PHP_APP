@@ -23,6 +23,7 @@ class Paquete extends Model
      */
     protected $fillable = [
         'nombre',
+        'descripcion',
         'cantidad_sesiones',
         'precio',
         'vencimiento',
@@ -56,4 +57,13 @@ class Paquete extends Model
     {
         return $this->hasMany(CompraPaquete::class, 'id_paquete');
     }
+
+    /**
+     * Relación muchos a muchos con Servicio.
+     */
+    public function servicios()
+    {
+        return $this->belongsToMany(Servicio::class, 'paquete_servicio', 'id_paquete', 'id_servicio');
+    }
 }
+

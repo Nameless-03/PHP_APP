@@ -22,6 +22,7 @@ class ReservaResource extends JsonResource
             'observaciones' => $this->observaciones,
             'id_cliente' => $this->id_cliente,
             'id_servicio' => $this->id_servicio,
+            'id_compra_paquete' => $this->id_compra_paquete,
             'created_at' => $this->created_at?->toIso8601String(),
             
             // Relaciones opcionales
@@ -34,6 +35,14 @@ class ReservaResource extends JsonResource
                 ];
             }),
             'servicio' => new ServicioResource($this->whenLoaded('servicio')),
+            'compra_paquete' => $this->whenLoaded('compraPaquete', function () {
+                return [
+                    'id' => $this->compraPaquete->id,
+                    'paquete' => $this->compraPaquete->paquete ? [
+                        'nombre' => $this->compraPaquete->paquete->nombre,
+                    ] : null,
+                ];
+            }),
         ];
     }
 }

@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\TurnosDisponiblesController;
 use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\PaqueteController;
+use App\Http\Controllers\Api\CompraPaqueteController;
 use App\Http\Controllers\Api\CalificacionController;
 use App\Http\Controllers\Api\NotificacionController;
 
@@ -28,7 +30,7 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::put('/password', [AuthController::class, 'changePassword']);
-        
+
         // Notificaciones
         Route::get('/notificaciones', [NotificacionController::class, 'index']);
         Route::patch('/notificaciones/{id}/marcar-leida', [NotificacionController::class, 'marcarLeida']);
@@ -97,7 +99,7 @@ Route::prefix('reservas')->middleware('auth:sanctum')->group(function () {
     // Cambiar estado (confirmar, cancelar, etc)
     Route::patch('/{reserva}/estado', [ReservaController::class, 'updateEstado']);
     Route::patch('/{reserva}/reprogramar', [ReservaController::class, 'reprogramar']);
-    
+
     // Calificar reserva finalizada
     Route::post('/{reserva}/calificar', [CalificacionController::class, 'calificar']);
 });
@@ -108,3 +110,13 @@ Route::prefix('pagos')->middleware('auth:sanctum')->group(function () {
         Route::post('/', [PagoController::class, 'store']);
     });
 });
+
+// Paquetes de Sesiones
+Route::get('/paquetes', [PaqueteController::class, 'index']);
+Route::prefix('paquetes')->middleware('auth:sanctum')->group(function () {
+    Route::post('/', [PaqueteController::class, 'store'])->middleware('role:profesional');
+    Route::delete('/{paquete}', [PaqueteController::class, 'destroy'])->middleware('role:profesional');
+    Route::post('/{paquete}/comprar', [CompraPaqueteController::class, 'comprar'])->middleware('role:cliente');
+});
+Route::get('/mis-paquetes', [CompraPaqueteController::class, 'misPaquetes'])->middleware(['auth:sanctum', 'role:cliente']);
+
