@@ -120,8 +120,40 @@
                   color="primary"
                   class="mb-4"
                   :rules="[v => !!v || 'Requerido']"
-                  @update:modelValue="formData.fecha = ''; turnosDisponibles = []; formData.hora = ''"
+                  @update:modelValue="formData.fecha = ''; turnosDisponibles = []; formData.hora = ''; pagarConPaquete = false; formData.id_compra_paquete = null"
                 ></v-select>
+
+                <!-- Selector Premium de Paquetes -->
+                <div v-if="formData.id_servicio && paquetesAplicables.length > 0" class="mb-4 pa-4 rounded-xl border-panel bg-amber-lighten-5">
+                  <div class="d-flex align-center mb-2">
+                    <v-icon color="secondary" class="mr-2">mdi-package-variant-closed</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-grey-darken-3">¡Tienes paquetes disponibles para este servicio!</span>
+                  </div>
+                  
+                  <v-checkbox
+                    v-model="pagarConPaquete"
+                    label="Pagar reserva utilizando una sesión de paquete"
+                    color="secondary"
+                    hide-details
+                    class="mb-2"
+                  ></v-checkbox>
+
+                  <v-expand-transition>
+                    <div v-if="pagarConPaquete">
+                      <v-select
+                        v-model="formData.id_compra_paquete"
+                        :items="paquetesAplicables"
+                        item-title="label"
+                        item-value="id"
+                        label="Selecciona tu paquete de sesiones"
+                        variant="outlined"
+                        color="secondary"
+                        density="comfortable"
+                        :rules="[v => !!v || 'Debes seleccionar un paquete']"
+                      ></v-select>
+                    </div>
+                  </v-expand-transition>
+                </div>
 
                 <v-text-field
                   v-if="formData.id_servicio"
@@ -194,7 +226,19 @@
                       <v-avatar color="info" variant="tonal" class="mr-4"><v-icon>mdi-clock-edit-outline</v-icon></v-avatar>
                       <div>
                         <h4 class="font-weight-bold">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
-                        <p class="mb-0 text-caption">{{ reserva.servicio?.nombre }} - {{ isCliente ? reserva.servicio?.profesional?.usuario?.nombre : reserva.cliente?.usuario?.nombre }}</p>
+                        <p class="mb-0 text-caption d-flex align-center flex-wrap gap-2">
+                          {{ reserva.servicio?.nombre }} - {{ isCliente ? reserva.servicio?.profesional?.usuario?.nombre : reserva.cliente?.usuario?.nombre }}
+                          <v-chip
+                            v-if="reserva.compra_paquete"
+                            size="x-small"
+                            color="purple"
+                            variant="flat"
+                            class="text-white font-weight-bold"
+                            prepend-icon="mdi-package-variant"
+                          >
+                            Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                          </v-chip>
+                        </p>
                       </div>
                     </v-card-text>
                   </v-card>
@@ -289,7 +333,19 @@
                     <v-avatar color="error" variant="tonal" size="48" class="mr-4"><v-icon>mdi-close-circle-outline</v-icon></v-avatar>
                     <div class="flex-grow-1 mr-4">
                       <h4 class="font-weight-bold">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
-                      <p class="mb-0 text-caption">{{ reserva.servicio?.nombre }}</p>
+                      <p class="mb-0 text-caption d-flex align-center flex-wrap gap-2">
+                        {{ reserva.servicio?.nombre }}
+                        <v-chip
+                          v-if="reserva.compra_paquete"
+                          size="x-small"
+                          color="purple"
+                          variant="flat"
+                          class="text-white font-weight-bold"
+                          prepend-icon="mdi-package-variant"
+                        >
+                          Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                        </v-chip>
+                      </p>
                     </div>
                     <v-btn color="error" variant="outlined" @click="cancelarReserva(reserva.id)" :loading="isLoading" class="mt-2 mt-sm-0 text-none">
                       Cancelar Turno
@@ -324,7 +380,19 @@
                       <v-avatar color="warning" variant="tonal" size="48" class="mr-4"><v-icon>mdi-clock-alert</v-icon></v-avatar>
                       <div class="flex-grow-1 mr-4">
                         <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
-                        <p class="text-body-2 mb-0">{{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} - {{ reserva.servicio?.nombre }}</p>
+                        <p class="text-body-2 mb-0 d-flex align-center flex-wrap gap-2">
+                          {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} - {{ reserva.servicio?.nombre }}
+                          <v-chip
+                            v-if="reserva.compra_paquete"
+                            size="x-small"
+                            color="purple"
+                            variant="flat"
+                            class="text-white font-weight-bold"
+                            prepend-icon="mdi-package-variant"
+                          >
+                            Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                          </v-chip>
+                        </p>
                       </div>
                       <div class="d-flex gap-2 mt-2 mt-sm-0">
                         <v-btn color="success" size="small" @click="cambiarEstadoReserva(reserva.id, 'confirmada')" :loading="isLoading">Confirmar</v-btn>
@@ -360,7 +428,21 @@
                 <tbody>
                   <tr v-for="reserva in reservasRegistros" :key="reserva.id">
                     <td class="font-weight-medium">{{ formatDateShort(reserva.fecha_hora_inicio) }}</td>
-                    <td>{{ reserva.servicio?.nombre }}</td>
+                    <td>
+                      <div class="d-flex flex-column">
+                        <span>{{ reserva.servicio?.nombre }}</span>
+                        <v-chip
+                          v-if="reserva.compra_paquete"
+                          size="x-small"
+                          color="purple"
+                          variant="flat"
+                          class="mt-1 align-self-start text-white font-weight-bold"
+                          prepend-icon="mdi-package-variant"
+                        >
+                          Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                        </v-chip>
+                      </div>
+                    </td>
                     <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ reserva.estado }}</v-chip></td>
                   </tr>
                 </tbody>
@@ -391,17 +473,33 @@ const isCliente = ref(true)
 
 // Formularios
 const errorForm = ref('')
-const formData = ref({ id_servicio: null, fecha: '', hora: '' })
+const formData = ref({ id_servicio: null, fecha: '', hora: '', id_compra_paquete: null })
+const pagarConPaquete = ref(false)
 const reservaSeleccionada = ref(null)
 
 // Datos
 const serviciosList = ref([])
+const misPaquetesList = ref([])
 const turnosDisponibles = ref([])
 const cargandoTurnos = ref(false)
 const reservasRegistros = ref([])
 const cargandoRegistros = ref(false)
 
 const minDate = new Date().toISOString().split('T')[0]
+
+// Computada de Paquetes Aplicables
+const paquetesAplicables = computed(() => {
+  if (!formData.value.id_servicio) return []
+  return misPaquetesList.value.filter(compra => {
+    const servicios = compra.paquete?.servicios || []
+    const contieneServicio = servicios.some(s => s.id === formData.value.id_servicio)
+    return compra.estado === 'activo' && compra.sesiones_disponibles > 0 && contieneServicio
+  }).map(compra => ({
+    id: compra.id,
+    label: `${compra.paquete?.nombre} (${compra.sesiones_disponibles} sesiones restantes)`,
+    sesiones_disponibles: compra.sesiones_disponibles
+  }))
+})
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -453,8 +551,21 @@ const cargarServicios = async () => {
   } catch (err) { console.error(err) }
 }
 
+const cargarMisPaquetes = async () => {
+  try {
+    const res = await fetch('http://localhost:8000/api/mis-paquetes', { headers: getAuthHeaders() })
+    if (res.ok) {
+      const data = await res.json()
+      misPaquetesList.value = data.data || []
+    }
+  } catch (err) { console.error(err) }
+}
+
 watch(currentView, (newVal) => {
-  if (newVal === 'reservar' && serviciosList.value.length === 0) cargarServicios()
+  if (newVal === 'reservar') {
+    if (serviciosList.value.length === 0) cargarServicios()
+    cargarMisPaquetes()
+  }
 })
 
 // === LOGICA: TURNOS ===
@@ -486,10 +597,16 @@ const confirmarReserva = async () => {
 
   try {
     const dateTime = `${formData.value.fecha} ${formData.value.hora}:00`
+    const payload = {
+      id_servicio: formData.value.id_servicio,
+      fecha_hora_inicio: dateTime,
+      id_compra_paquete: pagarConPaquete.value ? formData.value.id_compra_paquete : null
+    }
+
     const res = await fetch('http://localhost:8000/api/reservas', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ id_servicio: formData.value.id_servicio, fecha_hora_inicio: dateTime })
+      body: JSON.stringify(payload)
     })
 
     if (!res.ok) throw new Error((await res.json()).message || 'Error al reservar')

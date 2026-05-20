@@ -26,6 +26,7 @@ class StoreReservaRequest extends FormRequest
             'fecha_hora_inicio' => ['required', 'date', 'after:now'],
             // 'fecha_hora_fin' is calculated automatically based on the service's duration
             'observaciones' => ['nullable', 'string'],
+            'id_compra_paquete' => ['nullable', 'exists:compras_paquete,id'],
         ];
     }
 }

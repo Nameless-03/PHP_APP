@@ -4,7 +4,10 @@ import RegistroView from '../views/RegistroView.vue'
 import PanelPrincipalView from '../views/PanelPrincipalView.vue'
 import PerfilProfesionalView from '../views/PerfilProfesionalView.vue'
 import GestionServiciosView from '../views/GestionServiciosView.vue'
+import GestionPaquetesView from '../views/GestionPaquetesView.vue'
 import BusquedaServiciosView from '../views/BusquedaServiciosView.vue'
+import ComprarPaquetesView from '../views/ComprarPaquetesView.vue'
+import MisPaquetesView from '../views/MisPaquetesView.vue'
 
 import MisHorariosView from '../views/MisHorariosView.vue'
 import MisReservasView from '../views/MisReservasView.vue'
@@ -46,6 +49,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/packages',
+      name: 'packages',
+      component: GestionPaquetesView,
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/buscar',
       name: 'search',
       component: BusquedaServiciosView,
@@ -67,6 +76,18 @@ const router = createRouter({
       path: '/mi-agenda',
       name: 'mi-agenda',
       component: MiAgendaView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/comprar-paquetes',
+      name: 'comprar-paquetes',
+      component: ComprarPaquetesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mis-paquetes',
+      name: 'mis-paquetes',
+      component: MisPaquetesView,
       meta: { requiresAuth: true }
     }
   ]

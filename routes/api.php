@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\TurnosDisponiblesController;
 use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\PaqueteController;
+use App\Http\Controllers\Api\CompraPaqueteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -98,3 +100,13 @@ Route::prefix('pagos')->middleware('auth:sanctum')->group(function () {
         Route::post('/', [PagoController::class, 'store']);
     });
 });
+
+// Paquetes de Sesiones
+Route::get('/paquetes', [PaqueteController::class, 'index']);
+Route::prefix('paquetes')->middleware('auth:sanctum')->group(function () {
+    Route::post('/', [PaqueteController::class, 'store'])->middleware('role:profesional');
+    Route::delete('/{paquete}', [PaqueteController::class, 'destroy'])->middleware('role:profesional');
+    Route::post('/{paquete}/comprar', [CompraPaqueteController::class, 'comprar'])->middleware('role:cliente');
+});
+Route::get('/mis-paquetes', [CompraPaqueteController::class, 'misPaquetes'])->middleware(['auth:sanctum', 'role:cliente']);
+

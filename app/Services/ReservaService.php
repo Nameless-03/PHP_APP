@@ -48,13 +48,47 @@ class ReservaService
                 throw new Exception("El horario seleccionado ya no está disponible.");
             }
 
+            $estadoReserva = EstadoReservaEnum::PENDIENTE;
+
+            // Si se pasa id_compra_paquete, validar y procesar consumo de sesión
+            if (!empty($data['id_compra_paquete'])) {
+                $compra = \App\Models\CompraPaquete::with('paquete.servicios')->findOrFail($data['id_compra_paquete']);
+                
+                // Validar que pertenezca al cliente
+                if ($compra->id_cliente !== $data['id_cliente']) {
+                    throw new Exception("El paquete seleccionado no te pertenece.");
+                }
+
+                // Validar que esté activo y tenga sesiones
+                if ($compra->estado !== 'activo' || $compra->sesiones_disponibles <= 0) {
+                    throw new Exception("El paquete no tiene sesiones disponibles.");
+                }
+
+                // Validar que el servicio esté incluido en el paquete
+                $servicioValido = $compra->paquete->servicios->contains($servicio->id);
+                if (!$servicioValido) {
+                    throw new Exception("El servicio seleccionado no está incluido en este paquete.");
+                }
+
+                // Descontar sesión
+                $compra->decrement('sesiones_disponibles');
+                
+                // Si ya no quedan sesiones, agotar el paquete
+                if ($compra->fresh()->sesiones_disponibles === 0) {
+                    $compra->update(['estado' => 'agotado']);
+                }
+
+                $estadoReserva = EstadoReservaEnum::PAGADA;
+            }
+
             $reserva = Reserva::create([
                 'fecha_hora_inicio' => $inicio,
                 'fecha_hora_fin' => $fin,
-                'estado' => EstadoReservaEnum::PENDIENTE,
+                'estado' => $estadoReserva,
                 'observaciones' => $data['observaciones'] ?? null,
                 'id_cliente' => $data['id_cliente'],
                 'id_servicio' => $servicio->id,
+                'id_compra_paquete' => $data['id_compra_paquete'] ?? null,
             ]);
 
             // Disparar Evento de Dominio
@@ -77,7 +111,7 @@ class ReservaService
      */
     public function listarPorCliente(int $idCliente): Collection
     {
-        return Reserva::with(['servicio'])->where('id_cliente', $idCliente)->get();
+        return Reserva::with(['servicio', 'compraPaquete.paquete'])->where('id_cliente', $idCliente)->get();
     }
 
     /**
@@ -85,7 +119,7 @@ class ReservaService
      */
     public function listarPorProfesional(int $idProfesional): Collection
     {
-        return Reserva::with(['cliente.usuario', 'servicio'])
+        return Reserva::with(['cliente.usuario', 'servicio', 'compraPaquete.paquete'])
             ->whereHas('servicio', function ($q) use ($idProfesional) {
                 $q->where('id_profesional', $idProfesional);
             })->get();
@@ -98,13 +132,26 @@ class ReservaService
     {
         $estadoAnterior = $reserva->estado->value;
         
-        $reserva->update([
-            'estado' => $nuevoEstado
-        ]);
+        return DB::transaction(function () use ($reserva, $nuevoEstado, $estadoAnterior) {
+            // Reembolsar sesión si pasa a cancelada y no estaba ya cancelada
+            if ($nuevoEstado === EstadoReservaEnum::CANCELADA && $reserva->id_compra_paquete && $reserva->estado !== EstadoReservaEnum::CANCELADA) {
+                $compra = $reserva->compraPaquete;
+                if ($compra) {
+                    $compra->increment('sesiones_disponibles');
+                    if ($compra->estado === 'agotado') {
+                        $compra->update(['estado' => 'activo']);
+                    }
+                }
+            }
 
-        ReservaEstadoCambiado::dispatch($reserva->fresh(), $estadoAnterior);
+            $reserva->update([
+                'estado' => $nuevoEstado
+            ]);
 
-        return $reserva;
+            ReservaEstadoCambiado::dispatch($reserva->fresh(), $estadoAnterior);
+
+            return $reserva;
+        });
     }
 
     /**

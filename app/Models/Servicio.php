@@ -95,4 +95,13 @@ class Servicio extends Model
     {
         return $query->where('modalidad', $modalidad);
     }
+
+    /**
+     * Relación muchos a muchos con Paquete.
+     */
+    public function paquetes()
+    {
+        return $this->belongsToMany(Paquete::class, 'paquete_servicio', 'id_servicio', 'id_paquete');
+    }
 }
+

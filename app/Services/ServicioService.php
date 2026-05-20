@@ -33,6 +33,10 @@ class ServicioService
     {
         $query = Servicio::with(['profesional.usuario', 'categoria'])->where('activo', true);
 
+        if (isset($filtros['id_profesional'])) {
+            $query->where('id_profesional', $filtros['id_profesional']);
+        }
+
         if (isset($filtros['modalidad'])) {
             $query->where('modalidad', $filtros['modalidad']);
         }

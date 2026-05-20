@@ -30,6 +30,7 @@ class Reserva extends Model
         'observaciones',
         'id_cliente',
         'id_servicio',
+        'id_compra_paquete',
     ];
 
     /**
@@ -42,6 +43,7 @@ class Reserva extends Model
         'fecha_hora_fin' => 'datetime',
         'id_cliente' => 'integer',
         'id_servicio' => 'integer',
+        'id_compra_paquete' => 'integer',
         'estado' => EstadoReservaEnum::class,
     ];
 
@@ -68,6 +70,14 @@ class Reserva extends Model
     public function servicio()
     {
         return $this->belongsTo(Servicio::class, 'id_servicio');
+    }
+
+    /**
+     * Relación muchos a uno con CompraPaquete.
+     */
+    public function compraPaquete()
+    {
+        return $this->belongsTo(CompraPaquete::class, 'id_compra_paquete');
     }
 
     /**
