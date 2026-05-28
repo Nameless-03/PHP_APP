@@ -19,6 +19,7 @@ class UsuarioResource extends JsonResource
             'nombre' => $this->nombre,
             'email' => $this->email,
             'role' => $this->role?->value ?? $this->role,
+            'activo' => $this->activo ?? true,
             'fecha_registro' => $this->fecha_registro?->toIso8601String(),
             // Include related models dynamically if they are loaded
             'cliente' => $this->whenLoaded('cliente', function () {

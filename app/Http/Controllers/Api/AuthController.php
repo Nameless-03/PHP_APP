@@ -208,6 +208,11 @@ class AuthController extends Controller
                 return $user->load(['cliente', 'profesional', 'admin']);
             });
 
+            // Verificar que la cuenta esté activa
+            if (!$usuario->activo) {
+                return redirect($frontendUrl . '/login?error=account_deactivated');
+            }
+
             // Create Sanctum token
             $token = $usuario->createToken('auth_token')->plainTextToken;
             $userJson = json_encode(new UsuarioResource($usuario));

@@ -13,6 +13,9 @@ import MisHorariosView from '../views/MisHorariosView.vue'
 import MisReservasView from '../views/MisReservasView.vue'
 import MiAgendaView from '../views/MiAgendaView.vue'
 
+import AdminUsuariosView from '../views/AdminUsuariosView.vue'
+import AdminMonitoreoView from '../views/AdminMonitoreoView.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -89,6 +92,19 @@ const router = createRouter({
       name: 'mis-paquetes',
       component: MisPaquetesView,
       meta: { requiresAuth: true }
+    },
+    // --- Admin Routes ---
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: AdminUsuariosView,
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/system',
+      name: 'admin-system',
+      component: AdminMonitoreoView,
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
@@ -97,10 +113,23 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('auth_token')
 
+  // Obtener rol del usuario
+  let userRole = null
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      userRole = user.role
+    } catch (e) {}
+  }
+
   if (to.matched.some(record => record.meta.requiresAuth)) {
     if (!isAuthenticated) {
       // Si la ruta requiere autenticación y no hay token, redirigir a login
       next({ name: 'login' })
+    } else if (to.matched.some(record => record.meta.requiresAdmin) && userRole !== 'admin') {
+      // Si la ruta requiere admin y el usuario no lo es, redirigir al dashboard
+      next({ name: 'dashboard' })
     } else {
       next() // Permitir la navegación
     }
@@ -113,4 +142,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-

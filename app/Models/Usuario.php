@@ -32,6 +32,7 @@ class Usuario extends Authenticatable
         'fecha_registro',
         'role',
         'google_id',
+        'activo',
     ];
 
     /**
@@ -54,6 +55,7 @@ class Usuario extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'role' => RoleEnum::class,
+        'activo' => 'boolean',
     ];
 
     /**

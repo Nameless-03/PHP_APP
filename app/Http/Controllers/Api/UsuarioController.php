@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UsuarioResource;
 use App\Services\UsuarioService;
+use App\Models\Usuario;
+use App\Models\Reserva;
+use App\Enums\RoleEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class UsuarioController extends Controller
 {
@@ -61,6 +65,7 @@ class UsuarioController extends Controller
             'experiencia' => 'sometimes|nullable|string',
             'ubicacion' => 'sometimes|nullable|string',
             'modalidad_preferida' => 'sometimes|string|in:presencial,remota,hibrida',
+            'activo' => 'sometimes|boolean',
         ]);
 
         $usuario = $this->usuarioService->obtenerPorId($id);
@@ -82,5 +87,72 @@ class UsuarioController extends Controller
         return response()->json([
             'message' => 'User deleted successfully',
         ], 204);
+    }
+
+    /**
+     * Dashboard stats for admin panel.
+     * Returns global system statistics.
+     */
+    public function dashboardStats(): JsonResponse
+    {
+        // Users by role
+        $usersByRole = Usuario::select('role', DB::raw('count(*) as total'))
+            ->groupBy('role')
+            ->pluck('total', 'role');
+
+        // Total users
+        $totalUsers = Usuario::count();
+        $activeUsers = Usuario::where('activo', true)->count();
+        $inactiveUsers = $totalUsers - $activeUsers;
+
+        // Reservations by status
+        $reservasByEstado = Reserva::select('estado', DB::raw('count(*) as total'))
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $totalReservas = Reserva::count();
+
+        // Latest 10 reservations
+        $latestReservas = Reserva::with(['cliente.usuario', 'servicio'])
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get()
+            ->map(function ($r) {
+                return [
+                    'id' => $r->id,
+                    'estado' => $r->estado?->value ?? $r->estado,
+                    'fecha_hora_inicio' => $r->fecha_hora_inicio?->toIso8601String(),
+                    'fecha_hora_fin' => $r->fecha_hora_fin?->toIso8601String(),
+                    'cliente_nombre' => $r->cliente?->usuario?->nombre ?? 'N/A',
+                    'servicio_nombre' => $r->servicio?->nombre ?? 'N/A',
+                    'created_at' => $r->created_at?->toIso8601String(),
+                ];
+            });
+
+        // Latest 10 registered users
+        $latestUsers = Usuario::orderByDesc('fecha_registro')
+            ->limit(10)
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'id' => $u->id,
+                    'nombre' => $u->nombre,
+                    'email' => $u->email,
+                    'role' => $u->role?->value ?? $u->role,
+                    'activo' => $u->activo,
+                    'fecha_registro' => $u->fecha_registro?->toIso8601String(),
+                ];
+            });
+
+        return response()->json([
+            'total_usuarios' => $totalUsers,
+            'usuarios_activos' => $activeUsers,
+            'usuarios_inactivos' => $inactiveUsers,
+            'usuarios_por_rol' => $usersByRole,
+            'total_reservas' => $totalReservas,
+            'reservas_por_estado' => $reservasByEstado,
+            'ultimas_reservas' => $latestReservas,
+            'ultimos_usuarios' => $latestUsers,
+        ]);
     }
 }

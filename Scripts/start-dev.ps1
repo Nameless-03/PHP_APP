@@ -30,15 +30,41 @@ if (Test-Path "composer.json") {
     }
 }
 
-# Configuración del entorno
+# Configuración del entorno (Descifrado o uso de plantilla)
 if (-not (Test-Path ".env")) {
-    if (Test-Path ".env.example") {
-        Write-Host "Copiando .env.example a .env..." -ForegroundColor Yellow
-        Copy-Item ".env.example" ".env"
-    } else {
-        Write-Host "Advertencia: No se encontró .env ni .env.example" -ForegroundColor Red
+    if (Test-Path ".env.key") {
+        Write-Host "Se encontró la clave local .env.key. Descifrando entorno..." -ForegroundColor Yellow
+        php artisan env:decrypt
+    }
+    
+    if ((-not (Test-Path ".env")) -and (Test-Path ".env.encrypted")) {
+        Write-Host "Se detectó un entorno encriptado (.env.encrypted) pero no tienes un .env local." -ForegroundColor Cyan
+        $envKey = Read-Host "Ingresa la clave de descifrado (o presiona Enter para usar la plantilla básica de .env.example)"
+        if ($envKey) {
+            # Guardar la clave en .env.key (que está en .gitignore)
+            $envKey.Trim() | Out-File -FilePath ".env.key" -Encoding ascii -NoNewline
+            Write-Host "Descifrando entorno..." -ForegroundColor Yellow
+            php artisan env:decrypt
+            if (-not (Test-Path ".env")) {
+                Write-Host "Error al descifrar. Por favor verifica tu clave." -ForegroundColor Red
+                Remove-Item ".env.key" -ErrorAction SilentlyContinue
+            } else {
+                Write-Host "¡Entorno descifrado y restaurado con éxito!" -ForegroundColor Green
+            }
+        }
+    }
+    
+    # Si no se descifró, usar .env.example
+    if (-not (Test-Path ".env")) {
+        if (Test-Path ".env.example") {
+            Write-Host "Copiando .env.example a .env..." -ForegroundColor Yellow
+            Copy-Item ".env.example" ".env"
+        } else {
+            Write-Host "Advertencia: No se encontró .env, .env.encrypted ni .env.example" -ForegroundColor Red
+        }
     }
 }
+
 
 if (Test-Path "docker-compose.yml") {
     Write-Host "[2/4] Iniciando contenedores Docker (Laravel Sail)..." -ForegroundColor Green

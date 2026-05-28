@@ -38,6 +38,7 @@ class UsuarioService
         if (array_key_exists('nombre', $data)) $usuarioData['nombre'] = $data['nombre'];
         if (array_key_exists('email', $data)) $usuarioData['email'] = $data['email'];
         if (array_key_exists('password', $data)) $usuarioData['password'] = $data['password'];
+        if (array_key_exists('activo', $data)) $usuarioData['activo'] = $data['activo'];
 
         if (!empty($usuarioData)) {
             $usuario->update($usuarioData);

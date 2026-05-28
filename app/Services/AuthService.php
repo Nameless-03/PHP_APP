@@ -26,6 +26,13 @@ class AuthService
             ]);
         }
 
+        // Verificar que la cuenta esté activa
+        if (!$usuario->activo) {
+            throw ValidationException::withMessages([
+                'email' => ['Tu cuenta ha sido desactivada. Contacta al administrador.'],
+            ]);
+        }
+
         // Generate token using Sanctum (assuming Sanctum will be installed)
         // Since we don't have Sanctum installed in this skeleton, we'll write the code for it
         // and it will work once Sanctum is set up.

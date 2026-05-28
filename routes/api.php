@@ -124,3 +124,7 @@ Route::prefix('paquetes')->middleware('auth:sanctum')->group(function () {
 });
 Route::get('/mis-paquetes', [CompraPaqueteController::class, 'misPaquetes'])->middleware(['auth:sanctum', 'role:cliente']);
 
+// Admin Dashboard Stats
+Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/stats', [UsuarioController::class, 'dashboardStats']);
+});
