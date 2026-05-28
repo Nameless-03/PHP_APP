@@ -7,6 +7,9 @@ use App\Http\Resources\UsuarioResource;
 use App\Services\UsuarioService;
 use App\Models\Usuario;
 use App\Models\Reserva;
+use App\Models\Servicio;
+use App\Models\Pago;
+use App\Models\Calificacion;
 use App\Enums\RoleEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -103,66 +106,123 @@ class UsuarioController extends Controller
 
     /**
      * Dashboard stats for admin panel.
-     * Returns global system statistics.
+     * Returns global system statistics for the "Ver métricas básicas" use case.
      */
     public function dashboardStats(): JsonResponse
     {
-        // Users by role
+        // ── Usuarios ──────────────────────────────────────────────────────────
         $usersByRole = Usuario::select('role', DB::raw('count(*) as total'))
             ->groupBy('role')
             ->pluck('total', 'role');
 
-        // Total users
-        $totalUsers = Usuario::count();
-        $activeUsers = Usuario::where('activo', true)->count();
+        $totalUsers   = Usuario::count();
+        $activeUsers  = Usuario::where('activo', true)->count();
         $inactiveUsers = $totalUsers - $activeUsers;
 
-        // Reservations by status
+        // ── Servicios ─────────────────────────────────────────────────────────
+        $totalServicios  = Servicio::count();
+        $serviciosActivos = Servicio::where('activo', true)->count();
+
+        // ── Reservas ──────────────────────────────────────────────────────────
         $reservasByEstado = Reserva::select('estado', DB::raw('count(*) as total'))
             ->groupBy('estado')
             ->pluck('total', 'estado');
 
-        $totalReservas = Reserva::count();
+        $totalReservas      = Reserva::count();
+        $reservasFinalizadas = Reserva::where('estado', 'finalizada')->count();
+        $reservasCanceladas  = Reserva::where('estado', 'cancelada')->count();
 
-        // Latest 10 reservations
+        // ── Ingresos (pagos completados) ───────────────────────────────────────
+        $ingresosTotales    = Pago::where('estado', 'completado')->sum('monto');
+        $ingresosPorMetodo  = Pago::where('estado', 'completado')
+            ->select('metodo', DB::raw('sum(monto) as total'))
+            ->groupBy('metodo')
+            ->pluck('total', 'metodo');
+
+        // ── Calificaciones ────────────────────────────────────────────────────
+        $promedioCalificacion = Calificacion::avg('puntuacion');
+        $totalCalificaciones  = Calificacion::count();
+        $calificacionesPorPuntuacion = Calificacion::select('puntuacion', DB::raw('count(*) as total'))
+            ->groupBy('puntuacion')
+            ->orderBy('puntuacion', 'desc')
+            ->pluck('total', 'puntuacion');
+
+        // ── Reservas por mes (últimos 6 meses) ────────────────────────────────
+        $reservasPorMes = Reserva::select(
+                DB::raw("TO_CHAR(created_at, 'YYYY-MM') as mes"),
+                DB::raw('count(*) as total')
+            )
+            ->where('created_at', '>=', now()->subMonths(6)->startOfMonth())
+            ->groupBy('mes')
+            ->orderBy('mes')
+            ->get()
+            ->map(fn($r) => ['mes' => $r->mes, 'total' => (int)$r->total]);
+
+        // ── Top 5 servicios más reservados ────────────────────────────────────
+        $topServicios = Reserva::select('id_servicio', DB::raw('count(*) as total_reservas'))
+            ->with('servicio:id,nombre,precio')
+            ->groupBy('id_servicio')
+            ->orderByDesc('total_reservas')
+            ->limit(5)
+            ->get()
+            ->map(fn($r) => [
+                'nombre'         => $r->servicio?->nombre ?? 'N/A',
+                'precio'         => $r->servicio?->precio ?? 0,
+                'total_reservas' => (int)$r->total_reservas,
+            ]);
+
+        // ── Últimas 10 reservas ───────────────────────────────────────────────
         $latestReservas = Reserva::with(['cliente.usuario', 'servicio'])
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
-            ->map(function ($r) {
-                return [
-                    'id' => $r->id,
-                    'estado' => $r->estado?->value ?? $r->estado,
-                    'fecha_hora_inicio' => $r->fecha_hora_inicio?->toIso8601String(),
-                    'fecha_hora_fin' => $r->fecha_hora_fin?->toIso8601String(),
-                    'cliente_nombre' => $r->cliente?->usuario?->nombre ?? 'N/A',
-                    'servicio_nombre' => $r->servicio?->nombre ?? 'N/A',
-                    'created_at' => $r->created_at?->toIso8601String(),
-                ];
-            });
+            ->map(fn($r) => [
+                'id'               => $r->id,
+                'estado'           => $r->estado?->value ?? $r->estado,
+                'fecha_hora_inicio' => $r->fecha_hora_inicio?->toIso8601String(),
+                'fecha_hora_fin'   => $r->fecha_hora_fin?->toIso8601String(),
+                'cliente_nombre'   => $r->cliente?->usuario?->nombre ?? 'N/A',
+                'servicio_nombre'  => $r->servicio?->nombre ?? 'N/A',
+                'created_at'       => $r->created_at?->toIso8601String(),
+            ]);
 
-        // Latest 10 registered users
+        // ── Últimos 10 usuarios registrados ───────────────────────────────────
         $latestUsers = Usuario::orderByDesc('fecha_registro')
             ->limit(10)
             ->get()
-            ->map(function ($u) {
-                return [
-                    'id' => $u->id,
-                    'nombre' => $u->nombre,
-                    'email' => $u->email,
-                    'role' => $u->role?->value ?? $u->role,
-                    'activo' => $u->activo,
-                    'fecha_registro' => $u->fecha_registro?->toIso8601String(),
-                ];
-            });
+            ->map(fn($u) => [
+                'id'             => $u->id,
+                'nombre'         => $u->nombre,
+                'email'          => $u->email,
+                'role'           => $u->role?->value ?? $u->role,
+                'activo'         => $u->activo,
+                'fecha_registro' => $u->fecha_registro?->toIso8601String(),
+            ]);
 
         return response()->json([
-            'total_usuarios' => $totalUsers,
-            'usuarios_activos' => $activeUsers,
+            // Usuarios
+            'total_usuarios'    => $totalUsers,
+            'usuarios_activos'  => $activeUsers,
             'usuarios_inactivos' => $inactiveUsers,
-            'usuarios_por_rol' => $usersByRole,
-            'total_reservas' => $totalReservas,
-            'reservas_por_estado' => $reservasByEstado,
+            'usuarios_por_rol'  => $usersByRole,
+            // Servicios
+            'total_servicios'   => $totalServicios,
+            'servicios_activos' => $serviciosActivos,
+            // Reservas
+            'total_reservas'         => $totalReservas,
+            'reservas_finalizadas'   => $reservasFinalizadas,
+            'reservas_canceladas'    => $reservasCanceladas,
+            'reservas_por_estado'    => $reservasByEstado,
+            'reservas_por_mes'       => $reservasPorMes,
+            // Ingresos
+            'ingresos_totales'   => (float)$ingresosTotales,
+            'ingresos_por_metodo' => $ingresosPorMetodo,
+            // Calificaciones
+            'promedio_calificacion'           => $promedioCalificacion ? round((float)$promedioCalificacion, 2) : null,
+            'total_calificaciones'            => $totalCalificaciones,
+            'calificaciones_por_puntuacion'   => $calificacionesPorPuntuacion,
+            // Listas
+            'top_servicios'    => $topServicios,
             'ultimas_reservas' => $latestReservas,
             'ultimos_usuarios' => $latestUsers,
         ]);
