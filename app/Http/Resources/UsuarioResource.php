@@ -35,6 +35,8 @@ class UsuarioResource extends JsonResource
                     'ubicacion' => $this->profesional->ubicacion,
                     'modalidad_preferida' => $this->profesional->modalidad_preferida,
                     'reputacion' => $this->profesional->reputacion,
+                    'foto_perfil' => $this->profesional->foto_perfil,
+                    'foto_perfil_url' => $this->profesional->foto_perfil ? asset('storage/' . $this->profesional->foto_perfil) : null,
                 ];
             }),
         ];

@@ -27,7 +27,6 @@
 
       <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-view-dashboard" title="Panel Principal" value="dashboard" to="/dashboard"></v-list-item>
-
         <!-- Admin Menu -->
         <template v-if="isAdmin">
           <v-list-item prepend-icon="mdi-account-group" title="Gestionar Usuarios" value="admin-users" to="/admin/users"></v-list-item>
@@ -36,7 +35,7 @@
 
         <!-- Cliente / Profesional Menu -->
         <template v-else>
-          <v-list-item prepend-icon="mdi-account-details" title="Mi Perfil" value="profile" to="/profile"></v-list-item>
+          <v-list-item v-if="isProfesional" prepend-icon="mdi-account-details" title="Mi Perfil" value="profile" to="/profile"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-magnify" title="Buscar Servicios" value="search" to="/buscar"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-package-variant" title="Comprar Paquetes" value="comprar-paquetes" to="/comprar-paquetes"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-briefcase-account" title="Mis Paquetes" value="mis-paquetes" to="/mis-paquetes"></v-list-item>
@@ -46,6 +45,7 @@
           <v-list-item prepend-icon="mdi-calendar-check" title="Mis Reservas" value="reservas" to="/mis-reservas"></v-list-item>
           <v-list-item prepend-icon="mdi-calendar-multiselect" title="Mi Agenda" value="agenda" to="/mi-agenda"></v-list-item>
         </template>
+
       </v-list>
 
       <template v-slot:append>
@@ -122,8 +122,15 @@
             </div>
           </v-card>
         </v-menu>
-        <v-avatar color="primary" class="ml-4" size="40">
-          <span class="text-white font-weight-bold">{{ userInitials }}</span>
+        <v-avatar
+          color="primary"
+          class="ml-4"
+          :class="{ 'cursor-pointer': isProfesional }"
+          size="40"
+          @click="isProfesional && router.push('/profile')"
+        >
+          <v-img v-if="userAvatar" :src="userAvatar" alt="Avatar"></v-img>
+          <span v-else class="text-white font-weight-bold">{{ userInitials }}</span>
         </v-avatar>
       </v-app-bar>
 
@@ -151,6 +158,7 @@ const rail = ref(false)
 const isProfesional = ref(false)
 const isAdmin = ref(false)
 const userInitials = ref('US')
+const userAvatar = ref(null)
 
 import { onMounted, onUnmounted } from 'vue'
 
@@ -211,7 +219,7 @@ const formatTimeAgo = (dateStr) => {
   return `Hace ${Math.round(diffHrs / 24)} d`
 }
 
-onMounted(() => {
+const loadUserFromStorage = () => {
   const userStr = localStorage.getItem('user')
   if (userStr) {
     try {
@@ -221,16 +229,23 @@ onMounted(() => {
       if (user.nombre) {
         userInitials.value = user.nombre.substring(0, 2).toUpperCase()
       }
+      userAvatar.value = user.profesional?.foto_perfil_url || null
     } catch (e) {
       console.error('Error parsing user data', e)
     }
   }
+}
+
+onMounted(() => {
+  loadUserFromStorage()
+  window.addEventListener('user-updated', loadUserFromStorage)
   
   cargarNotificaciones()
   pollingInterval = setInterval(cargarNotificaciones, 30000) // Poll cada 30 segundos
 })
 
 onUnmounted(() => {
+  window.removeEventListener('user-updated', loadUserFromStorage)
   if (pollingInterval) clearInterval(pollingInterval)
 })
 

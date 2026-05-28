@@ -42,6 +42,7 @@ class Profesional extends Model
         'ubicacion',
         'modalidad_preferida',
         'reputacion',
+        'foto_perfil',
     ];
 
     /**

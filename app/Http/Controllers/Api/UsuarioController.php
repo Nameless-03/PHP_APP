@@ -66,9 +66,21 @@ class UsuarioController extends Controller
             'ubicacion' => 'sometimes|nullable|string',
             'modalidad_preferida' => 'sometimes|string|in:presencial,remota,hibrida',
             'activo' => 'sometimes|boolean',
+            'foto_perfil' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
         ]);
 
         $usuario = $this->usuarioService->obtenerPorId($id);
+
+        if ($request->hasFile('foto_perfil')) {
+            // Delete old photo if it exists
+            if ($usuario->profesional && $usuario->profesional->foto_perfil) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($usuario->profesional->foto_perfil);
+            }
+            $file = $request->file('foto_perfil');
+            $path = $file->store('fotos_perfil', 'public');
+            $validatedData['foto_perfil'] = $path;
+        }
+
         $updatedUsuario = $this->usuarioService->actualizar($usuario, $validatedData);
 
         return response()->json([

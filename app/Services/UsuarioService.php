@@ -50,6 +50,7 @@ class UsuarioService
             if (array_key_exists('experiencia', $data)) $profData['experiencia'] = $data['experiencia'];
             if (array_key_exists('ubicacion', $data)) $profData['ubicacion'] = $data['ubicacion'];
             if (array_key_exists('modalidad_preferida', $data)) $profData['modalidad_preferida'] = $data['modalidad_preferida'];
+            if (array_key_exists('foto_perfil', $data)) $profData['foto_perfil'] = $data['foto_perfil'];
 
             if (!empty($profData)) {
                 $usuario->profesional->update($profData);
