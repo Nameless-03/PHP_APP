@@ -4,14 +4,32 @@
       <v-col cols="12" lg="10">
         <v-card class="pa-8 rounded-xl elevation-2">
           <div class="d-flex align-center mb-6">
-            <v-avatar color="primary" size="80" class="mr-6 elevation-2">
-              <span class="text-h4 text-white font-weight-bold">PR</span>
-            </v-avatar>
+            <div class="position-relative mr-6">
+              <v-avatar color="primary" size="80" class="elevation-2 cursor-pointer avatar-hover" @click="triggerFileInput">
+                <v-img v-if="previewUrl || fotoPerfilUrl" :src="previewUrl || fotoPerfilUrl" alt="Foto de perfil"></v-img>
+                <span v-else class="text-h4 text-white font-weight-bold">{{ userInitials }}</span>
+                <div class="avatar-overlay d-flex align-center justify-center">
+                  <v-icon color="white">mdi-camera</v-icon>
+                </div>
+              </v-avatar>
+              <!-- Hidden input for file selection -->
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                class="d-none"
+                @change="onFileSelected"
+              />
+            </div>
             <div>
               <h2 class="text-h5 font-weight-bold mb-1">Información del Perfil</h2>
               <p class="text-body-2 text-medium-emphasis mb-0">
                 Actualiza tus datos para que los clientes te conozcan mejor.
               </p>
+              <div v-if="!fotoPerfilUrl && !previewUrl" class="d-flex align-center mt-2 text-caption text-primary font-weight-medium animate-pulse">
+                <v-icon size="small" class="mr-1" color="primary">mdi-camera-plus-outline</v-icon>
+                Haz clic en el círculo para subir tu foto de perfil
+              </div>
             </div>
           </div>
 
@@ -142,6 +160,24 @@ const profile = ref({
   modalidad: 'presencial'
 })
 
+const fotoPerfilUrl = ref(null)
+const previewUrl = ref(null)
+const selectedFile = ref(null)
+const fileInput = ref(null)
+const userInitials = ref('PR')
+
+const triggerFileInput = () => {
+  fileInput.value.click()
+}
+
+const onFileSelected = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    previewUrl.value = URL.createObjectURL(file)
+  }
+}
+
 const rules = {
   required: value => !!value || 'Este campo es requerido.'
 }
@@ -166,6 +202,10 @@ onMounted(async () => {
         profile.value.description = data.user.profesional?.descripcion || ''
         profile.value.location = data.user.profesional?.ubicacion || ''
         profile.value.modalidad = data.user.profesional?.modalidad_preferida || 'presencial'
+        fotoPerfilUrl.value = data.user.profesional?.foto_perfil_url || null
+        if (data.user.nombre) {
+          userInitials.value = data.user.nombre.substring(0, 2).toUpperCase()
+        }
       }
     }
   } catch (error) {
@@ -196,20 +236,25 @@ const saveProfile = async () => {
   }
 
   try {
+    const formData = new FormData()
+    formData.append('_method', 'PUT')
+    formData.append('nombre', profile.value.name)
+    formData.append('experiencia', profile.value.experiencia)
+    formData.append('descripcion', profile.value.description)
+    formData.append('ubicacion', profile.value.location)
+    formData.append('modalidad_preferida', profile.value.modalidad)
+    if (selectedFile.value) {
+      formData.append('foto_perfil', selectedFile.value)
+    }
+
     const response = await fetch(`http://localhost:8000/api/usuarios/${userId}`, {
-      method: 'PUT',
+      method: 'POST', // Use POST with _method=PUT to allow file uploads under standard PHP/Laravel configurations
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
+        // 'Content-Type' must be omitted when sending FormData so the browser generates the correct boundary
       },
-      body: JSON.stringify({
-        nombre: profile.value.name,
-        experiencia: profile.value.experiencia,
-        descripcion: profile.value.description,
-        ubicacion: profile.value.location,
-        modalidad_preferida: profile.value.modalidad
-      })
+      body: formData
     })
 
     const data = await response.json()
@@ -220,6 +265,20 @@ const saveProfile = async () => {
 
     console.log('Perfil guardado:', data)
     successMsg.value = '¡Perfil actualizado exitosamente!'
+    
+    // Update local storage and notify Layout of changes
+    if (data.data) {
+      localStorage.setItem('user', JSON.stringify(data.data))
+      window.dispatchEvent(new Event('user-updated'))
+      
+      // Update local state references
+      fotoPerfilUrl.value = data.data.profesional?.foto_perfil_url || null
+      previewUrl.value = null
+      selectedFile.value = null
+      if (data.data.nombre) {
+        userInitials.value = data.data.nombre.substring(0, 2).toUpperCase()
+      }
+    }
   } catch (err) {
     errorMsg.value = err.message || 'Ocurrió un error al guardar el perfil. Intenta de nuevo.'
   } finally {
@@ -234,4 +293,30 @@ const resetForm = () => {
 </script>
 
 <style scoped>
+.avatar-hover {
+  position: relative;
+  overflow: hidden;
+}
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 50%;
+}
+.avatar-hover:hover .avatar-overlay {
+  opacity: 1;
+}
+@keyframes pulse {
+  0% { opacity: 0.85; }
+  50% { opacity: 1; }
+  100% { opacity: 0.85; }
+}
+.animate-pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
 </style>
