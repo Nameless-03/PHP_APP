@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PaqueteController;
 use App\Http\Controllers\Api\CompraPaqueteController;
 use App\Http\Controllers\Api\CalificacionController;
 use App\Http\Controllers\Api\NotificacionController;
+use App\Http\Controllers\Api\VideollamadaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -106,6 +107,9 @@ Route::prefix('reservas')->middleware('auth:sanctum')->group(function () {
 
     // Calificar reserva finalizada
     Route::post('/{reserva}/calificar', [CalificacionController::class, 'calificar']);
+
+    // LiveKit Token
+    Route::get('/{id}/videollamada/token', [VideollamadaController::class, 'getToken']);
 });
 
 // Pagos

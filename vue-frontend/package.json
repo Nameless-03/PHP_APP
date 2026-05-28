@@ -12,6 +12,7 @@
     "@mdi/font": "^7.4.47",
     "chart.js": "^4.5.1",
     "leaflet": "^1.9.4",
+    "livekit-client": "^2.5.0",
     "vue": "^3.3.8",
     "vue-router": "^4.6.4",
     "vuetify": "^3.12.6"

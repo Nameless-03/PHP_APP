@@ -48,6 +48,15 @@ services:
                 - '${DB_USERNAME}'
             retries: 3
             timeout: 5s
+    livekit:
+        image: 'livekit/livekit-server:latest'
+        command: ["--dev", "--keys", "devkey: secret", "--node-ip", "127.0.0.1"]
+        ports:
+            - '7880:7880'
+            - '7881:7881'
+            - '7882:7882/udp'
+        networks:
+            - sail
 networks:
     sail:
         driver: bridge

@@ -126,6 +126,7 @@
                             </div>
                           </div>
                         </v-card-text>
+<v-btn v-if="(reserva.servicio?.modalidad === 'remota' || reserva.servicio?.modalidad === 'hibrida') && reserva.estado === 'confirmada'" color="primary" @click="joinCall(reserva.id)" class="mt-2">Unirse a videollamada</v-btn>
                       </v-card>
                     </div>
                   </div>
@@ -210,10 +211,12 @@
 
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
+const router = useRouter()
 // --- ESTADO ---
 const fechaSeleccionada = ref(new Date())
 const reservas = ref([])
@@ -367,6 +370,9 @@ const closeMap = () => {
   }
   selectedService.value = null
   mapCoords.value = null
+}
+const joinCall = (id) => {
+  router.push({ name: 'videollamada', params: { id } })
 }
 
 // --- UTILS ---

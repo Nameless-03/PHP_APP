@@ -91,10 +91,30 @@ class ReservaService
                 'id_compra_paquete' => $data['id_compra_paquete'] ?? null,
             ]);
 
+            // Generar videollamada automáticamente si es remota o híbrida
+            if ($servicio->modalidad === 'remota' || $servicio->modalidad === 'hibrida') {
+                try {
+                    $reserva->videollamada()->create([
+                        'enlace' => '/videollamada/' . $reserva->id,
+                        'token' => 'room_key_' . \Illuminate\Support\Str::random(16),
+                        'fecha_creacion' => now(),
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Error al generar la sesión de videollamada para la reserva {$reserva->id}: " . $e->getMessage());
+                    // Registrar incidente y notificar internamente al usuario
+                    \App\Models\Notificacion::create([
+                        'titulo' => 'Error de Videollamada',
+                        'mensaje' => "No se pudo generar la sesión de videollamada para tu reserva de '{$servicio->nombre}'. Se registrará el incidente.",
+                        'tipo' => \App\Enums\TipoNotificacionEnum::OTRO,
+                        'id_usuario' => $data['id_cliente'],
+                    ]);
+                }
+            }
+
             // Disparar Evento de Dominio
             ReservaCreada::dispatch($reserva);
 
-            return $reserva->load(['servicio', 'cliente.usuario']);
+            return $reserva->load(['servicio', 'cliente.usuario', 'videollamada']);
         });
     }
 
