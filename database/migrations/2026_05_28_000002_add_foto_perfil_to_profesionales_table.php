@@ -14,6 +14,15 @@ return new class extends Migration
         Schema::table('profesionales', function (Blueprint $table) {
             $table->string('foto_perfil')->nullable()->after('modalidad_preferida');
         });
+
+        // Asegurar que el enlace simbólico del almacenamiento público esté creado
+        if (!file_exists(public_path('storage')) && !is_link(public_path('storage'))) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('storage:link');
+            } catch (\Exception $e) {
+                // Ignorar si hay problemas de permisos en entornos de desarrollo restrictivos
+            }
+        }
     }
 
     /**
