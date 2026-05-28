@@ -31,6 +31,7 @@ class Usuario extends Authenticatable
         'password',
         'fecha_registro',
         'role',
+        'google_id',
     ];
 
     /**

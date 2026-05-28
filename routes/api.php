@@ -26,6 +26,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/register/cliente', [AuthController::class, 'registerCliente']);
     Route::post('/register/profesional', [AuthController::class, 'registerProfesional']);
     
+    // Google OAuth
+    Route::get('/google/redirect', [AuthController::class, 'redirectToGoogle']);
+    Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback']);
+    
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);

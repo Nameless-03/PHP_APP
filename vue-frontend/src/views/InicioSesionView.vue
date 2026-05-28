@@ -70,6 +70,26 @@
               <v-icon end>mdi-login</v-icon>
             </v-btn>
 
+            <div class="d-flex align-center my-6">
+              <v-divider></v-divider>
+              <span class="mx-4 text-grey-darken-1 text-body-2 text-uppercase">o</span>
+              <v-divider></v-divider>
+            </div>
+
+            <v-btn
+              @click="loginWithGoogle"
+              color="white"
+              variant="outlined"
+              size="x-large"
+              block
+              class="text-none font-weight-bold mb-6 rounded-lg google-btn"
+            >
+              <v-avatar size="24" class="mr-2">
+                <v-img src="https://developers.google.com/static/identity/images/g-logo.png" alt="Google Logo"></v-img>
+              </v-avatar>
+              Iniciar sesión con Google
+            </v-btn>
+
             <div class="text-center text-body-1 text-grey-darken-1">
               ¿No tienes una cuenta?
               <router-link to="/register" class="text-decoration-none text-primary font-weight-bold ml-1">
@@ -84,10 +104,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const form = ref(null)
 
 const email = ref('')
@@ -143,6 +164,41 @@ const handleLogin = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+onMounted(() => {
+  // Check if there are token and user params in URL (returned from Google callback)
+  const token = route.query.token
+  const userParam = route.query.user
+  const urlError = route.query.error
+
+  if (urlError) {
+    if (urlError === 'google_auth_error') {
+      error.value = 'Hubo un problema al autenticar con Google. Por favor, intenta de nuevo.'
+    } else if (urlError === 'database_error') {
+      error.value = 'Error al registrar el usuario en la base de datos.'
+    } else {
+      error.value = 'Error de autenticación con redes sociales.'
+    }
+    // Clean query parameters from URL
+    router.replace({ query: {} })
+  } else if (token && userParam) {
+    try {
+      const userData = JSON.parse(decodeURIComponent(userParam))
+      localStorage.setItem('auth_token', token)
+      localStorage.setItem('user', JSON.stringify(userData))
+      
+      console.log('Login con Google exitoso:', userData)
+      router.push('/dashboard')
+    } catch (err) {
+      error.value = 'Error al procesar la información de inicio de sesión.'
+      console.error(err)
+    }
+  }
+})
+
+const loginWithGoogle = () => {
+  window.location.href = 'http://localhost:8000/api/auth/google/redirect'
 }
 </script>
 
@@ -203,5 +259,17 @@ const handleLogin = async () => {
 .gradient-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(140, 109, 70, 0.4) !important;
+}
+
+.google-btn {
+  border-color: #e0e0e0 !important;
+  color: #3c4043 !important;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.google-btn:hover {
+  background-color: #f8f9fa !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
 </style>
