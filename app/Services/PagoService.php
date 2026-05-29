@@ -37,7 +37,8 @@ class PagoService
             ]);
 
             // Enviar el trabajo a la cola
-            ProcesarPagoJob::dispatch($pago);
+            $simularError = isset($data['simular_error']) ? (bool)$data['simular_error'] : false;
+            ProcesarPagoJob::dispatch($pago, $simularError);
 
             return $pago;
         });

@@ -47,7 +47,7 @@ class CompraPaquete extends Model
      * @var array
      */
     protected $attributes = [
-        'estado' => 'activo',
+        'estado' => 'pendiente',
     ];
 
     /**

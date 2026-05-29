@@ -28,6 +28,7 @@ class StorePagoRequest extends FormRequest
             'id_compra' => ['required_without:id_reserva', 'exists:compras_paquete,id'],
             'monto' => ['required', 'numeric', 'min:0'],
             'metodo' => ['required', Rule::enum(MetodoPagoEnum::class)],
+            'simular_error' => ['nullable', 'boolean'],
         ];
     }
 }

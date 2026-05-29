@@ -175,6 +175,10 @@ const getAuthHeaders = () => ({
 const cargarNotificaciones = async () => {
   try {
     const res = await fetch('http://localhost:8000/api/auth/notificaciones', { headers: getAuthHeaders() })
+    if (res.status === 401) {
+      logout()
+      return
+    }
     if (res.ok) {
       const data = await res.json()
       notificaciones.value = data.data || []

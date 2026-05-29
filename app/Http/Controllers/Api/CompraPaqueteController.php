@@ -29,37 +29,34 @@ class CompraPaqueteController extends Controller
             'simular_error' => 'nullable|boolean',
         ]);
 
-        if ($request->boolean('simular_error')) {
-            return response()->json([
-                'message' => 'Error en el procesamiento del pago. Operación cancelada.'
-            ], 422);
-        }
-
         $compra = DB::transaction(function () use ($request, $paquete) {
+            // Create pending package purchase initially with 0 sessions
             $compra = CompraPaquete::create([
-                'sesiones_disponibles' => $paquete->cantidad_sesiones,
+                'sesiones_disponibles' => 0,
                 'fecha_compra' => now(),
-                'estado' => 'activo',
+                'estado' => 'pendiente',
                 'id_cliente' => $request->user()->id,
                 'id_paquete' => $paquete->id,
             ]);
 
-            Pago::create([
-                'monto' => $paquete->precio,
-                'fecha' => now(),
-                'metodo' => $request->metodo,
-                'estado' => 'completado',
-                'referencia_externa' => 'TXN_' . strtoupper(uniqid()),
+            // Call PagoService to initiate payment
+            $pagoService = app(\App\Services\PagoService::class);
+            $pagoService->iniciarPago([
                 'id_compra' => $compra->id,
+                'monto' => $paquete->precio,
+                'metodo' => $request->metodo,
+                'simular_error' => $request->boolean('simular_error'),
             ]);
 
             return $compra;
         });
 
+        // Load relations, making sure we get the fresh status of the purchase and payments
+        $compra->refresh();
         $compra->load(['paquete.servicios', 'pagos']);
 
         return response()->json([
-            'message' => 'Compra registrada exitosamente y sesiones habilitadas.',
+            'message' => 'Compra registrada y proceso de pago iniciado.',
             'data' => new CompraPaqueteResource($compra),
         ], 201);
     }
@@ -82,6 +79,32 @@ class CompraPaqueteController extends Controller
 
         return response()->json([
             'data' => CompraPaqueteResource::collection($compras),
+        ]);
+    }
+
+    /**
+     * Cancelar y eliminar una compra de paquete pendiente.
+     */
+    public function destroy(Request $request, CompraPaquete $compraPaquete): JsonResponse
+    {
+        if (!$request->user() || $compraPaquete->id_cliente !== $request->user()->id) {
+            return response()->json([
+                'message' => 'No autorizado.'
+            ], 403);
+        }
+
+        if ($compraPaquete->estado !== 'pendiente') {
+            return response()->json([
+                'message' => 'Solo se pueden cancelar compras de paquetes en estado pendiente.'
+            ], 422);
+        }
+
+        // Delete associated pending payments first (cascading or manual)
+        $compraPaquete->pagos()->delete();
+        $compraPaquete->delete();
+
+        return response()->json([
+            'message' => 'Compra de paquete cancelada y eliminada con éxito.'
         ]);
     }
 }

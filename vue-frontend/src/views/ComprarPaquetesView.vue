@@ -146,80 +146,178 @@
           <p class="text-subtitle-2 opacity-80 mb-0">Estás por adquirir un paquete de sesiones</p>
         </div>
 
-        <v-card-text class="pa-6">
-          <v-alert v-if="dialogError" type="error" variant="tonal" class="mb-4 rounded-lg animate-fade" closable @click:close="dialogError = ''">
-            {{ dialogError }}
-          </v-alert>
+        <v-form ref="formPagoRef" @submit.prevent="processPurchase">
+          <v-card-text class="pa-6" style="max-height: 65vh; overflow-y: auto;">
+            <v-alert v-if="dialogError" type="error" variant="tonal" class="mb-4 rounded-lg animate-fade">
+              <div class="font-weight-bold mb-1">Error al procesar el pago</div>
+              <div class="text-body-2 mb-2">{{ dialogError }}</div>
+              <div class="d-flex gap-2" v-if="compraCreada">
+                <v-btn size="small" color="error" variant="elevated" @click="dialogError = ''" class="text-none">Reintentar</v-btn>
+                <v-btn size="small" color="error" variant="outlined" @click="cancelarCompraDesdePago" :loading="isSubmitting" class="text-none">Cancelar Compra</v-btn>
+              </div>
+            </v-alert>
 
-          <!-- Summary info -->
-          <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6">
-            <div class="d-flex justify-space-between align-center mb-2">
-              <span class="text-body-2 text-medium-emphasis">Paquete:</span>
-              <strong class="text-body-1 text-grey-darken-3">{{ selectedPackage?.nombre }}</strong>
+            <!-- Summary info -->
+            <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6">
+              <div class="d-flex justify-space-between align-center mb-2">
+                <span class="text-body-2 text-medium-emphasis">Paquete:</span>
+                <strong class="text-body-1 text-grey-darken-3">{{ selectedPackage?.nombre }}</strong>
+              </div>
+              <div class="d-flex justify-space-between align-center mb-2">
+                <span class="text-body-2 text-medium-emphasis">Sesiones Incluidas:</span>
+                <strong class="text-body-1 text-primary">{{ selectedPackage?.cantidad_sesiones }} sesiones</strong>
+              </div>
+              <v-divider class="my-2"></v-divider>
+              <div class="d-flex justify-space-between align-center">
+                <span class="text-subtitle-1 font-weight-bold">Total a pagar:</span>
+                <strong class="text-h5 text-success font-weight-black">${{ selectedPackage?.precio }} USD</strong>
+              </div>
             </div>
-            <div class="d-flex justify-space-between align-center mb-2">
-              <span class="text-body-2 text-medium-emphasis">Sesiones Incluidas:</span>
-              <strong class="text-body-1 text-primary">{{ selectedPackage?.cantidad_sesiones }} sesiones</strong>
-            </div>
-            <v-divider class="my-2"></v-divider>
-            <div class="d-flex justify-space-between align-center">
-              <span class="text-subtitle-1 font-weight-bold">Total a pagar:</span>
-              <strong class="text-h5 text-success font-weight-black">${{ selectedPackage?.precio }} USD</strong>
-            </div>
-          </div>
 
-          <!-- Select Payment Method -->
-          <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-3">1. Método de Pago</h4>
-          <v-radio-group v-model="paymentMethod" inline class="mb-4">
-            <v-row>
-              <v-col cols="12" sm="4" class="py-1">
-                <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
-              </v-col>
-              <v-col cols="12" sm="4" class="py-1">
-                <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
-              </v-col>
-              <v-col cols="12" sm="4" class="py-1">
-                <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
-              </v-col>
-            </v-row>
-          </v-radio-group>
+            <!-- Select Payment Method -->
+            <div v-if="!dialogError">
+              <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-3">1. Método de Pago</h4>
+              <v-radio-group v-model="paymentMethod" inline class="mb-4">
+                <v-row>
+                  <v-col cols="12" sm="4" class="py-1">
+                    <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
+                  </v-col>
+                  <v-col cols="12" sm="4" class="py-1">
+                    <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
+                  </v-col>
+                  <v-col cols="12" sm="4" class="py-1">
+                    <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
+                  </v-col>
+                </v-row>
+              </v-radio-group>
 
-          <!-- Error simulation switch -->
-          <v-divider class="my-4"></v-divider>
-          <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
-            <div>
-              <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
-              <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
+              <!-- DETALLES DE PAGO SEGÚN MÉTODO SELECCIONADO -->
+              <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2">2. Completa los Datos de Pago</h4>
+              <v-expand-transition>
+                <div v-if="paymentMethod === 'paypal'" class="pa-4 mb-4 rounded-xl border bg-blue-lighten-5">
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="blue-darken-3" class="mr-2">mdi-paypal</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-blue-darken-3">Pasarela de Pago PayPal</span>
+                  </div>
+
+                  <!-- Botones Oficiales del SDK de PayPal -->
+                  <div v-if="cargandoPaypalSdk" class="text-center py-4">
+                    <v-progress-circular indeterminate color="blue"></v-progress-circular>
+                    <div class="text-caption text-blue mt-2">Iniciando pasarela de PayPal...</div>
+                  </div>
+                  <div v-else-if="paypalClientId" id="paypal-button-container" class="mt-2"></div>
+
+                  <div v-else>
+                    <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
+                      Nota: No se detectó configuración de PayPal Sandbox en el servidor. Mostrando simulador directo:
+                    </div>
+                    <v-text-field
+                      v-model="datosPago.paypal_email"
+                      label="Correo Electrónico de PayPal"
+                      type="email"
+                      variant="outlined"
+                      density="comfortable"
+                      color="blue"
+                      class="mb-2"
+                      :rules="[v => !!v || 'El correo es obligatorio', v => /.+@.+\..+/.test(v) || 'Correo no válido']"
+                      required
+                    ></v-text-field>
+                    <v-text-field
+                      v-model="datosPago.paypal_password"
+                      label="Contraseña de PayPal"
+                      type="password"
+                      variant="outlined"
+                      density="comfortable"
+                      color="blue"
+                      hide-details
+                      :rules="[v => !!v || 'La contraseña es obligatoria']"
+                      required
+                    ></v-text-field>
+                  </div>
+                </div>
+
+                <div v-if="paymentMethod === 'transferencia'" class="pa-4 mb-4 rounded-xl border bg-orange-lighten-5">
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="orange-darken-3" class="mr-2">mdi-bank</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-orange-darken-3">Datos de Transferencia</span>
+                  </div>
+                  <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
+                    <strong>CBU de Destino:</strong> 0000003100012345678901<br>
+                    <strong>Alias:</strong> centro.estetica.alias<br>
+                    <strong>Titular:</strong> Centro de Estética S.A.
+                  </div>
+                  <v-text-field
+                    v-model="datosPago.transferencia_titular"
+                    label="Nombre del Titular de la cuenta"
+                    variant="outlined"
+                    density="comfortable"
+                    color="orange"
+                    class="mb-2"
+                    :rules="[v => !!v || 'El nombre es obligatorio']"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="datosPago.transferencia_cbu"
+                    label="CBU o CVU de Origen"
+                    variant="outlined"
+                    density="comfortable"
+                    color="orange"
+                    hide-details
+                    :rules="[v => !!v || 'El CBU/CVU es obligatorio', v => /^\d{22}$/.test(v) || 'Debe tener exactamente 22 números']"
+                    required
+                  ></v-text-field>
+                </div>
+
+                <div v-if="paymentMethod === 'efectivo'" class="pa-4 mb-4 rounded-xl border bg-green-lighten-5">
+                  <div class="d-flex align-center">
+                    <v-icon color="green-darken-3" class="mr-2">mdi-cash-multiple</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-green-darken-3">Pago en Efectivo</span>
+                  </div>
+                  <div class="text-caption text-grey-darken-3 mt-2">
+                    No se requiere ingresar datos bancarios o virtuales. Realizarás el pago en persona directamente al profesional al momento de tus sesiones.
+                  </div>
+                </div>
+              </v-expand-transition>
+
+              <!-- Error simulation switch -->
+              <v-divider class="my-4"></v-divider>
+              <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
+                <div>
+                  <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
+                  <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
+                </div>
+                <v-switch
+                  v-model="simulateError"
+                  color="error"
+                  hide-details
+                  density="compact"
+                ></v-switch>
+              </div>
             </div>
-            <v-switch
-              v-model="simulateError"
-              color="error"
-              hide-details
-              density="compact"
-            ></v-switch>
-          </div>
-        </v-card-text>
+          </v-card-text>
 
-        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
-          <v-btn
-            variant="outlined"
-            color="grey-darken-1"
-            class="mr-3 px-6 text-none font-weight-bold"
-            :disabled="isSubmitting"
-            @click="closePurchaseDialog"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn
-            color="primary"
-            class="px-8 text-none font-weight-bold elevation-2"
-            :loading="isSubmitting"
-            @click="processPurchase"
-          >
-            Confirmar Pago
-            <v-icon end>mdi-check-circle-outline</v-icon>
-          </v-btn>
-        </v-card-actions>
+          <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+            <v-btn
+              variant="outlined"
+              color="grey-darken-1"
+              class="mr-3 px-6 text-none font-weight-bold"
+              :disabled="isSubmitting"
+              @click="closePurchaseDialog"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn
+              v-if="!dialogError && (paymentMethod !== 'paypal' || !paypalClientId)"
+              type="submit"
+              color="primary"
+              class="px-8 text-none font-weight-bold elevation-2 text-white"
+              :loading="isSubmitting"
+            >
+              Confirmar Pago
+              <v-icon end>mdi-check-circle-outline</v-icon>
+            </v-btn>
+          </v-card-actions>
+        </v-form>
       </v-card>
     </v-dialog>
 
@@ -249,6 +347,17 @@ const paymentMethod = ref('paypal')
 const simulateError = ref(false)
 const isSubmitting = ref(false)
 const dialogError = ref('')
+const compraCreada = ref(null)
+const formPagoRef = ref(null)
+const datosPago = ref({
+  paypal_email: '',
+  paypal_password: '',
+  transferencia_titular: '',
+  transferencia_cbu: ''
+})
+const paypalLoaded = ref(false)
+const cargandoPaypalSdk = ref(false)
+const paypalClientId = ref('')
 
 const snackbar = ref({ show: false, text: '', color: 'success' })
 
@@ -285,6 +394,16 @@ const openPurchaseDialog = (pkg) => {
   paymentMethod.value = 'paypal'
   simulateError.value = false
   dialogError.value = ''
+  compraCreada.value = null
+  datosPago.value = {
+    paypal_email: '',
+    paypal_password: '',
+    transferencia_titular: '',
+    transferencia_cbu: ''
+  }
+  if (formPagoRef.value) {
+    formPagoRef.value.resetValidation()
+  }
   purchaseDialog.value = true
 }
 
@@ -292,57 +411,289 @@ const closePurchaseDialog = () => {
   if (isSubmitting.value) return
   purchaseDialog.value = false
   selectedPackage.value = null
+  compraCreada.value = null
 }
 
 const processPurchase = async () => {
   if (!selectedPackage.value) return
 
+  if (formPagoRef.value) {
+    const { valid } = await formPagoRef.value.validate()
+    if (!valid) return
+  }
+
   isSubmitting.value = true
   dialogError.value = ''
 
   const token = localStorage.getItem('auth_token')
-  const payload = {
-    metodo: paymentMethod.value,
-    simular_error: simulateError.value
-  }
 
   try {
-    const response = await fetch(`http://localhost:8000/api/paquetes/${selectedPackage.value.id}/comprar`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
+    let response;
+    let data;
 
-    const data = await response.json()
+    if (compraCreada.value) {
+      // Retrying payment for an existing pending purchase
+      const payload = {
+        id_compra: compraCreada.value.id,
+        monto: parseFloat(selectedPackage.value.precio),
+        metodo: paymentMethod.value,
+        simular_error: simulateError.value,
+        detalles_pago: { ...datosPago.value }
+      }
 
-    if (!response.ok) {
-      throw new Error(data.message || 'Error en la pasarela de pagos. Compra cancelada.')
+      response = await fetch('http://localhost:8000/api/pagos', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Error al procesar el pago')
+
+      // Wait a moment for simulated pasarela feedback
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      const pagoResult = data.data
+      if (pagoResult.estado === 'completado') {
+        snackbar.value = {
+          show: true,
+          text: '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
+          color: 'success'
+        }
+        purchaseDialog.value = false
+        selectedPackage.value = null
+        compraCreada.value = null
+        setTimeout(() => { router.push('/mis-paquetes') }, 1500)
+      } else {
+        throw new Error('El pago fue rechazado por la pasarela de pagos.')
+      }
+    } else {
+      // First-time package acquisition
+      const payload = {
+        metodo: paymentMethod.value,
+        simular_error: simulateError.value,
+        detalles_pago: { ...datosPago.value }
+      }
+
+      response = await fetch(`http://localhost:8000/api/paquetes/${selectedPackage.value.id}/comprar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Error al procesar la compra')
+
+      // Wait a moment for simulated pasarela feedback
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      const compra = data.data
+      const pago = compra?.pagos?.[0]
+
+      if (pago && pago.estado === 'completado') {
+        snackbar.value = {
+          show: true,
+          text: '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
+          color: 'success'
+        }
+        purchaseDialog.value = false
+        selectedPackage.value = null
+        compraCreada.value = null
+        setTimeout(() => { router.push('/mis-paquetes') }, 1500)
+      } else {
+        compraCreada.value = compra
+        throw new Error('El pago fue rechazado por la pasarela de pagos.')
+      }
     }
-
-    // Success flow
-    snackbar.value = {
-      show: true,
-      text: '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
-      color: 'success'
-    }
-    purchaseDialog.value = false
-    selectedPackage.value = null
-    
-    // Redirect client to their acquired packages section
-    setTimeout(() => {
-      router.push('/mis-paquetes')
-    }, 1500)
-
   } catch (err) {
     dialogError.value = err.message || 'No se pudo procesar la transacción. Intenta nuevamente.'
   } finally {
     isSubmitting.value = false
   }
 }
+
+const cancelarCompraDesdePago = async () => {
+  if (!compraCreada.value) return
+  isSubmitting.value = true
+  const token = localStorage.getItem('auth_token')
+  try {
+    const res = await fetch(`http://localhost:8000/api/mis-paquetes/${compraCreada.value.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!res.ok) throw new Error((await res.json()).message || 'Error al cancelar la compra')
+
+    snackbar.value = { show: true, text: 'Compra de paquete cancelada y eliminada.', color: 'error' }
+    purchaseDialog.value = false
+    selectedPackage.value = null
+    compraCreada.value = null
+  } catch (err) {
+    dialogError.value = err.message
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+import { watch } from 'vue'
+
+const cargarPaypalSdk = async () => {
+  if (paypalLoaded.value) return true
+  cargandoPaypalSdk.value = true
+  try {
+    const token = localStorage.getItem('auth_token')
+    const res = await fetch('http://localhost:8000/api/config/paypal', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      const cid = data.client_id || ''
+      if (cid && cid !== 'your_paypal_client_id_here') {
+        paypalClientId.value = cid
+        if (!document.getElementById('paypal-sdk-script')) {
+          return new Promise((resolve) => {
+            const script = document.createElement('script')
+            script.id = 'paypal-sdk-script'
+            script.src = `https://www.paypal.com/sdk/js?client-id=${cid}&currency=USD`
+            script.onload = () => {
+              paypalLoaded.value = true
+              cargandoPaypalSdk.value = false
+              resolve(true)
+            }
+            script.onerror = () => {
+              cargandoPaypalSdk.value = false
+              resolve(false)
+            }
+            document.head.appendChild(script)
+          })
+        } else {
+          paypalLoaded.value = true
+          cargandoPaypalSdk.value = false
+          return true
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error al cargar el SDK de PayPal:', err)
+  }
+  cargandoPaypalSdk.value = false
+  return false
+}
+
+const renderizarBotonesPaypal = () => {
+  if (!window.paypal || !paypalClientId.value) return
+  
+  setTimeout(() => {
+    const container = document.getElementById('paypal-button-container')
+    if (!container) return
+    container.innerHTML = ''
+
+    window.paypal.Buttons({
+      createOrder: (data, actions) => {
+        const precio = parseFloat(selectedPackage.value?.precio || 0)
+        return actions.order.create({
+          purchase_units: [{
+            amount: {
+              value: precio.toFixed(2)
+            }
+          }]
+        })
+      },
+      onApprove: async (data, actions) => {
+        isSubmitting.value = true
+        dialogError.value = ''
+        const token = localStorage.getItem('auth_token')
+        try {
+          const details = await actions.order.capture()
+          
+          let response;
+          let resData;
+
+          if (compraCreada.value) {
+            const payload = {
+              id_compra: compraCreada.value.id,
+              monto: parseFloat(selectedPackage.value.precio),
+              metodo: 'paypal',
+              simular_error: false,
+              detalles_pago: {
+                paypal_order_id: details.id,
+                paypal_email: details.payer.email_address,
+                paypal_payer_id: details.payer.payer_id
+              }
+            }
+
+            response = await fetch('http://localhost:8000/api/pagos', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            })
+            resData = await response.json()
+          } else {
+            const payload = {
+              metodo: 'paypal',
+              simular_error: false,
+              detalles_pago: {
+                paypal_order_id: details.id,
+                paypal_email: details.payer.email_address,
+                paypal_payer_id: details.payer.payer_id
+              }
+            }
+
+            response = await fetch(`http://localhost:8000/api/paquetes/${selectedPackage.value.id}/comprar`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            })
+            resData = await response.json()
+          }
+
+          if (!response.ok) throw new Error(resData.message || 'Error al completar la compra en nuestro servidor')
+
+          snackbar.value = { show: true, text: '¡Compra de paquete completada con éxito!', color: 'success' }
+          purchaseDialog.value = false
+          selectedPackage.value = null
+          compraCreada.value = null
+          setTimeout(() => { router.push('/mis-paquetes') }, 1500)
+        } catch (err) {
+          dialogError.value = err.message || 'Error al procesar el pago de PayPal'
+        } finally {
+          isSubmitting.value = false
+        }
+      },
+      onError: (err) => {
+        dialogError.value = 'Ocurrió un error en la pasarela de PayPal o se canceló el cobro.'
+      }
+    }).render('#paypal-button-container')
+  }, 150)
+}
+
+watch([paymentMethod, purchaseDialog], async ([nuevoMetodo, estaAbierto]) => {
+  if (estaAbierto && nuevoMetodo === 'paypal') {
+    const cargado = await cargarPaypalSdk()
+    if (cargado) {
+      renderizarBotonesPaypal()
+    }
+  }
+})
 </script>
 
 <style scoped>

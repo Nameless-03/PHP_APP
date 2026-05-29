@@ -127,8 +127,17 @@ Route::prefix('paquetes')->middleware('auth:sanctum')->group(function () {
     Route::post('/{paquete}/comprar', [CompraPaqueteController::class, 'comprar'])->middleware('role:cliente');
 });
 Route::get('/mis-paquetes', [CompraPaqueteController::class, 'misPaquetes'])->middleware(['auth:sanctum', 'role:cliente']);
+Route::delete('/mis-paquetes/{compraPaquete}', [CompraPaqueteController::class, 'destroy'])->middleware(['auth:sanctum', 'role:cliente']);
 
 // Admin Dashboard Stats
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/stats', [UsuarioController::class, 'dashboardStats']);
+});
+
+// PayPal Configuration Endpoint (Public/Authenticated)
+Route::middleware('auth:sanctum')->get('/config/paypal', function () {
+    return response()->json([
+        'client_id' => config('services.paypal.client_id'),
+        'mode' => config('services.paypal.mode'),
+    ]);
 });
