@@ -132,6 +132,7 @@ Route::delete('/mis-paquetes/{compraPaquete}', [CompraPaqueteController::class, 
 // Admin Dashboard Stats
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/stats', [UsuarioController::class, 'dashboardStats']);
+    Route::get('/logs', [UsuarioController::class, 'systemLogs']);
 });
 
 // PayPal Configuration Endpoint (Public/Authenticated)

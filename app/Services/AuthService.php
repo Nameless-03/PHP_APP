@@ -11,8 +11,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Exception;
 
+use App\Services\NoSqlLoggerService;
+use App\Jobs\EnviarEmailBienvenidaJob;
+
 class AuthService
 {
+    public function __construct(
+        private NoSqlLoggerService $logger
+    ) {}
     /**
      * Authenticate a user and generate a token.
      */
@@ -21,6 +27,7 @@ class AuthService
         $usuario = Usuario::where('email', $credentials['email'])->first();
 
         if (!$usuario || !Hash::check($credentials['password'], $usuario->password)) {
+            $this->logger->log("Intento fallido de inicio de sesión", 'warning', ['email' => $credentials['email']]);
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales proporcionadas son incorrectas.'],
             ]);
@@ -28,6 +35,7 @@ class AuthService
 
         // Verificar que la cuenta esté activa
         if (!$usuario->activo) {
+            $this->logger->log("Intento de inicio de sesión en cuenta desactivada", 'warning', ['email' => $usuario->email], $usuario->id);
             throw ValidationException::withMessages([
                 'email' => ['Tu cuenta ha sido desactivada. Contacta al administrador.'],
             ]);
@@ -37,6 +45,8 @@ class AuthService
         // Since we don't have Sanctum installed in this skeleton, we'll write the code for it
         // and it will work once Sanctum is set up.
         $token = $usuario->createToken('auth_token')->plainTextToken;
+
+        $this->logger->log("Inicio de sesión exitoso", 'info', ['email' => $usuario->email], $usuario->id);
 
         return [
             'usuario' => $usuario,
@@ -49,7 +59,7 @@ class AuthService
      */
     public function registerCliente(array $data): Usuario
     {
-        return DB::transaction(function () use ($data) {
+        $usuario = DB::transaction(function () use ($data) {
             $usuario = Usuario::create([
                 'nombre' => $data['nombre'],
                 'email' => $data['email'],
@@ -66,6 +76,16 @@ class AuthService
 
             return $usuario->load('cliente');
         });
+
+        // Enviar email de bienvenida asincrónicamente usando Redis
+        EnviarEmailBienvenidaJob::dispatch($usuario);
+
+        $this->logger->log("Registro de cliente exitoso", 'info', [
+            'nombre' => $usuario->nombre,
+            'email' => $usuario->email
+        ], $usuario->id);
+
+        return $usuario;
     }
 
     /**
@@ -73,7 +93,7 @@ class AuthService
      */
     public function registerProfesional(array $data): Usuario
     {
-        return DB::transaction(function () use ($data) {
+        $usuario = DB::transaction(function () use ($data) {
             $usuario = Usuario::create([
                 'nombre' => $data['nombre'],
                 'email' => $data['email'],
@@ -93,6 +113,16 @@ class AuthService
 
             return $usuario->load('profesional');
         });
+
+        // Enviar email de bienvenida asincrónicamente usando Redis
+        EnviarEmailBienvenidaJob::dispatch($usuario);
+
+        $this->logger->log("Registro de profesional exitoso", 'info', [
+            'nombre' => $usuario->nombre,
+            'email' => $usuario->email
+        ], $usuario->id);
+
+        return $usuario;
     }
 
     /**
