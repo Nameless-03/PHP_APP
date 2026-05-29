@@ -12,8 +12,13 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
+use App\Services\NoSqlLoggerService;
+
 class ReservaService
 {
+    public function __construct(
+        private NoSqlLoggerService $logger
+    ) {}
     /**
      * Crear una nueva reserva manejando concurrencia.
      */
@@ -114,6 +119,13 @@ class ReservaService
             // Disparar Evento de Dominio
             ReservaCreada::dispatch($reserva);
 
+            $this->logger->log("Creación de reserva", 'info', [
+                'reserva_id' => $reserva->id,
+                'servicio' => $servicio->nombre,
+                'fecha_inicio' => $reserva->fecha_hora_inicio->toIso8601String(),
+                'monto' => $servicio->precio
+            ], $reserva->id_cliente);
+
             return $reserva->load(['servicio', 'cliente.usuario', 'videollamada']);
         });
     }
@@ -169,6 +181,13 @@ class ReservaService
             ]);
 
             ReservaEstadoCambiado::dispatch($reserva->fresh(), $estadoAnterior);
+
+            // Log NoSQL activity
+            $this->logger->log("Cambio de estado de reserva", 'info', [
+                'reserva_id' => $reserva->id,
+                'estado_anterior' => $estadoAnterior,
+                'nuevo_estado' => $nuevoEstado->value
+            ], $reserva->id_cliente);
 
             return $reserva;
         });
@@ -239,6 +258,12 @@ class ReservaService
             
             $clienteUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
             $profesionalUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
+
+            // Log NoSQL activity
+            $this->logger->log("Reprogramación de reserva", 'info', [
+                'reserva_id' => $reserva->id,
+                'nueva_fecha' => $nuevoInicio->toIso8601String()
+            ], $usuario->id);
 
             return $reservaRenovada;
         });

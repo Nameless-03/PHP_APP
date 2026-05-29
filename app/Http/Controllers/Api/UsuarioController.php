@@ -14,6 +14,7 @@ use App\Enums\RoleEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Services\NoSqlLoggerService;
 
 class UsuarioController extends Controller
 {
@@ -75,13 +76,19 @@ class UsuarioController extends Controller
         $usuario = $this->usuarioService->obtenerPorId($id);
 
         if ($request->hasFile('foto_perfil')) {
-            // Delete old photo if it exists
-            if ($usuario->profesional && $usuario->profesional->foto_perfil) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($usuario->profesional->foto_perfil);
+            // Delete old file if it was a disk path
+            $oldPhoto = $usuario->profesional->foto_perfil ?? $usuario->cliente->foto_perfil ?? null;
+            if ($oldPhoto && !str_starts_with($oldPhoto, 'data:') && !filter_var($oldPhoto, FILTER_VALIDATE_URL)) {
+                try {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPhoto);
+                } catch (\Exception $e) {
+                    // Ignore disk errors
+                }
             }
+
             $file = $request->file('foto_perfil');
-            $path = $file->store('fotos_perfil', 'public');
-            $validatedData['foto_perfil'] = $path;
+            $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode(file_get_contents($file->getPathname()));
+            $validatedData['foto_perfil'] = $base64;
         }
 
         $updatedUsuario = $this->usuarioService->actualizar($usuario, $validatedData);
@@ -225,6 +232,17 @@ class UsuarioController extends Controller
             'top_servicios'    => $topServicios,
             'ultimas_reservas' => $latestReservas,
             'ultimos_usuarios' => $latestUsers,
+        ]);
+    }
+
+    /**
+     * Get system activity logs from NoSQL.
+     */
+    public function systemLogs(NoSqlLoggerService $loggerService): JsonResponse
+    {
+        $logs = $loggerService->getLogs(100);
+        return response()->json([
+            'data' => $logs
         ]);
     }
 }

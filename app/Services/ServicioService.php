@@ -6,8 +6,13 @@ use App\Models\Servicio;
 use App\Models\Categoria;
 use Illuminate\Database\Eloquent\Collection;
 
+use App\Services\NoSqlLoggerService;
+
 class ServicioService
 {
+    public function __construct(
+        private NoSqlLoggerService $logger
+    ) {}
     /**
      * Crear un nuevo servicio.
      */
@@ -15,6 +20,13 @@ class ServicioService
     {
         $data = $this->resolverCategoria($data);
         $servicio = Servicio::create($data);
+        
+        $this->logger->log("Creación de servicio", 'info', [
+            'servicio_id' => $servicio->id,
+            'nombre' => $servicio->nombre,
+            'precio' => $servicio->precio
+        ], $servicio->id_profesional);
+
         return $servicio->load(['profesional.usuario', 'categoria']);
     }
 
@@ -100,6 +112,13 @@ class ServicioService
     {
         $data = $this->resolverCategoria($data);
         $servicio->update($data);
+        
+        $this->logger->log("Actualización de servicio", 'info', [
+            'servicio_id' => $servicio->id,
+            'nombre' => $servicio->nombre,
+            'precio' => $servicio->precio
+        ], $servicio->id_profesional);
+
         return $servicio->fresh(['profesional.usuario', 'categoria']);
     }
 
@@ -108,7 +127,14 @@ class ServicioService
      */
     public function eliminar(Servicio $servicio): bool
     {
-        return $servicio->delete();
+        $res = $servicio->delete();
+
+        $this->logger->log("Eliminación de servicio", 'info', [
+            'servicio_id' => $servicio->id,
+            'nombre' => $servicio->nombre
+        ], $servicio->id_profesional);
+
+        return $res;
     }
 
     /**

@@ -26,6 +26,11 @@ class UsuarioResource extends JsonResource
                 return [
                     'telefono' => $this->cliente->telefono,
                     'foto_perfil' => $this->cliente->foto_perfil,
+                    'foto_perfil_url' => $this->cliente->foto_perfil
+                        ? (str_starts_with($this->cliente->foto_perfil, 'data:') || filter_var($this->cliente->foto_perfil, FILTER_VALIDATE_URL)
+                            ? $this->cliente->foto_perfil
+                            : asset('storage/' . $this->cliente->foto_perfil))
+                        : null,
                 ];
             }),
             'profesional' => $this->whenLoaded('profesional', function () {
@@ -36,7 +41,11 @@ class UsuarioResource extends JsonResource
                     'modalidad_preferida' => $this->profesional->modalidad_preferida,
                     'reputacion' => $this->profesional->reputacion,
                     'foto_perfil' => $this->profesional->foto_perfil,
-                    'foto_perfil_url' => $this->profesional->foto_perfil ? asset('storage/' . $this->profesional->foto_perfil) : null,
+                    'foto_perfil_url' => $this->profesional->foto_perfil
+                        ? (str_starts_with($this->profesional->foto_perfil, 'data:') || filter_var($this->profesional->foto_perfil, FILTER_VALIDATE_URL)
+                            ? $this->profesional->foto_perfil
+                            : asset('storage/' . $this->profesional->foto_perfil))
+                        : null,
                 ];
             }),
         ];

@@ -15,12 +15,12 @@ Write-Host "`n[1/4] Verificando Backend (Laravel/Docker)..." -ForegroundColor Ye
 $backendPath = $projectRoot
 Set-Location $backendPath
 
-# Verificar e instalar dependencias de PHP (Necesario para construir Sail la primera vez)
+# Verificar e instalar dependencias de PHP (incluyendo predis/predis para colas)
 if (Test-Path "composer.json") {
-    if (Test-Path "vendor") {
-        Write-Host "Las dependencias de PHP ya están instaladas. Saltando..." -ForegroundColor Green
+    if ((Test-Path "vendor") -and (Test-Path "vendor/predis/predis")) {
+        Write-Host "Las dependencias de PHP ya están instaladas (incluyendo Predis). Saltando..." -ForegroundColor Green
     } else {
-        Write-Host "Instalando dependencias de Composer..." -ForegroundColor Yellow
+        Write-Host "Instalando dependencias de Composer (incluyendo Predis para colas Redis)..." -ForegroundColor Yellow
         $composerPhar = Join-Path $projectRoot "composer.phar"
         if (Test-Path $composerPhar) {
             php $composerPhar install
@@ -76,6 +76,9 @@ if (Test-Path "docker-compose.yml") {
         $migrateCmd = " && echo Esperando a que la base de datos inicie (15s)... && timeout /t 15 && docker-compose exec laravel.test php artisan key:generate && docker-compose exec laravel.test php artisan migrate --seed && echo Listo, adjuntando logs... && docker-compose logs -f"
     }
 
+    # Iniciar el escuchador de colas de Docker en una ventana aparte para procesar tareas asíncronas
+    Start-Process "cmd.exe" -ArgumentList "/k title Queue Worker (Docker) && cd ""$backendPath"" && echo Esperando a que los contenedores inicien para activar el Queue Listener... && timeout /t 20 && docker-compose exec laravel.test php artisan queue:listen --tries=1 --timeout=0"
+
     $rebuild = Read-Host "¿Deseas forzar la limpieza y reconstrucción de los contenedores? (s/N)"
     if ($rebuild -match "^[sS]") {
         Write-Host "      Limpiando contenedores antiguos y forzando reconstrucción (Esto tomará varios minutos)..." -ForegroundColor Yellow
@@ -92,6 +95,9 @@ if (Test-Path "docker-compose.yml") {
         $migrateCmdLocal = "php artisan key:generate && php artisan migrate --seed && "
     }
     
+    # Iniciar el escuchador de colas local en una ventana aparte para procesar tareas asíncronas
+    Start-Process "cmd.exe" -ArgumentList "/k title Queue Worker (Local) && cd ""$backendPath"" && echo Esperando para activar el Queue Listener... && timeout /t 3 && php artisan queue:listen --tries=1 --timeout=0"
+
     Start-Process "cmd.exe" -ArgumentList "/k title Backend Laravel && cd ""$backendPath"" && $migrateCmdLocal php artisan serve"
 }
 
@@ -122,6 +128,7 @@ Set-Location $projectRoot
 Write-Host "`n=================================================" -ForegroundColor Cyan
 Write-Host " ¡Todo Listo!                                    " -ForegroundColor Cyan
 Write-Host " Se han abierto ventanas independientes para     " -ForegroundColor Cyan
-Write-Host " los servidores del Backend y del Frontend.      " -ForegroundColor Cyan
+Write-Host " los servidores del Backend, Frontend y Colas.   " -ForegroundColor Cyan
 Write-Host " Puedes minimizar esta ventana o cerrarla.       " -ForegroundColor Cyan
+Write-Host " (Nota: ¡Se ha activado un Queue Worker automático para procesar tus tareas en segundo plano!)" -ForegroundColor Yellow
 Write-Host "=================================================`n" -ForegroundColor Cyan

@@ -10,8 +10,13 @@ use App\Jobs\ProcesarPagoJob;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
+use App\Services\NoSqlLoggerService;
+
 class PagoService
 {
+    public function __construct(
+        private NoSqlLoggerService $logger
+    ) {}
     /**
      * Iniciar proceso de pago.
      */
@@ -38,6 +43,13 @@ class PagoService
 
             // Enviar el trabajo a la cola
             ProcesarPagoJob::dispatch($pago);
+
+            // Log NoSQL activity
+            $this->logger->log("Inicio de pago", 'info', [
+                'pago_id' => $pago->id,
+                'monto' => $pago->monto,
+                'metodo' => $pago->metodo->value ?? $pago->metodo
+            ], auth()->check() ? auth()->id() : null);
 
             return $pago;
         });

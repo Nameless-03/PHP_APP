@@ -57,6 +57,16 @@ class UsuarioService
             }
         }
 
+        if ($usuario->esCliente() && $usuario->cliente) {
+            $cliData = [];
+            if (array_key_exists('telefono', $data)) $cliData['telefono'] = $data['telefono'];
+            if (array_key_exists('foto_perfil', $data)) $cliData['foto_perfil'] = $data['foto_perfil'];
+
+            if (!empty($cliData)) {
+                $usuario->cliente->update($cliData);
+            }
+        }
+
         return $usuario->fresh(['cliente', 'profesional', 'admin']);
     }
 

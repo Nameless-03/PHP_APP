@@ -131,4 +131,5 @@ Route::get('/mis-paquetes', [CompraPaqueteController::class, 'misPaquetes'])->mi
 // Admin Dashboard Stats
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/stats', [UsuarioController::class, 'dashboardStats']);
+    Route::get('/logs', [UsuarioController::class, 'systemLogs']);
 });
