@@ -528,6 +528,10 @@
           </div>
         </v-card-text>
         <v-card-text class="pa-6 text-center">
+          <v-alert v-if="calificarError" type="error" variant="tonal" class="mb-4 rounded-lg text-left" closable @click:close="calificarError = ''">
+            {{ calificarError }}
+          </v-alert>
+
           <p class="text-body-1 mb-4">¿Qué te pareció el servicio <strong>{{ reservaACalificar?.servicio?.nombre }}</strong>?</p>
           
           <v-rating
@@ -542,16 +546,18 @@
           
           <v-textarea
             v-model="formCalificacion.comentario"
-            label="Déjale un comentario al profesional (opcional)"
+            label="Déjale una opinión escrita al profesional (obligatorio)"
             variant="outlined"
             rows="3"
             color="warning"
             counter="500"
+            :rules="[v => !!v || 'El comentario es obligatorio', v => (v && v.length >= 3) || 'Mínimo 3 caracteres']"
+            required
           ></v-textarea>
         </v-card-text>
         <v-card-actions class="pa-4 bg-grey-lighten-4 justify-end">
           <v-btn variant="text" color="grey" @click="dialogCalificar = false" class="text-none">Cancelar</v-btn>
-          <v-btn color="warning" variant="elevated" @click="enviarCalificacion" :loading="isLoading" class="text-none font-weight-bold px-4" :disabled="!formCalificacion.puntuacion">
+          <v-btn color="warning" variant="elevated" @click="enviarCalificacion" :loading="isLoading" class="text-none font-weight-bold px-4" :disabled="!formCalificacion.puntuacion || !formCalificacion.comentario">
             Enviar Calificación
           </v-btn>
         </v-card-actions>
@@ -849,6 +855,7 @@ const paypalClientId = ref('')
 
 // Modal Calificar
 const dialogCalificar = ref(false)
+const calificarError = ref('')
 const reservaACalificar = ref(null)
 const formCalificacion = ref({ puntuacion: 0, comentario: '' })
 const calificacionesEnviadas = ref(new Set())
@@ -1200,12 +1207,20 @@ const puedeCalificar = (reserva) => {
 const abrirCalificar = (reserva) => {
   reservaACalificar.value = reserva
   formCalificacion.value = { puntuacion: 0, comentario: '' }
+  calificarError.value = ''
   dialogCalificar.value = true
 }
 
 const enviarCalificacion = async () => {
   if (!formCalificacion.value.puntuacion || !reservaACalificar.value) return
+  
+  if (!formCalificacion.value.comentario || formCalificacion.value.comentario.trim().length < 3) {
+    calificarError.value = 'El comentario es obligatorio y debe tener al menos 3 caracteres.'
+    return
+  }
+  
   isLoading.value = true
+  calificarError.value = ''
   
   try {
     const res = await fetch(`http://localhost:8000/api/reservas/${reservaACalificar.value.id}/calificar`, {
@@ -1214,7 +1229,10 @@ const enviarCalificacion = async () => {
       body: JSON.stringify(formCalificacion.value)
     })
 
-    if (!res.ok) throw new Error((await res.json()).message || 'Error al calificar')
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error(data.message || 'Error al calificar')
+    }
 
     snackbar.value = { show: true, text: '¡Gracias por calificar el servicio!', color: 'success' }
     calificacionesEnviadas.value.add(reservaACalificar.value.id)
@@ -1224,8 +1242,10 @@ const enviarCalificacion = async () => {
     if (err.message === 'Esta reserva ya fue calificada.') {
       calificacionesEnviadas.value.add(reservaACalificar.value.id)
       dialogCalificar.value = false
+      snackbar.value = { show: true, text: err.message, color: 'error' }
+    } else {
+      calificarError.value = err.message
     }
-    snackbar.value = { show: true, text: err.message, color: 'error' }
   } finally {
     isLoading.value = false
   }

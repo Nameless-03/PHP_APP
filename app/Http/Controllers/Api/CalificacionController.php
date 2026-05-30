@@ -40,10 +40,10 @@ class CalificacionController extends Controller
             return response()->json(['message' => 'Esta reserva ya fue calificada.'], 422);
         }
 
-        // 4. Validar los datos de entrada
+        // 4. Validar los datos de entrada (comentario obligatorio de acuerdo con el caso de uso)
         $validated = $request->validate([
             'puntuacion' => ['required', 'integer', 'min:1', 'max:5'],
-            'comentario' => ['nullable', 'string', 'max:500'],
+            'comentario' => ['required', 'string', 'min:3', 'max:500'],
         ]);
 
         try {
@@ -74,5 +74,31 @@ class CalificacionController extends Controller
         } catch (Exception $e) {
             return response()->json(['message' => 'Ocurrió un error al guardar la calificación.', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Listar calificaciones y comentarios de un profesional específico.
+     */
+    public function listarPorProfesional(int $idProfesional): JsonResponse
+    {
+        $calificaciones = Calificacion::whereHas('reserva.servicio', function ($q) use ($idProfesional) {
+            $q->where('id_profesional', $idProfesional);
+        })
+        ->with(['reserva.cliente.usuario:id_usuario,nombre'])
+        ->orderByDesc('fecha')
+        ->get()
+        ->map(function ($c) {
+            return [
+                'id' => $c->id,
+                'puntuacion' => $c->puntuacion,
+                'comentario' => $c->comentario,
+                'fecha' => $c->fecha->toIso8601String(),
+                'cliente_nombre' => $c->reserva->cliente->usuario->nombre ?? 'Cliente Anónimo'
+            ];
+        });
+
+        return response()->json([
+            'data' => $calificaciones
+        ]);
     }
 }

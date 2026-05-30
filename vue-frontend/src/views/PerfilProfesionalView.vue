@@ -2,6 +2,21 @@
   <DashboardLayout title="Mi Perfil Profesional">
     <v-row justify="center">
       <v-col cols="12" lg="10">
+        <!-- Header visual -->
+        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white mb-6">
+          <div class="d-flex align-center flex-wrap">
+            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
+              <v-icon size="36" color="primary">mdi-account-circle</v-icon>
+            </v-avatar>
+            <div>
+              <h1 class="text-h4 font-weight-bold mb-2">Mi Perfil Profesional</h1>
+              <p class="text-body-1 opacity-80 mb-0">
+                Gestiona tu información pública, reputación, datos de contacto y preferencias de atención.
+              </p>
+            </div>
+          </div>
+        </v-card>
+
         <v-card class="pa-8 rounded-xl elevation-2">
           <div class="d-flex align-center mb-6">
             <div class="position-relative mr-6">
@@ -138,6 +153,51 @@
             </div>
           </v-form>
         </v-card>
+
+        <!-- Sección de Opiniones y Calificaciones -->
+        <v-card class="pa-8 rounded-xl elevation-2 mt-6">
+          <h3 class="text-h5 font-weight-bold mb-4 text-grey-darken-4 d-flex align-center">
+            <v-icon start color="warning" class="mr-2">mdi-star-circle</v-icon>
+            Opiniones de mis Clientes
+          </h3>
+          <v-divider class="mb-6"></v-divider>
+
+          <div v-if="cargandoOpiniones" class="text-center py-8">
+            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+          </div>
+
+          <div v-else-if="opiniones.length > 0">
+            <v-row>
+              <v-col cols="12" md="6" v-for="op in opiniones" :key="op.id">
+                <v-card class="rounded-xl border pa-5 h-100 d-flex flex-column" elevation="1">
+                  <div class="d-flex justify-space-between align-center mb-3">
+                    <div>
+                      <span class="font-weight-bold text-subtitle-1 text-grey-darken-3 d-block">{{ op.cliente_nombre }}</span>
+                      <span class="text-caption text-medium-emphasis d-block">
+                        {{ new Date(op.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) }}
+                      </span>
+                    </div>
+                    <v-rating
+                      :model-value="op.puntuacion"
+                      color="warning"
+                      active-color="warning"
+                      density="compact"
+                      readonly
+                    ></v-rating>
+                  </div>
+                  <p class="text-body-2 text-medium-emphasis italic font-weight-medium flex-grow-1">
+                    "{{ op.comentario }}"
+                  </p>
+                </v-card>
+              </v-col>
+            </v-row>
+          </div>
+
+          <div v-else class="text-center py-8 opacity-60">
+            <v-icon size="48" color="grey" class="mb-2">mdi-comment-text-multiple-outline</v-icon>
+            <p class="mt-2 text-body-1 mb-0">Aún no has recibido opiniones de tus clientes.</p>
+          </div>
+        </v-card>
       </v-col>
     </v-row>
   </DashboardLayout>
@@ -152,6 +212,9 @@ const isLoading = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
 
+const opiniones = ref([])
+const cargandoOpiniones = ref(false)
+
 const profile = ref({
   name: '',
   experiencia: '',
@@ -159,6 +222,27 @@ const profile = ref({
   location: '',
   modalidad: 'presencial'
 })
+
+const cargarOpiniones = async (userId) => {
+  cargandoOpiniones.value = true
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`http://localhost:8000/api/profesionales/${userId}/calificaciones`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    if (response.ok) {
+      const data = await response.json()
+      opiniones.value = data.data || []
+    }
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+  } finally {
+    cargandoOpiniones.value = false
+  }
+}
 
 const fotoPerfilUrl = ref(null)
 const previewUrl = ref(null)
@@ -185,6 +269,17 @@ const rules = {
 onMounted(async () => {
   const token = localStorage.getItem('auth_token')
   if (!token) return
+
+  // Cargar opiniones del profesional
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      if (user.id) {
+        cargarOpiniones(user.id)
+      }
+    } catch (e) {}
+  }
 
   try {
     const response = await fetch('http://localhost:8000/api/auth/me', {
@@ -293,6 +388,12 @@ const resetForm = () => {
 </script>
 
 <style scoped>
+.bg-gradient {
+  background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
+.italic {
+  font-style: italic;
+}
 .avatar-hover {
   position: relative;
   overflow: hidden;

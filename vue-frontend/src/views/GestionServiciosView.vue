@@ -1,5 +1,24 @@
 <template>
   <DashboardLayout title="Gestión de Servicios">
+    <!-- Header visual -->
+    <v-row class="mb-6">
+      <v-col cols="12">
+        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
+          <div class="d-flex align-center flex-wrap">
+            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
+              <v-icon size="36" color="primary">mdi-briefcase-check</v-icon>
+            </v-avatar>
+            <div>
+              <h1 class="text-h4 font-weight-bold mb-2">Gestión de Servicios</h1>
+              <p class="text-body-1 opacity-80 mb-0">
+                Crea, edita o elimina los servicios profesionales que ofreces al público. Configura la modalidad, el precio y la duración de cada uno.
+              </p>
+            </div>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <v-row>
       <!-- Form to Add/Edit Service -->
       <v-col cols="12" lg="7">
@@ -521,6 +540,9 @@ const resetForm = () => {
 </script>
 
 <style scoped>
+.bg-gradient {
+  background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
 .border {
   border: 1px solid rgba(0,0,0,0.08) !important;
 }
