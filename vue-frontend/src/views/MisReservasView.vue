@@ -455,8 +455,11 @@
           <v-card class="elevation-4 rounded-xl border-card">
             <v-card-text class="pa-6">
               <h2 class="text-h5 font-weight-bold mb-4 text-primary">Historial de Reservas</h2>
-              <div style="overflow-x: auto; width: 100%;">
-                <v-table v-else-if="reservasRegistros.length > 0" class="border-panel rounded-lg" style="min-width: 600px;">
+              <div v-if="cargandoRegistros" class="text-center py-8">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              </div>
+              <div v-else style="overflow-x: auto; width: 100%;">
+                <v-table v-if="reservasRegistros.length > 0" class="border-panel rounded-lg" style="min-width: 600px;">
                   <thead>
                     <tr>
                       <th class="text-left font-weight-bold">Fecha/Hora</th>
@@ -511,8 +514,8 @@
                     </tr>
                   </tbody>
                 </v-table>
+                <div v-else class="text-center py-12 opacity-60">Historial vacío.</div>
               </div>
-              <div v-else-if="reservasRegistros.length === 0" class="text-center py-12 opacity-60">Historial vacío.</div>
             </v-card-text>
           </v-card>
         </v-col>
