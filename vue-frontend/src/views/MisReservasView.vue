@@ -455,63 +455,64 @@
           <v-card class="elevation-4 rounded-xl border-card">
             <v-card-text class="pa-6">
               <h2 class="text-h5 font-weight-bold mb-4 text-primary">Historial de Reservas</h2>
-              <div v-if="cargandoRegistros" class="text-center py-8"><v-progress-circular indeterminate color="primary"></v-progress-circular></div>
-              <v-table v-else-if="reservasRegistros.length > 0" class="border-panel rounded-lg">
-                <thead>
-                  <tr>
-                    <th class="text-left font-weight-bold">Fecha/Hora</th>
-                    <th class="text-left font-weight-bold">Servicio</th>
-                    <th class="text-left font-weight-bold">Estado</th>
-                    <th class="text-left font-weight-bold">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="reserva in reservasRegistros" :key="reserva.id">
-                    <td class="font-weight-medium">{{ formatDateShort(reserva.fecha_hora_inicio) }}</td>
-                    <td>
-                      <div class="d-flex flex-column">
-                        <span>{{ reserva.servicio?.nombre }}</span>
-                        <v-chip
-                          v-if="reserva.compra_paquete"
-                          size="x-small"
-                          color="purple"
-                          variant="flat"
-                          class="mt-1 align-self-start text-white font-weight-bold"
-                          prepend-icon="mdi-package-variant"
-                        >
-                          Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
-                        </v-chip>
-                      </div>
-                    </td>
-                    <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ reserva.estado }}</v-chip></td>
-                    <td>
-                      <div class="d-flex gap-2 flex-wrap">
-                        <v-btn 
-                          v-if="isCliente && puedeCalificar(reserva)" 
-                          color="warning" 
-                          size="small" 
-                          variant="tonal"
-                          @click="abrirCalificar(reserva)"
-                        >
-                          <v-icon left size="16" class="mr-1">mdi-star</v-icon> Calificar
-                        </v-btn>
-                        <v-btn 
-                          v-if="isCliente && reserva.estado === 'pendiente' && !reserva.compra_paquete" 
-                          color="success" 
-                          size="small" 
-                          variant="elevated"
-                          class="text-white font-weight-bold text-none"
-                          prepend-icon="mdi-credit-card"
-                          @click="abrirPagarReserva(reserva)"
-                        >
-                          Pagar
-                        </v-btn>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </v-table>
-              <div v-else class="text-center py-12 opacity-60">Historial vacío.</div>
+              <div style="overflow-x: auto; width: 100%;">
+                <v-table v-else-if="reservasRegistros.length > 0" class="border-panel rounded-lg" style="min-width: 600px;">
+                  <thead>
+                    <tr>
+                      <th class="text-left font-weight-bold">Fecha/Hora</th>
+                      <th class="text-left font-weight-bold">Servicio</th>
+                      <th class="text-left font-weight-bold">Estado</th>
+                      <th class="text-left font-weight-bold">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="reserva in reservasRegistros" :key="reserva.id">
+                      <td class="font-weight-medium">{{ formatDateShort(reserva.fecha_hora_inicio) }}</td>
+                      <td>
+                        <div class="d-flex flex-column">
+                          <span>{{ reserva.servicio?.nombre }}</span>
+                          <v-chip
+                            v-if="reserva.compra_paquete"
+                            size="x-small"
+                            color="purple"
+                            variant="flat"
+                            class="mt-1 align-self-start text-white font-weight-bold"
+                            prepend-icon="mdi-package-variant"
+                          >
+                            Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                          </v-chip>
+                        </div>
+                      </td>
+                      <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ reserva.estado }}</v-chip></td>
+                      <td>
+                        <div class="d-flex gap-2 flex-wrap">
+                          <v-btn 
+                            v-if="isCliente && puedeCalificar(reserva)" 
+                            color="warning" 
+                            size="small" 
+                            variant="tonal"
+                            @click="abrirCalificar(reserva)"
+                          >
+                            <v-icon left size="16" class="mr-1">mdi-star</v-icon> Calificar
+                          </v-btn>
+                          <v-btn 
+                            v-if="isCliente && reserva.estado === 'pendiente' && !reserva.compra_paquete" 
+                            color="success" 
+                            size="small" 
+                            variant="elevated"
+                            class="text-white font-weight-bold text-none"
+                            prepend-icon="mdi-credit-card"
+                            @click="abrirPagarReserva(reserva)"
+                          >
+                            Pagar
+                          </v-btn>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </div>
+              <div v-else-if="reservasRegistros.length === 0" class="text-center py-12 opacity-60">Historial vacío.</div>
             </v-card-text>
           </v-card>
         </v-col>
