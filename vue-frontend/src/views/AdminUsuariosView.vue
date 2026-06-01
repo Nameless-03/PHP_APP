@@ -3,19 +3,11 @@
     <!-- Header visual -->
     <v-row class="mb-6">
       <v-col cols="12">
-        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
-          <div class="d-flex align-center flex-wrap">
-            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
-              <v-icon size="36" color="primary">mdi-shield-account</v-icon>
-            </v-avatar>
-            <div>
-              <h1 class="text-h4 font-weight-bold mb-2">Administración de Usuarios</h1>
-              <p class="text-body-1 opacity-80 mb-0">
-                Supervisa y gestiona las cuentas de todos los clientes, profesionales y administradores del sistema. Activa, desactiva o elimina perfiles de forma centralizada.
-              </p>
-            </div>
-          </div>
-        </v-card>
+        <BannerHeader
+          title="Administración de Usuarios"
+          subtitle="Supervisa y gestiona las cuentas de todos los clientes, profesionales y administradores del sistema. Activa, desactiva o elimina perfiles de forma centralizada."
+          icon="mdi-shield-account"
+        />
       </v-col>
     </v-row>
 
@@ -151,28 +143,23 @@
     </v-card>
 
     <!-- Delete confirmation dialog -->
-    <v-dialog v-model="deleteDialog" max-width="450" persistent>
-      <v-card class="rounded-xl pa-2">
-        <v-card-title class="text-h6 font-weight-bold d-flex align-center">
-          <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
-          Confirmar eliminación
-        </v-card-title>
-        <v-card-text>
-          ¿Estás seguro de que deseas eliminar al usuario <strong>{{ userToDelete?.nombre }}</strong> ({{ userToDelete?.email }})? Esta acción no se puede deshacer fácilmente.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="deleteDialog = false">Cancelar</v-btn>
-          <v-btn color="error" variant="flat" @click="deleteUser" :loading="deleting">Eliminar</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Delete confirmation dialog -->
+    <ConfirmationDialog
+      v-model="deleteDialog"
+      title="Confirmar eliminación"
+      confirm-text="Eliminar"
+      confirm-color="error"
+      :loading="deleting"
+      @confirm="deleteUser"
+    >
+      ¿Estás seguro de que deseas eliminar al usuario <strong>{{ userToDelete?.nombre }}</strong> ({{ userToDelete?.email }})? Esta acción no se puede deshacer fácilmente.
+    </ConfirmationDialog>
 
     <!-- Snackbar for feedback -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="bottom right">
-      {{ snackbar.text }}
+    <v-snackbar v-model="show" :color="color" :timeout="3000" location="bottom right">
+      {{ text }}
       <template v-slot:actions>
-        <v-btn variant="text" @click="snackbar.show = false">Cerrar</v-btn>
+        <v-btn variant="text" @click="show = false">Cerrar</v-btn>
       </template>
     </v-snackbar>
   </DashboardLayout>
@@ -181,6 +168,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import BannerHeader from '../components/BannerHeader.vue'
+import ConfirmationDialog from '../components/ConfirmationDialog.vue'
+import { useAuth } from '../composables/useAuth'
+import { useDateFormatter } from '../composables/useDateFormatter'
+import { useSnackbar } from '../composables/useSnackbar'
 
 const loading = ref(true)
 const allUsers = ref([])
@@ -191,11 +183,9 @@ const deleteDialog = ref(false)
 const userToDelete = ref(null)
 const deleting = ref(false)
 
-const snackbar = ref({
-  show: false,
-  text: '',
-  color: 'success'
-})
+const { show, text, color, showSnackbar } = useSnackbar()
+const { getAuthHeaders } = useAuth()
+const { formatDate } = useDateFormatter()
 
 const roleOptions = [
   { text: 'Cliente', value: 'cliente' },
@@ -218,11 +208,7 @@ const headers = [
   { title: 'Acciones', key: 'actions', width: '100px', sortable: false },
 ]
 
-const getAuthHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-})
+// getAuthHeaders imported from useAuth
 
 const filteredUsers = computed(() => {
   let result = allUsers.value
@@ -245,11 +231,7 @@ const getRoleLabel = (role) => {
   return map[role] || role
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return 'N/A'
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('es-PE', { year: 'numeric', month: 'short', day: 'numeric' })
-}
+// formatDate imported from useDateFormatter
 
 const fetchUsers = async () => {
   loading.value = true
@@ -319,10 +301,6 @@ const deleteUser = async () => {
     deleteDialog.value = false
     userToDelete.value = null
   }
-}
-
-const showSnackbar = (text, color = 'success') => {
-  snackbar.value = { show: true, text, color }
 }
 
 onMounted(() => {

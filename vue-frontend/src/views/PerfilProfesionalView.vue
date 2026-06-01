@@ -3,19 +3,12 @@
     <v-row justify="center">
       <v-col cols="12" lg="10">
         <!-- Header visual -->
-        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white mb-6">
-          <div class="d-flex align-center flex-wrap">
-            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
-              <v-icon size="36" color="primary">mdi-account-circle</v-icon>
-            </v-avatar>
-            <div>
-              <h1 class="text-h4 font-weight-bold mb-2">Mi Perfil Profesional</h1>
-              <p class="text-body-1 opacity-80 mb-0">
-                Gestiona tu información pública, reputación, datos de contacto y preferencias de atención.
-              </p>
-            </div>
-          </div>
-        </v-card>
+        <BannerHeader
+          title="Mi Perfil Profesional"
+          subtitle="Gestiona tu información pública, reputación, datos de contacto y preferencias de atención."
+          icon="mdi-account-circle"
+          class="mb-6"
+        />
 
         <v-card class="pa-8 rounded-xl elevation-2">
           <div class="d-flex align-center mb-6">
@@ -169,26 +162,12 @@
           <div v-else-if="opiniones.length > 0">
             <v-row>
               <v-col cols="12" md="6" v-for="op in opiniones" :key="op.id">
-                <v-card class="rounded-xl border pa-5 h-100 d-flex flex-column" elevation="1">
-                  <div class="d-flex justify-space-between align-center mb-3">
-                    <div>
-                      <span class="font-weight-bold text-subtitle-1 text-grey-darken-3 d-block">{{ op.cliente_nombre }}</span>
-                      <span class="text-caption text-medium-emphasis d-block">
-                        {{ new Date(op.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) }}
-                      </span>
-                    </div>
-                    <v-rating
-                      :model-value="op.puntuacion"
-                      color="warning"
-                      active-color="warning"
-                      density="compact"
-                      readonly
-                    ></v-rating>
-                  </div>
-                  <p class="text-body-2 text-medium-emphasis italic font-weight-medium flex-grow-1">
-                    "{{ op.comentario }}"
-                  </p>
-                </v-card>
+                <ReviewCard
+                  :cliente-nombre="op.cliente_nombre"
+                  :fecha="op.fecha"
+                  :puntuacion="op.puntuacion"
+                  :comentario="op.comentario"
+                />
               </v-col>
             </v-row>
           </div>
@@ -206,6 +185,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import BannerHeader from '../components/BannerHeader.vue'
+import ReviewCard from '../components/ReviewCard.vue'
+import { useAuth } from '../composables/useAuth'
+import { useFormRules } from '../composables/useFormRules'
 
 const form = ref(null)
 const isLoading = ref(false)
@@ -223,15 +206,13 @@ const profile = ref({
   modalidad: 'presencial'
 })
 
+const { token, user: userState, getAuthHeaders } = useAuth()
+
 const cargarOpiniones = async (userId) => {
   cargandoOpiniones.value = true
   try {
-    const token = localStorage.getItem('auth_token')
     const response = await fetch(`http://localhost:8000/api/profesionales/${userId}/calificaciones`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
     if (response.ok) {
       const data = await response.json()
@@ -262,31 +243,22 @@ const onFileSelected = (event) => {
   }
 }
 
+const { required } = useFormRules()
 const rules = {
-  required: value => !!value || 'Este campo es requerido.'
+  required
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) return
+  if (!token.value) return
 
   // Cargar opiniones del profesional
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      if (user.id) {
-        cargarOpiniones(user.id)
-      }
-    } catch (e) {}
+  if (userState.value?.id) {
+    cargarOpiniones(userState.value.id)
   }
 
   try {
     const response = await fetch('http://localhost:8000/api/auth/me', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
     
     if (response.ok) {
@@ -321,14 +293,7 @@ const saveProfile = async () => {
   errorMsg.value = ''
   successMsg.value = ''
 
-  const token = localStorage.getItem('auth_token')
-  const userStr = localStorage.getItem('user')
-  let userId = ''
-  
-  if (userStr) {
-    const user = JSON.parse(userStr)
-    userId = user.id
-  }
+  const userId = userState.value?.id
 
   try {
     const formData = new FormData()
@@ -345,7 +310,7 @@ const saveProfile = async () => {
     const response = await fetch(`http://localhost:8000/api/usuarios/${userId}`, {
       method: 'POST', // Use POST with _method=PUT to allow file uploads under standard PHP/Laravel configurations
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token.value}`,
         'Accept': 'application/json'
         // 'Content-Type' must be omitted when sending FormData so the browser generates the correct boundary
       },

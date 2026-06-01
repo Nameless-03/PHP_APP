@@ -106,6 +106,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useFormRules } from '../composables/useFormRules'
 
 const router = useRouter()
 const route = useRoute()
@@ -118,12 +119,11 @@ const remember = ref(false)
 const isLoading = ref(false)
 const error = ref('')
 
+const { required, email: emailRule } = useFormRules()
+
 const rules = {
-  required: value => !!value || 'Este campo es requerido.',
-  email: value => {
-    const pattern = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-    return pattern.test(value) || 'Correo electrónico inválido.'
-  },
+  required,
+  email: emailRule
 }
 
 const handleLogin = async () => {
@@ -157,6 +157,9 @@ const handleLogin = async () => {
     localStorage.setItem('auth_token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
     
+    // Despachar evento para notificar cambio de sesión
+    window.dispatchEvent(new Event('user-updated'))
+    
     console.log('Login exitoso:', data)
     router.push('/dashboard')
   } catch (err) {
@@ -187,6 +190,9 @@ onMounted(() => {
       const userData = JSON.parse(decodeURIComponent(userParam))
       localStorage.setItem('auth_token', token)
       localStorage.setItem('user', JSON.stringify(userData))
+      
+      // Despachar evento para notificar cambio de sesión
+      window.dispatchEvent(new Event('user-updated'))
       
       console.log('Login con Google exitoso:', userData)
       router.push('/dashboard')

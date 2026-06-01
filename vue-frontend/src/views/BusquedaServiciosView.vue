@@ -340,11 +340,13 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import { useAuth } from '../composables/useAuth.js'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 const route = useRoute()
 const router = useRouter()
+const { getAuthHeaders } = useAuth()
 const isLoading = ref(true)
 const services = ref([])
 let searchTimeout = null
@@ -362,12 +364,8 @@ const verOpiniones = async (profesional) => {
   opinionesList.value = []
   
   try {
-    const token = localStorage.getItem('auth_token')
     const response = await fetch(`http://localhost:8000/api/profesionales/${profesional.id_usuario}/calificaciones`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
     if (response.ok) {
       const data = await response.json()
@@ -404,8 +402,6 @@ let mapInstance = null
 
 const fetchServices = async () => {
   isLoading.value = true
-  const token = localStorage.getItem('auth_token')
-  if (!token) return
 
   try {
     const queryParams = new URLSearchParams()
@@ -416,10 +412,7 @@ const fetchServices = async () => {
     if (filters.value.reputacion > 0) queryParams.append('reputacion', filters.value.reputacion)
 
     const response = await fetch(`http://localhost:8000/api/servicios?${queryParams.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
     
     if (response.ok) {

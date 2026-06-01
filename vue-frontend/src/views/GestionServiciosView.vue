@@ -3,19 +3,11 @@
     <!-- Header visual -->
     <v-row class="mb-6">
       <v-col cols="12">
-        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
-          <div class="d-flex align-center flex-wrap">
-            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
-              <v-icon size="36" color="primary">mdi-briefcase-check</v-icon>
-            </v-avatar>
-            <div>
-              <h1 class="text-h4 font-weight-bold mb-2">Gestión de Servicios</h1>
-              <p class="text-body-1 opacity-80 mb-0">
-                Crea, edita o elimina los servicios profesionales que ofreces al público. Configura la modalidad, el precio y la duración de cada uno.
-              </p>
-            </div>
-          </div>
-        </v-card>
+        <BannerHeader
+          title="Gestión de Servicios"
+          subtitle="Crea, edita o elimina los servicios profesionales que ofreces al público. Configura la modalidad, el precio y la duración de cada uno."
+          icon="mdi-briefcase-check"
+        />
       </v-col>
     </v-row>
 
@@ -276,6 +268,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import BannerHeader from '../components/BannerHeader.vue'
+import { useAuth } from '../composables/useAuth'
+import { useFormRules } from '../composables/useFormRules'
 
 const form = ref(null)
 const isLoading = ref(false)
@@ -313,21 +308,15 @@ const loadCategories = async () => {
   }
 }
 
+const { token, user, getAuthHeaders } = useAuth()
+
 onMounted(async () => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) return
+  if (!token.value) return
 
   // Load categories first
   await loadCategories()
 
-  let idProfesional = null
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      idProfesional = user.id
-    } catch (e) {}
-  }
+  const idProfesional = user.value?.id
 
   try {
     const url = idProfesional
@@ -362,16 +351,12 @@ onMounted(async () => {
   }
 })
 
+const { required, isNumber, isInteger } = useFormRules()
+
 const rules = {
-  required: value => !!value || 'Este campo es obligatorio.',
-  isNumber: value => {
-    const pattern = /^\d+(\.\d{1,2})?$/
-    return pattern.test(value) || 'Debe ser un número válido (ej: 150.00).'
-  },
-  isInteger: value => {
-    const pattern = /^\d+$/
-    return pattern.test(value) || 'Debe ser un número entero (ej: 60).'
-  }
+  required,
+  isNumber,
+  isInteger
 }
 
 const getModalityColor = (modality) => {
@@ -406,11 +391,7 @@ const saveService = async () => {
 
     const response = await fetch(url, {
       method: isEditing.value ? 'PUT' : 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         nombre: service.value.name,
         descripcion: service.value.description,
@@ -503,14 +484,10 @@ const deleteService = async (item) => {
     return
   }
   
-  const token = localStorage.getItem('auth_token')
   try {
     const response = await fetch(`http://localhost:8000/api/servicios/${item.id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
     
     if (response.ok) {

@@ -3,19 +3,11 @@
     <!-- Header visual -->
     <v-row class="mb-6">
       <v-col cols="12">
-        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
-          <div class="d-flex align-center flex-wrap">
-            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
-              <v-icon size="36" color="primary">mdi-package-variant</v-icon>
-            </v-avatar>
-            <div>
-              <h1 class="text-h4 font-weight-bold mb-2">Gestión de Paquetes de Sesiones</h1>
-              <p class="text-body-1 opacity-80 mb-0">
-                Crea y administra paquetes promocionales de sesiones agrupadas para tus servicios. Ofrece mejores tarifas y fideliza a tus clientes.
-              </p>
-            </div>
-          </div>
-        </v-card>
+        <BannerHeader
+          title="Gestión de Paquetes de Sesiones"
+          subtitle="Crea y administra paquetes promocionales de sesiones agrupadas para tus servicios. Ofrece mejores tarifas y fideliza a tus clientes."
+          icon="mdi-package-variant"
+        />
       </v-col>
     </v-row>
 
@@ -237,32 +229,28 @@
     </v-row>
 
     <!-- Delete Confirmation Dialog -->
-    <v-dialog v-model="deleteDialog" max-width="400">
-      <v-card class="rounded-xl pa-4">
-        <v-card-title class="text-h6 font-weight-bold text-error">
-          <v-icon start color="error" class="mr-2">mdi-alert-circle-outline</v-icon>
-          ¿Eliminar Paquete?
-        </v-card-title>
-        <v-card-text class="text-body-1 py-2">
-          ¿Estás seguro de que deseas eliminar el paquete <strong>"{{ selectedPackage?.nombre }}"</strong>?
-          Esta acción no se puede deshacer y los clientes ya no podrán adquirirlo.
-        </v-card-text>
-        <v-card-actions class="justify-end pt-4">
-          <v-btn variant="outlined" color="grey-darken-1" class="text-none font-weight-bold px-4" @click="deleteDialog = false">
-            Cancelar
-          </v-btn>
-          <v-btn color="error" class="text-none font-weight-bold px-6 elevation-1" @click="deletePackage">
-            Eliminar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model="deleteDialog"
+      title="¿Eliminar Paquete?"
+      confirm-text="Eliminar"
+      confirm-color="error"
+      icon="mdi-alert-circle-outline"
+      @confirm="deletePackage"
+    >
+      ¿Estás seguro de que deseas eliminar el paquete <strong>"{{ selectedPackage?.nombre }}"</strong>?
+      Esta acción no se puede deshacer y los clientes ya no podrán adquirirlo.
+    </ConfirmationDialog>
   </DashboardLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import BannerHeader from '../components/BannerHeader.vue'
+import ConfirmationDialog from '../components/ConfirmationDialog.vue'
+import { useAuth } from '../composables/useAuth'
+import { useFormRules } from '../composables/useFormRules'
 
 const form = ref(null)
 const isLoading = ref(false)
@@ -285,27 +273,20 @@ const publishedPackages = ref([])
 const deleteDialog = ref(false)
 const selectedPackage = ref(null)
 
+const { required, requiredArray, isNumber, isInteger, minOne } = useFormRules()
+
 const rules = {
-  required: value => !!value || 'Este campo es obligatorio.',
-  requiredArray: value => (Array.isArray(value) && value.length > 0) || 'Debes asociar al menos un servicio.',
-  isNumber: value => {
-    const pattern = /^\d+(\.\d{1,2})?$/
-    return pattern.test(value) || 'Debe ser un número válido (ej: 299.99).'
-  },
-  isInteger: value => {
-    if (!value) return true // Vencimiento opcional
-    const pattern = /^\d+$/
-    return pattern.test(value) || 'Debe ser un número entero.'
-  },
-  minOne: value => parseInt(value) >= 1 || 'Debe incluir al menos 1 sesión.'
+  required,
+  requiredArray,
+  isNumber,
+  isInteger,
+  minOne
 }
 
-const loadData = async () => {
-  const token = localStorage.getItem('auth_token')
-  const userStr = localStorage.getItem('user')
-  if (!token || !userStr) return
+const { token, user, getAuthHeaders } = useAuth()
 
-  const user = JSON.parse(userStr)
+const loadData = async () => {
+  if (!token.value || !user.value) return
 
   try {
     // 1. Cargar servicios del profesional
@@ -368,11 +349,7 @@ const savePackage = async () => {
   try {
     const response = await fetch('http://localhost:8000/api/paquetes', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     })
 
@@ -401,14 +378,10 @@ const confirmDelete = (pkg) => {
 const deletePackage = async () => {
   if (!selectedPackage.value) return
 
-  const token = localStorage.getItem('auth_token')
   try {
     const response = await fetch(`http://localhost:8000/api/paquetes/${selectedPackage.value.id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
 
     if (!response.ok) {

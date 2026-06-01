@@ -164,41 +164,23 @@
     </v-main>
 
     <!-- Diálogo de Confirmación de Cierre de Sesión -->
-    <v-dialog v-model="dialogLogout" max-width="400" persistent>
-      <v-card class="rounded-xl pa-4 bg-background">
-        <v-card-title class="text-h6 font-weight-bold text-center text-grey-darken-3 d-flex align-center justify-center">
-          <v-icon color="secondary" class="mr-2">mdi-alert-circle-outline</v-icon>
-          Cerrar Sesión
-        </v-card-title>
-        <v-card-text class="text-body-1 text-center py-4 text-grey-darken-2">
-          ¿Seguro que quieres cerrar sesión?
-        </v-card-text>
-        <v-card-actions class="justify-center gap-2 pb-2">
-          <v-btn 
-            variant="outlined" 
-            color="grey-darken-1" 
-            class="rounded-pill px-6 text-none font-weight-bold" 
-            @click="dialogLogout = false"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn 
-            variant="flat" 
-            color="secondary" 
-            class="rounded-pill px-6 text-none font-weight-bold text-white" 
-            @click="logout"
-          >
-            Cerrar Sesión
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ConfirmationDialog
+      v-model="dialogLogout"
+      title="Cerrar Sesión"
+      message="¿Seguro que quieres cerrar sesión?"
+      confirm-text="Cerrar Sesión"
+      confirm-color="secondary"
+      icon="mdi-alert-circle-outline"
+      @confirm="logout"
+    />
   </v-layout>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
+import ConfirmationDialog from './ConfirmationDialog.vue'
 
 const props = defineProps({
   title: {
@@ -210,10 +192,17 @@ const props = defineProps({
 const router = useRouter()
 const drawer = ref(true)
 const rail = ref(false)
-const isProfesional = ref(false)
-const isAdmin = ref(false)
-const userInitials = ref('US')
-const userAvatar = ref(null)
+
+const { 
+  user, 
+  isProfesional, 
+  isAdmin, 
+  userInitials, 
+  getAuthHeaders, 
+  logoutServer 
+} = useAuth()
+
+const userAvatar = computed(() => user.value?.profesional?.foto_perfil_url || null)
 
 const dialogLogout = ref(false)
 const confirmarLogout = () => {
@@ -222,17 +211,9 @@ const confirmarLogout = () => {
 
 const bubbleHidden = ref(false)
 
-import { onMounted, onUnmounted } from 'vue'
-
 const menuNotificaciones = ref(false)
 const notificaciones = ref([])
 let pollingInterval = null
-
-const getAuthHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-})
 
 const cargarNotificaciones = async () => {
   try {
@@ -296,63 +277,18 @@ const formatTimeAgo = (dateStr) => {
   return `Hace ${Math.round(diffHrs / 24)} d`
 }
 
-const loadUserFromStorage = () => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      isProfesional.value = user.role === 'profesional'
-      isAdmin.value = user.role === 'admin'
-      if (user.nombre) {
-        userInitials.value = user.nombre.substring(0, 2).toUpperCase()
-      }
-      userAvatar.value = user.profesional?.foto_perfil_url || null
-    } catch (e) {
-      console.error('Error parsing user data', e)
-    }
-  }
-}
-
 onMounted(() => {
-  loadUserFromStorage()
-  window.addEventListener('user-updated', loadUserFromStorage)
-  
   cargarNotificaciones()
   pollingInterval = setInterval(cargarNotificaciones, 30000) // Poll cada 30 segundos
 })
 
 onUnmounted(() => {
-  window.removeEventListener('user-updated', loadUserFromStorage)
   if (pollingInterval) clearInterval(pollingInterval)
 })
 
 const logout = async () => {
-  const token = localStorage.getItem('auth_token')
-
-  // Cerrar el diálogo primero si está abierto
   dialogLogout.value = false
-
-  // Limpiar el estado de autenticación en el cliente de inmediato
-  localStorage.removeItem('auth_token')
-  localStorage.removeItem('user')
-
-  // Redirigir a la pantalla de Inicio de Sesión
-  router.push('/login')
-
-  // Opcional y recomendado: invalidar el token en el servidor en segundo plano
-  if (token) {
-    try {
-      await fetch('http://localhost:8000/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      })
-    } catch (e) {
-      console.error('Error al revocar el token en el servidor:', e)
-    }
-  }
+  await logoutServer((path) => router.push(path))
 }
 </script>
 

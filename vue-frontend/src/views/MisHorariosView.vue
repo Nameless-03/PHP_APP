@@ -7,52 +7,36 @@
         <v-col cols="12" md="10" lg="8">
           <v-card class="elevation-4 rounded-xl overflow-hidden border-card">
             <v-card-text class="pa-0">
-              <div class="brand-header pa-6 text-center text-white">
-                <h1 class="text-h4 font-weight-bold mb-2">Gestión de Agenda</h1>
-                <p class="text-subtitle-1 opacity-90">Selecciona qué deseas configurar</p>
-              </div>
+              <BannerHeader
+                title="Gestión de Agenda"
+                subtitle="Selecciona qué deseas configurar"
+                centered
+                dense
+              />
             </v-card-text>
 
             <v-card-text class="pa-8">
               <v-row>
                 <!-- Opcion 1: Disponibilidad -->
                 <v-col cols="12" md="6">
-                  <v-hover v-slot="{ isHovering, props }">
-                    <v-card
-                      v-bind="props"
-                      :elevation="isHovering ? 8 : 2"
-                      class="h-100 rounded-xl cursor-pointer transition-swing border-panel d-flex flex-column align-center text-center pa-6"
-                      @click="currentView = 'disponibilidad'"
-                    >
-                      <v-avatar color="primary" size="80" variant="tonal" class="mb-4">
-                        <v-icon size="40">mdi-calendar-clock</v-icon>
-                      </v-avatar>
-                      <h2 class="text-h6 font-weight-bold mb-2 text-grey-darken-3">Configurar Disponibilidad</h2>
-                      <p class="text-body-2 text-medium-emphasis">
-                        Define tus horarios de trabajo semanales habituales, días de descanso y pausas entre turnos.
-                      </p>
-                    </v-card>
-                  </v-hover>
+                  <MenuOptionCard
+                    title="Configurar Disponibilidad"
+                    description="Define tus horarios de trabajo semanales habituales, días de descanso y pausas entre turnos."
+                    icon="mdi-calendar-clock"
+                    color="primary"
+                    @click="currentView = 'disponibilidad'"
+                  />
                 </v-col>
 
                 <!-- Opcion 2: Reglas de Agenda (Excepciones) -->
                 <v-col cols="12" md="6">
-                  <v-hover v-slot="{ isHovering, props }">
-                    <v-card
-                      v-bind="props"
-                      :elevation="isHovering ? 8 : 2"
-                      class="h-100 rounded-xl cursor-pointer transition-swing border-panel d-flex flex-column align-center text-center pa-6"
-                      @click="abrirExcepciones"
-                    >
-                      <v-avatar color="secondary" size="80" variant="tonal" class="mb-4">
-                        <v-icon size="40">mdi-calendar-alert</v-icon>
-                      </v-avatar>
-                      <h2 class="text-h6 font-weight-bold mb-2 text-grey-darken-3">Configurar Reglas de Agenda</h2>
-                      <p class="text-body-2 text-medium-emphasis">
-                        Añade feriados, vacaciones o días excepcionales donde tu disponibilidad cambia temporalmente.
-                      </p>
-                    </v-card>
-                  </v-hover>
+                  <MenuOptionCard
+                    title="Configurar Reglas de Agenda"
+                    description="Añade feriados, vacaciones o días excepcionales donde tu disponibilidad cambia temporalmente."
+                    icon="mdi-calendar-alert"
+                    color="secondary"
+                    @click="abrirExcepciones"
+                  />
                 </v-col>
               </v-row>
             </v-card-text>
@@ -76,13 +60,12 @@
 
           <v-card class="elevation-4 rounded-xl overflow-hidden border-card">
             <v-card-text class="pa-0">
-              <div class="brand-header pa-6 text-white d-flex align-center">
-                <v-icon size="36" class="mr-4">mdi-calendar-clock</v-icon>
-                <div>
-                  <h1 class="text-h5 font-weight-bold mb-0">Disponibilidad Semanal</h1>
-                  <p class="text-subtitle-2 opacity-90 mb-0">Horarios fijos de atención</p>
-                </div>
-              </div>
+              <BannerHeader
+                title="Disponibilidad Semanal"
+                subtitle="Horarios fijos de atención"
+                icon="mdi-calendar-clock"
+                dense
+              />
             </v-card-text>
 
             <v-card-text class="pa-6">
@@ -150,13 +133,12 @@
 
           <v-card class="elevation-4 rounded-xl overflow-hidden border-card">
             <v-card-text class="pa-0">
-              <div class="brand-header pa-6 text-white d-flex align-center" style="background: linear-gradient(135deg, #7A5C3D 0%, #A6987A 100%);">
-                <v-icon size="36" class="mr-4">mdi-calendar-alert</v-icon>
-                <div>
-                  <h1 class="text-h5 font-weight-bold mb-0">Reglas y Excepciones</h1>
-                  <p class="text-subtitle-2 opacity-90 mb-0">Gestiona feriados y vacaciones</p>
-                </div>
-              </div>
+              <BannerHeader
+                title="Reglas y Excepciones"
+                subtitle="Gestiona feriados y vacaciones"
+                icon="mdi-calendar-alert"
+                dense
+              />
             </v-card-text>
 
             <v-card-text class="pa-6">
@@ -228,7 +210,7 @@
                       <v-chip :color="exc.disponible ? 'success' : 'error'" size="small" class="mr-4 font-weight-bold">
                         {{ exc.disponible ? 'Disponible' : 'No Disponible' }}
                       </v-chip>
-                      <v-btn icon color="error" variant="text" @click="deleteExcepcion(exc.id)" :loading="isLoading">
+                      <v-btn icon color="error" variant="text" @click="confirmDeleteExcepcion(exc.id)" :loading="isLoading">
                         <v-icon>mdi-delete</v-icon>
                       </v-btn>
                     </v-card-text>
@@ -248,12 +230,22 @@
     </v-fade-transition>
 
     <!-- Snackbar for success -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
-      {{ snackbar.text }}
+    <v-snackbar v-model="show" :color="color" :timeout="3000" location="top">
+      {{ text }}
       <template v-slot:actions>
-        <v-btn variant="text" @click="snackbar.show = false">Cerrar</v-btn>
+        <v-btn variant="text" @click="show = false">Cerrar</v-btn>
       </template>
     </v-snackbar>
+
+    <!-- Confirmation Dialog for exceptions -->
+    <ConfirmationDialog
+      v-model="deleteDialog"
+      title="¿Eliminar regla de agenda?"
+      message="¿Estás seguro de que deseas eliminar esta regla? Esta acción es irreversible."
+      confirm-text="Eliminar"
+      confirm-color="error"
+      @confirm="runDeleteExcepcion"
+    />
 
   </DashboardLayout>
 </template>
@@ -261,31 +253,26 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import BannerHeader from '../components/BannerHeader.vue'
+import MenuOptionCard from '../components/MenuOptionCard.vue'
+import ConfirmationDialog from '../components/ConfirmationDialog.vue'
+import { useAuth } from '../composables/useAuth'
+import { useDateFormatter } from '../composables/useDateFormatter'
+import { useSnackbar } from '../composables/useSnackbar'
 
 // --- ESTADO GENERAL ---
 const currentView = ref('menu') // 'menu', 'disponibilidad', 'excepciones'
 const isLoading = ref(false)
-const snackbar = ref({ show: false, text: '', color: 'success' })
 
-// --- UTILIDADES ---
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('auth_token')
-  return {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': `Bearer ${token}`
-  }
-}
+const { show, text, color, showSnackbar } = useSnackbar()
+const { token, user, getAuthHeaders } = useAuth()
+const { formatDate } = useDateFormatter()
+
+const deleteDialog = ref(false)
+const idToDelete = ref(null)
 
 const getCurrentUserId = () => {
-  const userStr = localStorage.getItem('user')
-  return userStr ? JSON.parse(userStr).id : null
-}
-
-const formatDate = (dateString) => {
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const d = new Date(dateString + 'T00:00:00'); // Evita problemas de timezone
-  return d.toLocaleDateString('es-ES', options).replace(/^\w/, c => c.toUpperCase());
+  return user.value?.id || null
 }
 
 // --- LOGICA DE DISPONIBILIDAD SEMANAL ---
@@ -369,7 +356,7 @@ const saveHorarios = async () => {
     }
 
     await Promise.all(promises)
-    snackbar.value = { show: true, text: 'Disponibilidad guardada con éxito', color: 'success' }
+    showSnackbar('Disponibilidad guardada con éxito', 'success')
     await cargarHorarios()
   } catch (err) {
     error.value = 'Ocurrió un error al guardar. Verifica los datos e intenta de nuevo.'
@@ -437,7 +424,7 @@ const saveExcepcion = async () => {
       throw new Error(data.message || 'Error al guardar la regla')
     }
 
-    snackbar.value = { show: true, text: 'Regla agregada exitosamente', color: 'success' }
+    showSnackbar('Regla agregada exitosamente', 'success')
     formExcepcion.value.reset()
     nuevaExcepcion.value.disponible = false
     await cargarExcepciones()
@@ -449,25 +436,32 @@ const saveExcepcion = async () => {
   }
 }
 
-const deleteExcepcion = async (id) => {
-  if (!confirm('¿Estás seguro de que deseas eliminar esta regla?')) return
+const confirmDeleteExcepcion = (id) => {
+  idToDelete.value = id
+  deleteDialog.value = true
+}
+
+const runDeleteExcepcion = async () => {
+  if (!idToDelete.value) return
 
   isLoading.value = true
   try {
-    const response = await fetch(`http://localhost:8000/api/excepciones-agenda/${id}`, {
+    const response = await fetch(`http://localhost:8000/api/excepciones-agenda/${idToDelete.value}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })
 
     if (!response.ok) throw new Error('Error al eliminar')
 
-    snackbar.value = { show: true, text: 'Regla eliminada', color: 'success' }
+    showSnackbar('Regla eliminada con éxito', 'success')
     await cargarExcepciones()
   } catch (err) {
     console.error(err)
-    snackbar.value = { show: true, text: 'No se pudo eliminar la regla', color: 'error' }
+    showSnackbar('No se pudo eliminar la regla', 'error')
   } finally {
     isLoading.value = false
+    deleteDialog.value = false
+    idToDelete.value = null
   }
 }
 

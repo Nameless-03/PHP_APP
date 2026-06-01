@@ -3,19 +3,11 @@
     <!-- Header visual -->
     <v-row class="mb-6">
       <v-col cols="12">
-        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
-          <div class="d-flex align-center flex-wrap">
-            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
-              <v-icon size="36" color="primary">mdi-chart-timeline-variant</v-icon>
-            </v-avatar>
-            <div>
-              <h1 class="text-h4 font-weight-bold mb-2">Monitoreo del Sistema</h1>
-              <p class="text-body-1 opacity-80 mb-0">
-                Visualiza las métricas globales del sistema en tiempo real. Analiza la actividad de reservas, ingresos de cobros, reputación de profesionales y estadísticas demográficas.
-              </p>
-            </div>
-          </div>
-        </v-card>
+        <BannerHeader
+          title="Monitoreo del Sistema"
+          subtitle="Visualiza las métricas globales del sistema en tiempo real. Analiza la actividad de reservas, ingresos de cobros, reputación de profesionales y estadísticas demográficas."
+          icon="mdi-chart-timeline-variant"
+        />
       </v-col>
     </v-row>
 
@@ -422,6 +414,14 @@
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import BannerHeader from '../components/BannerHeader.vue'
+import { useAuth } from '../composables/useAuth'
+import { useDateFormatter } from '../composables/useDateFormatter'
+import { useReservationStatus } from '../composables/useReservationStatus'
+
+const { getAuthHeaders } = useAuth()
+const { formatDateTime } = useDateFormatter()
+const { getEstadoColor, getEstadoIcon } = useReservationStatus()
 
 // ── Chart.js (load lazily from CDN) ───────────────────────────────────────────
 let Chart = null
@@ -507,11 +507,7 @@ const userHeaders = [
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const getAuthHeaders = () => ({
-  'Content-Type':  'application/json',
-  'Accept':        'application/json',
-  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-})
+// getAuthHeaders imported from useAuth
 
 const gradientStyle = (color) =>
   `background: linear-gradient(135deg, ${color}dd, ${color}99);`
@@ -521,33 +517,8 @@ const formatCurrency = (v) =>
     ? new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 }).format(v)
     : 'S/. 0'
 
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return 'N/A'
-  return new Date(dateStr).toLocaleDateString('es-PE', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
-const getEstadoColor = (estado) => ({
-  pendiente:   'amber',
-  confirmada:  'blue',
-  pagada:      'teal',
-  en_curso:    'indigo',
-  finalizada:  'green',
-  cancelada:   'red',
-  no_asistida: 'grey',
-}[estado] || 'grey')
-
-const getEstadoIcon = (estado) => ({
-  pendiente:   'mdi-clock-outline',
-  confirmada:  'mdi-check-circle-outline',
-  pagada:      'mdi-cash-check',
-  en_curso:    'mdi-play-circle-outline',
-  finalizada:  'mdi-flag-checkered',
-  cancelada:   'mdi-cancel',
-  no_asistida: 'mdi-account-off-outline',
-}[estado] || 'mdi-help-circle-outline')
+// formatDateTime imported from useDateFormatter
+// getEstadoColor and getEstadoIcon imported from useReservationStatus
 
 const getRoleColor     = (role) => ({ cliente: '#3B82F6', profesional: '#F97316', admin: '#8B5CF6' }[role] || '#6B7280')
 const getRoleColorName = (role) => ({ cliente: 'blue', profesional: 'orange', admin: 'deep-purple' }[role] || 'grey')

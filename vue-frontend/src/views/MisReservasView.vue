@@ -864,9 +864,9 @@
       </v-card>
     </v-dialog>
 
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" location="top">
-      {{ snackbar.text }}
-      <template v-slot:actions><v-btn variant="text" @click="snackbar.show = false">Cerrar</v-btn></template>
+    <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="4000" location="top">
+      {{ snackbarText }}
+      <template v-slot:actions><v-btn variant="text" @click="snackbarShow = false">Cerrar</v-btn></template>
     </v-snackbar>
   </DashboardLayout>
 </template>
@@ -875,14 +875,18 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import { useAuth } from '../composables/useAuth.js'
+import { useSnackbar } from '../composables/useSnackbar.js'
+import { useDateFormatter } from '../composables/useDateFormatter.js'
 
 const route = useRoute()
+const { getAuthHeaders, isCliente } = useAuth()
+const { show: snackbarShow, text: snackbarText, color: snackbarColor, showSnackbar } = useSnackbar()
+const { formatDateObj, formatDateShort } = useDateFormatter()
 
 // Estado General
 const currentView = ref('menu') // menu, reservar, pendientes, reprogramar, cancelar, historial
 const isLoading = ref(false)
-const snackbar = ref({ show: false, text: '', color: 'success' })
-const isCliente = ref(true)
 
 // Formularios
 const errorForm = ref('')
@@ -944,16 +948,7 @@ const paquetesAplicables = computed(() => {
   }))
 })
 
-const getAuthHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-})
-
 onMounted(() => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
-  isCliente.value = user.role !== 'profesional'
-  
   cargarRegistros() // Cargar registros al inicio para poblar reservas pendientes de pago
   
   if (route.query.action === 'reservar' && isCliente.value) {
@@ -1117,7 +1112,7 @@ const renderizarBotonesPaypal = () => {
           const resData = await res.json()
           if (!res.ok) throw new Error(resData.message || 'Error al procesar el pago')
 
-          snackbar.value = { show: true, text: '¡Pago completado con éxito mediante PayPal!', color: 'success' }
+          showSnackbar('¡Pago completado con éxito mediante PayPal!', 'success')
           dialogPagarReserva.value = false
           cargarRegistros()
         } catch (err) {
@@ -1186,7 +1181,7 @@ const confirmarReserva = async () => {
     const data = await res.json()
     if (!res.ok) throw new Error(data.message || 'Error al reservar')
 
-    snackbar.value = { show: true, text: '¡Turno reservado exitosamente!', color: 'success' }
+    showSnackbar('¡Turno reservado exitosamente!', 'success')
     formData.value = { id_servicio: null, fecha: '', hora: '', id_compra_paquete: null }
     pagarConPaquete.value = false
 
@@ -1228,7 +1223,7 @@ const confirmarReprogramacion = async () => {
 
     if (!res.ok) throw new Error((await res.json()).message || 'Error al reprogramar')
 
-    snackbar.value = { show: true, text: 'Reserva reprogramada y devuelta a pendiente', color: 'info' }
+    showSnackbar('Reserva reprogramada y devuelta a pendiente', 'info')
     reservaSeleccionada.value = null
     formData.value = { id_servicio: null, fecha: '', hora: '' }
     cargarRegistros()
@@ -1256,10 +1251,10 @@ const cambiarEstadoReserva = async (id, estado) => {
 
     if (!res.ok) throw new Error((await res.json()).message || 'Error al actualizar')
 
-    snackbar.value = { show: true, text: estado === 'cancelada' ? 'Turno cancelado' : `Reserva ${estado}`, color: estado === 'cancelada' ? 'error' : 'success' }
+    showSnackbar(estado === 'cancelada' ? 'Turno cancelado' : `Reserva ${estado}`, estado === 'cancelada' ? 'error' : 'success')
     await cargarRegistros()
   } catch (err) {
-    snackbar.value = { show: true, text: err.message, color: 'error' }
+    showSnackbar(err.message, 'error')
   } finally {
     isLoading.value = false
   }
@@ -1303,7 +1298,7 @@ const enviarCalificacion = async () => {
       throw new Error(data.message || 'Error al calificar')
     }
 
-    snackbar.value = { show: true, text: '¡Gracias por calificar el servicio!', color: 'success' }
+    showSnackbar('¡Gracias por calificar el servicio!', 'success')
     calificacionesEnviadas.value.add(reservaACalificar.value.id)
     dialogCalificar.value = false
     reservaACalificar.value = null
@@ -1311,7 +1306,7 @@ const enviarCalificacion = async () => {
     if (err.message === 'Esta reserva ya fue calificada.') {
       calificacionesEnviadas.value.add(reservaACalificar.value.id)
       dialogCalificar.value = false
-      snackbar.value = { show: true, text: err.message, color: 'error' }
+      showSnackbar(err.message, 'error')
     } else {
       calificarError.value = err.message
     }
@@ -1380,7 +1375,7 @@ const procesarPagoReserva = async () => {
     // Check outcome of payment
     const pago = data.data
     if (pago.estado === 'completado') {
-      snackbar.value = { show: true, text: '¡Pago completado con éxito! Tu turno ha sido reservado y pagado.', color: 'success' }
+      showSnackbar('¡Pago completado con éxito! Tu turno ha sido reservado y pagado.', 'success')
       dialogPagarReserva.value = false
       cargarRegistros()
     } else {
@@ -1405,19 +1400,17 @@ const cancelarReservaDesdePago = async () => {
 
     if (!res.ok) throw new Error((await res.json()).message || 'Error al cancelar')
 
-    snackbar.value = { show: true, text: 'Turno cancelado correctamente.', color: 'error' }
+    showSnackbar('Turno cancelado correctamente.', 'error')
     dialogPagarReserva.value = false
     cargarRegistros()
   } catch (err) {
-    snackbar.value = { show: true, text: err.message, color: 'error' }
+    showSnackbar(err.message, 'error')
   } finally {
     isLoading.value = false
   }
 }
 
 // === UTILS ===
-const formatDateObj = (ds) => new Date(ds).toLocaleString('es-ES', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
-const formatDateShort = (ds) => new Date(ds).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year:'numeric', hour: '2-digit', minute:'2-digit' })
 const getColorEstado = (estado) => ({ pendiente: 'warning', confirmada: 'success', cancelada: 'error', pagada: 'primary', finalizada: 'grey' }[estado] || 'grey')
 
 </script>
