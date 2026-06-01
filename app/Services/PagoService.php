@@ -45,6 +45,8 @@ class PagoService
             $simularError = isset($data['simular_error']) ? (bool)$data['simular_error'] : false;
             ProcesarPagoJob::dispatch($pago, $simularError);
 
+            $pago->refresh();
+
             // Log NoSQL activity
             $this->logger->log("Inicio de pago", 'info', [
                 'pago_id' => $pago->id,
