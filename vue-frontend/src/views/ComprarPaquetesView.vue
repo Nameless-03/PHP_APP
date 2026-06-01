@@ -194,7 +194,7 @@
               <!-- DETALLES DE PAGO SEGÚN MÉTODO SELECCIONADO -->
               <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2">2. Completa los Datos de Pago</h4>
               <v-expand-transition>
-                <div v-if="paymentMethod === 'paypal'" class="pa-4 mb-4 rounded-xl border bg-blue-lighten-5">
+                <div v-if="paymentMethod === 'paypal'" class="pa-4 mb-4 rounded-xl border payment-box-paypal">
                   <div class="d-flex align-center mb-3">
                     <v-icon color="blue-darken-3" class="mr-2">mdi-paypal</v-icon>
                     <span class="text-subtitle-2 font-weight-bold text-blue-darken-3">Pasarela de Pago PayPal</span>
@@ -217,7 +217,7 @@
                       type="email"
                       variant="outlined"
                       density="comfortable"
-                      color="blue"
+                      color="secondary"
                       class="mb-2"
                       :rules="[v => !!v || 'El correo es obligatorio', v => /.+@.+\..+/.test(v) || 'Correo no válido']"
                       required
@@ -228,7 +228,7 @@
                       type="password"
                       variant="outlined"
                       density="comfortable"
-                      color="blue"
+                      color="secondary"
                       hide-details
                       :rules="[v => !!v || 'La contraseña es obligatoria']"
                       required
@@ -236,10 +236,10 @@
                   </div>
                 </div>
 
-                <div v-if="paymentMethod === 'transferencia'" class="pa-4 mb-4 rounded-xl border bg-orange-lighten-5">
+                <div v-if="paymentMethod === 'transferencia'" class="pa-4 mb-4 rounded-xl border payment-box-transferencia">
                   <div class="d-flex align-center mb-3">
-                    <v-icon color="orange-darken-3" class="mr-2">mdi-bank</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-orange-darken-3">Datos de Transferencia</span>
+                    <v-icon color="secondary" class="mr-2">mdi-bank</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-secondary">Datos de Transferencia</span>
                   </div>
                   <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
                     <strong>CBU de Destino:</strong> 0000003100012345678901<br>
@@ -251,7 +251,7 @@
                     label="Nombre del Titular de la cuenta"
                     variant="outlined"
                     density="comfortable"
-                    color="orange"
+                    color="secondary"
                     class="mb-2"
                     :rules="[v => !!v || 'El nombre es obligatorio']"
                     required
@@ -261,17 +261,17 @@
                     label="CBU o CVU de Origen"
                     variant="outlined"
                     density="comfortable"
-                    color="orange"
+                    color="secondary"
                     hide-details
                     :rules="[v => !!v || 'El CBU/CVU es obligatorio', v => /^\d{22}$/.test(v) || 'Debe tener exactamente 22 números']"
                     required
                   ></v-text-field>
                 </div>
 
-                <div v-if="paymentMethod === 'efectivo'" class="pa-4 mb-4 rounded-xl border bg-green-lighten-5">
+                <div v-if="paymentMethod === 'efectivo'" class="pa-4 mb-4 rounded-xl border payment-box-efectivo">
                   <div class="d-flex align-center">
-                    <v-icon color="green-darken-3" class="mr-2">mdi-cash-multiple</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-green-darken-3">Pago en Efectivo</span>
+                    <v-icon color="success" class="mr-2">mdi-cash-multiple</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-success">Pago en Efectivo</span>
                   </div>
                   <div class="text-caption text-grey-darken-3 mt-2">
                     No se requiere ingresar datos bancarios o virtuales. Realizarás el pago en persona directamente al profesional al momento de tus sesiones.
@@ -736,5 +736,17 @@ watch([paymentMethod, purchaseDialog], async ([nuevoMetodo, estaAbierto]) => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+.payment-box-paypal {
+  background-color: rgba(0, 48, 135, 0.04) !important;
+  border: 1px solid rgba(0, 48, 135, 0.12) !important;
+}
+.payment-box-transferencia {
+  background-color: rgba(140, 109, 70, 0.04) !important;
+  border: 1px solid rgba(140, 109, 70, 0.15) !important;
+}
+.payment-box-efectivo {
+  background-color: rgba(76, 175, 80, 0.04) !important;
+  border: 1px solid rgba(76, 175, 80, 0.15) !important;
 }
 </style>

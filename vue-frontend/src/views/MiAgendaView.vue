@@ -111,22 +111,36 @@
                             </v-tooltip>
                           </div>
                           
-                          <div class="d-flex align-center mt-2">
-                            <v-avatar color="grey-lighten-3" size="32" class="mr-3">
-                              <v-icon size="20" color="grey-darken-1">mdi-account</v-icon>
-                            </v-avatar>
-                            <div>
-                              <p class="mb-0 text-body-2 font-weight-medium">
-                                {{ isCliente ? reserva.servicio?.profesional?.usuario?.nombre : reserva.cliente?.usuario?.nombre }}
-                                {{ isCliente ? '' : reserva.cliente?.usuario?.apellido }}
-                              </p>
-                              <p class="mb-0 text-caption text-medium-emphasis">
-                                {{ isCliente ? 'Profesional' : 'Cliente' }}
-                              </p>
+                          <div class="d-flex align-center justify-space-between flex-wrap gap-2 mt-4">
+                            <!-- Info de Usuario -->
+                            <div class="d-flex align-center">
+                              <v-avatar color="grey-lighten-3" size="32" class="mr-3">
+                                <v-icon size="20" color="grey-darken-1">mdi-account</v-icon>
+                              </v-avatar>
+                              <div>
+                                <p class="mb-0 text-body-2 font-weight-medium">
+                                  {{ isCliente ? reserva.servicio?.profesional?.usuario?.nombre : reserva.cliente?.usuario?.nombre }}
+                                  {{ isCliente ? '' : reserva.cliente?.usuario?.apellido }}
+                                </p>
+                                <p class="mb-0 text-caption text-medium-emphasis">
+                                  {{ isCliente ? 'Profesional' : 'Cliente' }}
+                                </p>
+                              </div>
                             </div>
+
+                            <!-- Botón de Videollamada (Redondeado y a la derecha) -->
+                            <v-btn 
+                              v-if="(reserva.servicio?.modalidad === 'remota' || reserva.servicio?.modalidad === 'hibrida') && ['pagada', 'confirmada', 'en_curso'].includes(reserva.estado)" 
+                              color="secondary"
+                              class="text-none font-weight-bold rounded-pill px-4" 
+                              prepend-icon="mdi-video"
+                              elevation="1"
+                              @click="joinCall(reserva.id)"
+                            >
+                              Unirse a videollamada
+                            </v-btn>
                           </div>
                         </v-card-text>
-<v-btn v-if="(reserva.servicio?.modalidad === 'remota' || reserva.servicio?.modalidad === 'hibrida') && reserva.estado === 'confirmada'" color="primary" @click="joinCall(reserva.id)" class="mt-2">Unirse a videollamada</v-btn>
                       </v-card>
                     </div>
                   </div>

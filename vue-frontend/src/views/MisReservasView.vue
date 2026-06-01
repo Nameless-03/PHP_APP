@@ -409,38 +409,94 @@
         <v-col cols="12" md="10" lg="8">
           <v-btn variant="text" prepend-icon="mdi-arrow-left" class="mb-4 text-none font-weight-bold" @click="currentView = 'menu'">Volver</v-btn>
           <v-card class="elevation-4 rounded-xl border-card">
-            <v-card-text class="pa-6 bg-grey-lighten-4">
-              <h2 class="text-h5 font-weight-bold mb-4 text-primary">Solicitudes Pendientes</h2>
+            <v-card-text class="pa-6">
+              <h2 class="text-h5 font-weight-bold mb-2 text-primary">Solicitudes de Servicio</h2>
+              <p class="text-caption text-medium-emphasis mb-6">Gestiona las reservas de tus clientes. Solo puedes confirmar las que ya tienen pago aprobado.</p>
               <div v-if="cargandoRegistros" class="text-center py-8"><v-progress-circular indeterminate color="primary"></v-progress-circular></div>
-              <v-row v-else-if="reservasPendientes.length > 0">
-                <v-col cols="12" v-for="reserva in reservasPendientes" :key="reserva.id">
-                  <v-card class="rounded-lg border-panel" elevation="0">
-                    <v-card-text class="d-flex align-center flex-wrap">
-                      <v-avatar color="warning" variant="tonal" size="48" class="mr-4"><v-icon>mdi-clock-alert</v-icon></v-avatar>
-                      <div class="flex-grow-1 mr-4">
-                        <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
-                        <p class="text-body-2 mb-0 d-flex align-center flex-wrap gap-2">
-                          {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} - {{ reserva.servicio?.nombre }}
-                          <v-chip
-                            v-if="reserva.compra_paquete"
-                            size="x-small"
-                            color="purple"
-                            variant="flat"
-                            class="text-white font-weight-bold"
-                            prepend-icon="mdi-package-variant"
-                          >
-                            Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
-                          </v-chip>
-                        </p>
-                      </div>
-                      <div class="d-flex gap-2 mt-2 mt-sm-0">
-                        <v-btn color="success" size="small" @click="cambiarEstadoReserva(reserva.id, 'confirmada')" :loading="isLoading">Confirmar</v-btn>
-                      </div>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
-              <div v-else class="text-center py-12 opacity-60">¡Estás al día! No hay pendientes.</div>
+
+              <template v-else>
+                <!-- SECCIÓN 1: Listas para confirmar (pagadas) -->
+                <div class="mb-6">
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="success" size="20" class="mr-2">mdi-check-circle</v-icon>
+                    <h3 class="text-subtitle-1 font-weight-bold text-grey-darken-3">Listas para confirmar</h3>
+                    <v-chip size="x-small" color="success" variant="flat" class="ml-2 font-weight-bold">{{ reservasParaConfirmar.length }}</v-chip>
+                  </div>
+                  <v-row v-if="reservasParaConfirmar.length > 0">
+                    <v-col cols="12" v-for="reserva in reservasParaConfirmar" :key="reserva.id">
+                      <v-card class="rounded-lg" elevation="1" style="border: 1px solid rgba(76,175,80,0.3); background: rgba(76,175,80,0.04);">
+                        <v-card-text class="d-flex align-center flex-wrap">
+                          <v-avatar color="success" variant="tonal" size="48" class="mr-4"><v-icon>mdi-currency-usd</v-icon></v-avatar>
+                          <div class="flex-grow-1 mr-4">
+                            <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
+                            <p class="text-body-2 mb-0 d-flex align-center flex-wrap gap-2">
+                              {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} — {{ reserva.servicio?.nombre }}
+                              <v-chip
+                                v-if="reserva.compra_paquete"
+                                size="x-small"
+                                color="purple"
+                                variant="flat"
+                                class="text-white font-weight-bold"
+                                prepend-icon="mdi-package-variant"
+                              >
+                                Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                              </v-chip>
+                            </p>
+                            <v-chip size="x-small" color="success" variant="tonal" class="mt-1 font-weight-bold">Pago aprobado</v-chip>
+                          </div>
+                          <div class="d-flex gap-2 mt-2 mt-sm-0">
+                            <v-btn
+                              color="success"
+                              size="small"
+                              variant="elevated"
+                              class="text-none font-weight-bold rounded-pill px-4"
+                              prepend-icon="mdi-check"
+                              @click="cambiarEstadoReserva(reserva.id, 'confirmada')"
+                              :loading="isLoading"
+                            >
+                              Confirmar turno
+                            </v-btn>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                  <div v-else class="text-center py-4 text-medium-emphasis text-caption bg-grey-lighten-4 rounded-lg">
+                    No hay reservas pagadas pendientes de confirmación.
+                  </div>
+                </div>
+
+                <v-divider class="mb-6"></v-divider>
+
+                <!-- SECCIÓN 2: Esperando pago del cliente -->
+                <div>
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="warning" size="20" class="mr-2">mdi-clock-outline</v-icon>
+                    <h3 class="text-subtitle-1 font-weight-bold text-grey-darken-3">Esperando pago del cliente</h3>
+                    <v-chip size="x-small" color="warning" variant="flat" class="ml-2 font-weight-bold">{{ reservasSinPago.length }}</v-chip>
+                  </div>
+                  <v-row v-if="reservasSinPago.length > 0">
+                    <v-col cols="12" v-for="reserva in reservasSinPago" :key="reserva.id">
+                      <v-card class="rounded-lg" elevation="0" style="border: 1px solid rgba(255,152,0,0.25); background: rgba(255,152,0,0.04);">
+                        <v-card-text class="d-flex align-center flex-wrap">
+                          <v-avatar color="warning" variant="tonal" size="48" class="mr-4"><v-icon>mdi-clock-alert-outline</v-icon></v-avatar>
+                          <div class="flex-grow-1 mr-4">
+                            <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
+                            <p class="text-body-2 mb-0">
+                              {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} — {{ reserva.servicio?.nombre }}
+                            </p>
+                            <v-chip size="x-small" color="warning" variant="tonal" class="mt-1 font-weight-bold">Pago pendiente del cliente</v-chip>
+                          </div>
+                          <v-icon color="warning" size="28" class="opacity-60">mdi-lock-outline</v-icon>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                  <div v-else class="text-center py-4 text-medium-emphasis text-caption bg-grey-lighten-4 rounded-lg">
+                    No hay reservas esperando pago.
+                  </div>
+                </div>
+              </template>
             </v-card-text>
           </v-card>
         </v-col>
@@ -572,7 +628,7 @@
     <v-dialog v-model="dialogPagarReserva" max-width="500" persistent>
       <v-card class="rounded-xl border-card overflow-hidden">
         <v-card-text class="pa-0">
-          <div class="brand-header pa-6 text-white text-center" style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);">
+          <div class="brand-header pa-6 text-white text-center">
             <v-icon size="48" class="mb-2">mdi-shield-check-outline</v-icon>
             <h2 class="text-h5 font-weight-bold mb-0">Pagar Reserva</h2>
             <p class="text-subtitle-2 opacity-90 mb-0">Completa tu pago de forma segura</p>
@@ -624,16 +680,16 @@
               <v-radio-group v-model="metodoPago" inline class="mb-4">
                 <v-row>
                   <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="PayPal" value="paypal" color="success" class="font-weight-medium"></v-radio>
+                    <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
                   <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="Transferencia" value="transferencia" color="success" class="font-weight-medium"></v-radio>
+                    <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
                   <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="Efectivo" value="efectivo" color="success" class="font-weight-medium"></v-radio>
+                    <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
                   <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="Otro" value="otro" color="success" class="font-weight-medium"></v-radio>
+                    <v-radio label="Otro" value="otro" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
                 </v-row>
               </v-radio-group>
@@ -641,7 +697,7 @@
               <!-- DETALLES DE PAGO SEGÚN MÉTODO SELECCIONADO -->
               <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2">2. Completa los Datos de Pago</h4>
               <v-expand-transition>
-                <div v-if="metodoPago === 'paypal'" class="pa-4 mb-4 rounded-xl border bg-blue-lighten-5">
+                <div v-if="metodoPago === 'paypal'" class="pa-4 mb-4 rounded-xl border payment-box-paypal">
                   <div class="d-flex align-center mb-3">
                     <v-icon color="blue-darken-3" class="mr-2">mdi-paypal</v-icon>
                     <span class="text-subtitle-2 font-weight-bold text-blue-darken-3">Pasarela de Pago PayPal</span>
@@ -664,7 +720,7 @@
                       type="email"
                       variant="outlined"
                       density="comfortable"
-                      color="blue"
+                      color="secondary"
                       class="mb-2"
                       :rules="[v => !!v || 'El correo es obligatorio', v => /.+@.+\..+/.test(v) || 'Correo no válido']"
                       required
@@ -675,7 +731,7 @@
                       type="password"
                       variant="outlined"
                       density="comfortable"
-                      color="blue"
+                      color="secondary"
                       hide-details
                       :rules="[v => !!v || 'La contraseña es obligatoria']"
                       required
@@ -683,10 +739,10 @@
                   </div>
                 </div>
 
-                <div v-if="metodoPago === 'transferencia'" class="pa-4 mb-4 rounded-xl border bg-orange-lighten-5">
+                <div v-if="metodoPago === 'transferencia'" class="pa-4 mb-4 rounded-xl border payment-box-transferencia">
                   <div class="d-flex align-center mb-3">
-                    <v-icon color="orange-darken-3" class="mr-2">mdi-bank</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-orange-darken-3">Datos de Transferencia</span>
+                    <v-icon color="secondary" class="mr-2">mdi-bank</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-secondary">Datos de Transferencia</span>
                   </div>
                   <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
                     <strong>CBU de Destino:</strong> 0000003100012345678901<br>
@@ -698,7 +754,7 @@
                     label="Nombre del Titular de la cuenta"
                     variant="outlined"
                     density="comfortable"
-                    color="orange"
+                    color="secondary"
                     class="mb-2"
                     :rules="[v => !!v || 'El nombre es obligatorio']"
                     required
@@ -708,24 +764,24 @@
                     label="CBU o CVU de Origen"
                     variant="outlined"
                     density="comfortable"
-                    color="orange"
+                    color="secondary"
                     hide-details
                     :rules="[v => !!v || 'El CBU/CVU es obligatorio', v => /^\d{22}$/.test(v) || 'Debe tener exactamente 22 números']"
                     required
                   ></v-text-field>
                 </div>
 
-                <div v-if="metodoPago === 'otro'" class="pa-4 mb-4 rounded-xl border bg-purple-lighten-5">
+                <div v-if="metodoPago === 'otro'" class="pa-4 mb-4 rounded-xl border payment-box-tarjeta">
                   <div class="d-flex align-center mb-3">
-                    <v-icon color="purple-darken-3" class="mr-2">mdi-credit-card</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-purple-darken-3">Datos de tu Tarjeta</span>
+                    <v-icon color="secondary" class="mr-2">mdi-credit-card</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-secondary">Datos de tu Tarjeta</span>
                   </div>
                   <v-text-field
                     v-model="datosPago.tarjeta_nombre"
                     label="Nombre en la Tarjeta"
                     variant="outlined"
                     density="comfortable"
-                    color="purple"
+                    color="secondary"
                     class="mb-2"
                     :rules="[v => !!v || 'El nombre es obligatorio']"
                     required
@@ -735,7 +791,7 @@
                     label="Número de Tarjeta"
                     variant="outlined"
                     density="comfortable"
-                    color="purple"
+                    color="secondary"
                     class="mb-2"
                     :rules="[v => !!v || 'El número de tarjeta es obligatorio', v => /^\d{16}$/.test(v) || 'Deben ser 16 dígitos']"
                     required
@@ -747,7 +803,7 @@
                         label="Vence (MM/AA)"
                         variant="outlined"
                         density="comfortable"
-                        color="purple"
+                        color="secondary"
                         :rules="[v => !!v || 'Obligatorio', v => /^(0[1-9]|1[0-2])\/\d{2}$/.test(v) || 'MM/AA']"
                         required
                       ></v-text-field>
@@ -759,7 +815,7 @@
                         type="password"
                         variant="outlined"
                         density="comfortable"
-                        color="purple"
+                        color="secondary"
                         :rules="[v => !!v || 'Obligatorio', v => /^\d{3,4}$/.test(v) || '3-4 dígitos']"
                         required
                       ></v-text-field>
@@ -767,10 +823,10 @@
                   </v-row>
                 </div>
 
-                <div v-if="metodoPago === 'efectivo'" class="pa-4 mb-4 rounded-xl border bg-green-lighten-5">
+                <div v-if="metodoPago === 'efectivo'" class="pa-4 mb-4 rounded-xl border payment-box-efectivo">
                   <div class="d-flex align-center">
-                    <v-icon color="green-darken-3" class="mr-2">mdi-cash-multiple</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-green-darken-3">Pago en Efectivo</span>
+                    <v-icon color="success" class="mr-2">mdi-cash-multiple</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold text-success">Pago en Efectivo</span>
                   </div>
                   <div class="text-caption text-grey-darken-3 mt-2">
                     No se requiere ingresar datos bancarios o virtuales. Realizarás el pago en persona directamente al profesional al momento de tu sesión.
@@ -799,7 +855,7 @@
             <v-btn variant="outlined" color="grey-darken-1" class="mr-3 px-6 text-none font-weight-bold" :disabled="cargandoPago" @click="dialogPagarReserva = false">
               Cerrar
             </v-btn>
-            <v-btn v-if="!pagoError && (metodoPago !== 'paypal' || !paypalClientId)" type="submit" color="success" class="px-8 text-none font-weight-bold elevation-2 text-white" :loading="cargandoPago">
+            <v-btn v-if="!pagoError && (metodoPago !== 'paypal' || !paypalClientId)" type="submit" color="secondary" class="px-8 text-none font-weight-bold elevation-2 text-white" :loading="cargandoPago">
               Confirmar Pago
               <v-icon end>mdi-check-circle-outline</v-icon>
             </v-btn>
@@ -916,10 +972,19 @@ const abrirVista = (vista) => {
 
 // === COMPUTADAS DE RESERVAS ===
 const reservasActivas = computed(() => {
-  return reservasRegistros.value.filter(r => r.estado === 'pendiente' || r.estado === 'confirmada')
+  return reservasRegistros.value.filter(r => ['pendiente', 'pagada', 'confirmada'].includes(r.estado))
 })
-const reservasPendientes = computed(() => {
+// Reservas pagadas: el cliente ya pagó, el profesional puede confirmar
+const reservasParaConfirmar = computed(() => {
+  return reservasRegistros.value.filter(r => r.estado === 'pagada')
+})
+// Reservas pendientes de pago: aún no pagadas por el cliente (informativo para el profesional)
+const reservasSinPago = computed(() => {
   return reservasRegistros.value.filter(r => r.estado === 'pendiente')
+})
+// Alias para que la sección de pendientes muestre algo si hay cualquiera de los dos grupos
+const reservasPendientes = computed(() => {
+  return reservasRegistros.value.filter(r => r.estado === 'pendiente' || r.estado === 'pagada')
 })
 const reservasPendientesDePago = computed(() => {
   return reservasRegistros.value.filter(r => r.estado === 'pendiente' && !r.compra_paquete)
@@ -1363,4 +1428,20 @@ const getColorEstado = (estado) => ({ pendiente: 'warning', confirmada: 'success
 .border-panel { border: 1px solid rgba(140, 109, 70, 0.2); transition: all 0.3s ease; }
 .border-panel:hover { border-color: rgba(140, 109, 70, 0.5); box-shadow: 0 4px 12px rgba(140, 109, 70, 0.05); }
 .gap-2 { gap: 8px; }
+.payment-box-paypal {
+  background-color: rgba(0, 48, 135, 0.04) !important;
+  border: 1px solid rgba(0, 48, 135, 0.12) !important;
+}
+.payment-box-transferencia {
+  background-color: rgba(140, 109, 70, 0.04) !important;
+  border: 1px solid rgba(140, 109, 70, 0.15) !important;
+}
+.payment-box-tarjeta {
+  background-color: rgba(103, 58, 183, 0.04) !important;
+  border: 1px solid rgba(103, 58, 183, 0.15) !important;
+}
+.payment-box-efectivo {
+  background-color: rgba(76, 175, 80, 0.04) !important;
+  border: 1px solid rgba(76, 175, 80, 0.15) !important;
+}
 </style>

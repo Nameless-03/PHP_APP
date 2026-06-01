@@ -51,10 +51,10 @@
 
       <template v-slot:append>
         <div class="pa-2">
-          <v-btn v-if="!rail || !$vuetify.display.mdAndUp" block color="error" variant="tonal" prepend-icon="mdi-logout" @click="logout">
+          <v-btn v-if="!rail || !$vuetify.display.mdAndUp" block color="white" variant="outlined" prepend-icon="mdi-logout" @click="confirmarLogout" class="logout-btn font-weight-bold">
             Cerrar Sesión
           </v-btn>
-          <v-btn v-else icon color="error" variant="tonal" @click="logout" class="mx-auto d-flex">
+          <v-btn v-else icon color="white" variant="outlined" @click="confirmarLogout" class="mx-auto d-flex logout-btn">
             <v-icon>mdi-logout</v-icon>
           </v-btn>
         </div>
@@ -74,7 +74,7 @@
         >
           <template v-slot:activator="{ props }">
             <v-btn icon v-bind="props" class="mr-2">
-              <v-badge :content="notificaciones.length" :color="notificaciones.length > 0 ? 'error' : 'transparent'" :model-value="notificaciones.length > 0">
+              <v-badge :content="notificaciones.length" :color="notificaciones.length > 0 ? 'error' : 'transparent'" :model-value="notificaciones.length > 0 && !bubbleHidden">
                 <v-icon color="grey-darken-2">mdi-bell-outline</v-icon>
               </v-badge>
             </v-btn>
@@ -87,36 +87,58 @@
             </v-card-title>
             <v-divider></v-divider>
             
-            <v-list lines="three" class="pa-0" v-if="notificaciones.length > 0" max-height="400" style="overflow-y: auto;">
-              <template v-for="(notif, index) in notificaciones" :key="notif.id">
-                <v-list-item
-                  class="cursor-pointer notification-item"
-                  @click="marcarComoLeida(notif.id)"
-                  hover
-                >
-                  <template v-slot:prepend>
-                    <v-avatar :color="notif.data?.color || 'primary'" variant="tonal" size="40" class="mr-3">
-                      <v-icon size="20">{{ getIconoNotificacion(notif.data?.tipo) }}</v-icon>
-                    </v-avatar>
-                  </template>
-                  
-                  <v-list-item-title class="font-weight-bold text-body-2 mb-1">
-                    {{ notif.data?.titulo }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle class="text-caption text-wrap opacity-80" style="line-height: 1.2;">
-                    {{ notif.data?.mensaje }}
-                  </v-list-item-subtitle>
-                  
-                  <template v-slot:append>
-                    <div class="d-flex flex-column align-end justify-center h-100 ml-2">
-                      <span class="text-caption text-grey opacity-60">{{ formatTimeAgo(notif.created_at) }}</span>
-                      <v-btn icon="mdi-circle-small" size="x-small" color="primary" variant="text" class="mt-1" @click.stop="marcarComoLeida(notif.id)"></v-btn>
+            <v-expansion-panels
+              variant="accordion"
+              class="pa-0 elevation-0"
+              v-if="notificaciones.length > 0"
+              max-height="400"
+              style="overflow-y: auto;"
+            >
+              <v-expansion-panel
+                v-for="notif in notificaciones"
+                :key="notif.id"
+                class="border-b border-card elevation-0 bg-transparent rounded-0"
+                :value="notif.id"
+              >
+                <v-expansion-panel-title class="py-3 px-4">
+                  <template v-slot:default="{ expanded }">
+                    <div class="d-flex align-center w-100 pr-2 min-width-0">
+                      <v-avatar :color="notif.data?.color || 'primary'" variant="tonal" size="36" class="mr-3 flex-shrink-0">
+                        <v-icon size="18">{{ getIconoNotificacion(notif.data?.tipo) }}</v-icon>
+                      </v-avatar>
+                      <div class="text-left flex-grow-1 min-width-0">
+                        <div class="font-weight-bold text-body-2 mb-0 text-truncate text-grey-darken-3">
+                          {{ notif.data?.titulo }}
+                        </div>
+                        <div class="text-caption text-grey opacity-60">
+                          {{ formatTimeAgo(notif.created_at) }}
+                        </div>
+                      </div>
                     </div>
                   </template>
-                </v-list-item>
-                <v-divider v-if="index < notificaciones.length - 1"></v-divider>
-              </template>
-            </v-list>
+                </v-expansion-panel-title>
+                
+                <v-expansion-panel-text class="bg-grey-lighten-5 text-body-2 text-grey-darken-2 pa-0">
+                  <div class="pa-4">
+                    <div class="mb-3 text-wrap text-left text-body-2" style="line-height: 1.4; color: #555;">
+                      {{ notif.data?.mensaje }}
+                    </div>
+                    <div class="d-flex justify-end">
+                      <v-btn
+                        size="x-small"
+                        color="secondary"
+                        variant="flat"
+                        class="text-none font-weight-bold rounded-pill text-white px-3"
+                        prepend-icon="mdi-check"
+                        @click.stop="marcarComoLeida(notif.id)"
+                      >
+                        Entendido
+                      </v-btn>
+                    </div>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
             
             <div v-else class="text-center pa-8 opacity-60">
               <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-bell-sleep</v-icon>
@@ -140,11 +162,42 @@
         <slot></slot>
       </v-container>
     </v-main>
+
+    <!-- Diálogo de Confirmación de Cierre de Sesión -->
+    <v-dialog v-model="dialogLogout" max-width="400" persistent>
+      <v-card class="rounded-xl pa-4 bg-background">
+        <v-card-title class="text-h6 font-weight-bold text-center text-grey-darken-3 d-flex align-center justify-center">
+          <v-icon color="secondary" class="mr-2">mdi-alert-circle-outline</v-icon>
+          Cerrar Sesión
+        </v-card-title>
+        <v-card-text class="text-body-1 text-center py-4 text-grey-darken-2">
+          ¿Seguro que quieres cerrar sesión?
+        </v-card-text>
+        <v-card-actions class="justify-center gap-2 pb-2">
+          <v-btn 
+            variant="outlined" 
+            color="grey-darken-1" 
+            class="rounded-pill px-6 text-none font-weight-bold" 
+            @click="dialogLogout = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn 
+            variant="flat" 
+            color="secondary" 
+            class="rounded-pill px-6 text-none font-weight-bold text-white" 
+            @click="logout"
+          >
+            Cerrar Sesión
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-layout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
@@ -161,6 +214,13 @@ const isProfesional = ref(false)
 const isAdmin = ref(false)
 const userInitials = ref('US')
 const userAvatar = ref(null)
+
+const dialogLogout = ref(false)
+const confirmarLogout = () => {
+  dialogLogout.value = true
+}
+
+const bubbleHidden = ref(false)
 
 import { onMounted, onUnmounted } from 'vue'
 
@@ -183,12 +243,23 @@ const cargarNotificaciones = async () => {
     }
     if (res.ok) {
       const data = await res.json()
-      notificaciones.value = data.data || []
+      const nuevasNotif = data.data || []
+      // Si llegan notificaciones nuevas (mayor cantidad que antes), volvemos a mostrar la burbuja
+      if (nuevasNotif.length > notificaciones.value.length) {
+        bubbleHidden.value = false
+      }
+      notificaciones.value = nuevasNotif
     }
   } catch (err) {
     console.error('Error cargando notificaciones', err)
   }
 }
+
+watch(menuNotificaciones, (val) => {
+  if (val) {
+    bubbleHidden.value = true
+  }
+})
 
 const marcarComoLeida = async (id) => {
   try {
@@ -258,6 +329,9 @@ onUnmounted(() => {
 const logout = async () => {
   const token = localStorage.getItem('auth_token')
 
+  // Cerrar el diálogo primero si está abierto
+  dialogLogout.value = false
+
   // Limpiar el estado de autenticación en el cliente de inmediato
   localStorage.removeItem('auth_token')
   localStorage.removeItem('user')
@@ -294,5 +368,15 @@ const logout = async () => {
 }
 .notification-item:hover {
   background-color: rgba(140, 109, 70, 0.05);
+}
+.logout-btn {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+.logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  color: #ffffff !important;
 }
 </style>
