@@ -1,5 +1,23 @@
 <template>
   <DashboardLayout title="Métricas y Monitoreo">
+    <!-- Header visual -->
+    <v-row class="mb-6">
+      <v-col cols="12">
+        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
+          <div class="d-flex align-center flex-wrap">
+            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
+              <v-icon size="36" color="primary">mdi-chart-timeline-variant</v-icon>
+            </v-avatar>
+            <div>
+              <h1 class="text-h4 font-weight-bold mb-2">Monitoreo del Sistema</h1>
+              <p class="text-body-1 opacity-80 mb-0">
+                Visualiza las métricas globales del sistema en tiempo real. Analiza la actividad de reservas, ingresos de cobros, reputación de profesionales y estadísticas demográficas.
+              </p>
+            </div>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <!-- ── Top Action Bar ──────────────────────────────────────────── -->
     <div class="d-flex align-center justify-space-between mb-6">
@@ -612,6 +630,9 @@ onMounted(() => fetchStats())
 </script>
 
 <style scoped>
+.bg-gradient {
+  background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
 .card-hover {
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: default;

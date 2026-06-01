@@ -1,9 +1,28 @@
 <template>
   <DashboardLayout title="Buscar Servicios">
+    <!-- Header visual -->
+    <v-row class="mb-6">
+      <v-col cols="12">
+        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
+          <div class="d-flex align-center flex-wrap">
+            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
+              <v-icon size="36" color="primary">mdi-magnify-expand</v-icon>
+            </v-avatar>
+            <div>
+              <h1 class="text-h4 font-weight-bold mb-2">Buscador de Servicios</h1>
+              <p class="text-body-1 opacity-80 mb-0">
+                Encuentra el servicio ideal filtrando por palabra clave, especialidad, modalidad y precio. Revisa las calificaciones y opiniones de otros clientes antes de agendar.
+              </p>
+            </div>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <v-row>
       <!-- Panel de Filtros -->
       <v-col cols="12" md="3">
-        <v-card class="rounded-xl elevation-2 pa-4 position-sticky" style="top: 20px;">
+        <v-card class="rounded-xl elevation-2 pa-4 sticky-filters">
           <h3 class="text-h6 font-weight-bold mb-4 d-flex align-center">
             <v-icon color="primary" class="mr-2">mdi-filter-variant</v-icon>
             Filtros
@@ -154,9 +173,13 @@
                     <div class="text-subtitle-2 font-weight-medium text-truncate" style="max-width: 140px;">
                       {{ service.profesional?.nombre || 'Profesional Anónimo' }}
                     </div>
-                    <div class="d-flex align-center text-caption text-warning font-weight-bold">
+                    <div 
+                      class="d-flex align-center text-caption text-warning font-weight-bold rating-clickable"
+                      @click.stop="verOpiniones(service.profesional)"
+                      title="Haga clic para ver opiniones escritas de este profesional"
+                    >
                       <v-icon size="small" class="mr-1">mdi-star</v-icon>
-                      {{ service.profesional?.reputacion?.toFixed(1) || '0.0' }}
+                      {{ service.profesional?.reputacion?.toFixed(1) || '0.0' }} (Ver opiniones)
                     </div>
                   </div>
                 </div>
@@ -251,6 +274,65 @@
       </v-card>
     </v-dialog>
 
+    <!-- DIALOG OPINIONES DEL PROFESIONAL -->
+    <v-dialog v-model="dialogOpiniones" max-width="600">
+      <v-card class="rounded-xl border-card overflow-hidden">
+        <v-card-text class="pa-0">
+          <div class="brand-header pa-6 text-white d-flex align-center" style="background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);">
+            <v-avatar color="white" size="48" class="mr-4 text-primary font-weight-black">
+              <v-icon size="28" color="primary">mdi-star-circle</v-icon>
+            </v-avatar>
+            <div>
+              <h2 class="text-h5 font-weight-bold mb-0">Calificaciones y Opiniones</h2>
+              <p class="text-subtitle-2 opacity-90 mb-0">Opiniones sobre {{ profesionalSeleccionado?.nombre || 'el profesional' }}</p>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-card-text class="pa-6" style="max-height: 60vh; overflow-y: auto;">
+          <div v-if="cargandoOpiniones" class="text-center py-8">
+            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+            <div class="text-caption text-medium-emphasis mt-2">Cargando comentarios...</div>
+          </div>
+
+          <div v-else-if="opinionesList.length > 0">
+            <v-card v-for="op in opinionesList" :key="op.id" class="mb-4 rounded-xl border pa-4" elevation="1">
+              <div class="d-flex justify-space-between align-center mb-2">
+                <div>
+                  <strong class="text-subtitle-2 text-grey-darken-4">{{ op.cliente_nombre }}</strong>
+                  <span class="text-caption text-medium-emphasis d-block">
+                    {{ new Date(op.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) }}
+                  </span>
+                </div>
+                <v-rating
+                  :model-value="op.puntuacion"
+                  color="warning"
+                  active-color="warning"
+                  density="compact"
+                  readonly
+                ></v-rating>
+              </div>
+              <p class="text-body-2 text-medium-emphasis italic font-weight-medium mb-0">
+                "{{ op.comentario }}"
+              </p>
+            </v-card>
+          </div>
+
+          <div v-else class="text-center py-12 opacity-60">
+            <v-icon size="64" color="grey-lighten-1" class="mb-2">mdi-comment-text-multiple-outline</v-icon>
+            <p class="text-body-1 font-weight-bold mb-1">Sin opiniones escritas</p>
+            <p class="text-body-2 text-medium-emphasis">Este profesional aún no cuenta con comentarios de sus clientes.</p>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-grey-lighten-4 justify-end">
+          <v-btn color="primary" variant="elevated" @click="dialogOpiniones = false" class="text-none font-weight-bold px-6 rounded-lg">
+            Entendido
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </DashboardLayout>
 </template>
 
@@ -266,6 +348,37 @@ const router = useRouter()
 const isLoading = ref(true)
 const services = ref([])
 let searchTimeout = null
+
+const dialogOpiniones = ref(false)
+const cargandoOpiniones = ref(false)
+const opinionesList = ref([])
+const profesionalSeleccionado = ref(null)
+
+const verOpiniones = async (profesional) => {
+  if (!profesional || !profesional.id_usuario) return
+  profesionalSeleccionado.value = profesional
+  dialogOpiniones.value = true
+  cargandoOpiniones.value = true
+  opinionesList.value = []
+  
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`http://localhost:8000/api/profesionales/${profesional.id_usuario}/calificaciones`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    if (response.ok) {
+      const data = await response.json()
+      opinionesList.value = data.data || []
+    }
+  } catch (error) {
+    console.error('Error fetching opinions:', error)
+  } finally {
+    cargandoOpiniones.value = false
+  }
+}
 
 const modalidades = [
   { title: 'Cualquiera', value: null },
@@ -458,6 +571,20 @@ const reservarServicio = (id_servicio) => {
 </script>
 
 <style scoped>
+.bg-gradient {
+  background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
+.rating-clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+  text-decoration: underline dotted;
+}
+.rating-clickable:hover {
+  color: #d48c00 !important;
+}
+.italic {
+  font-style: italic;
+}
 .card-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
@@ -479,9 +606,12 @@ const reservarServicio = (id_servicio) => {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.position-sticky {
-  position: sticky;
-  z-index: 10;
+@media (min-width: 960px) {
+  .sticky-filters {
+    position: sticky;
+    top: 20px;
+    z-index: 10;
+  }
 }
 .location-link {
   cursor: pointer;

@@ -455,63 +455,67 @@
           <v-card class="elevation-4 rounded-xl border-card">
             <v-card-text class="pa-6">
               <h2 class="text-h5 font-weight-bold mb-4 text-primary">Historial de Reservas</h2>
-              <div v-if="cargandoRegistros" class="text-center py-8"><v-progress-circular indeterminate color="primary"></v-progress-circular></div>
-              <v-table v-else-if="reservasRegistros.length > 0" class="border-panel rounded-lg">
-                <thead>
-                  <tr>
-                    <th class="text-left font-weight-bold">Fecha/Hora</th>
-                    <th class="text-left font-weight-bold">Servicio</th>
-                    <th class="text-left font-weight-bold">Estado</th>
-                    <th class="text-left font-weight-bold">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="reserva in reservasRegistros" :key="reserva.id">
-                    <td class="font-weight-medium">{{ formatDateShort(reserva.fecha_hora_inicio) }}</td>
-                    <td>
-                      <div class="d-flex flex-column">
-                        <span>{{ reserva.servicio?.nombre }}</span>
-                        <v-chip
-                          v-if="reserva.compra_paquete"
-                          size="x-small"
-                          color="purple"
-                          variant="flat"
-                          class="mt-1 align-self-start text-white font-weight-bold"
-                          prepend-icon="mdi-package-variant"
-                        >
-                          Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
-                        </v-chip>
-                      </div>
-                    </td>
-                    <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ reserva.estado }}</v-chip></td>
-                    <td>
-                      <div class="d-flex gap-2 flex-wrap">
-                        <v-btn 
-                          v-if="isCliente && puedeCalificar(reserva)" 
-                          color="warning" 
-                          size="small" 
-                          variant="tonal"
-                          @click="abrirCalificar(reserva)"
-                        >
-                          <v-icon left size="16" class="mr-1">mdi-star</v-icon> Calificar
-                        </v-btn>
-                        <v-btn 
-                          v-if="isCliente && reserva.estado === 'pendiente' && !reserva.compra_paquete" 
-                          color="success" 
-                          size="small" 
-                          variant="elevated"
-                          class="text-white font-weight-bold text-none"
-                          prepend-icon="mdi-credit-card"
-                          @click="abrirPagarReserva(reserva)"
-                        >
-                          Pagar
-                        </v-btn>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </v-table>
-              <div v-else class="text-center py-12 opacity-60">Historial vacío.</div>
+              <div v-if="cargandoRegistros" class="text-center py-8">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              </div>
+              <div v-else style="overflow-x: auto; width: 100%;">
+                <v-table v-if="reservasRegistros.length > 0" class="border-panel rounded-lg" style="min-width: 600px;">
+                  <thead>
+                    <tr>
+                      <th class="text-left font-weight-bold">Fecha/Hora</th>
+                      <th class="text-left font-weight-bold">Servicio</th>
+                      <th class="text-left font-weight-bold">Estado</th>
+                      <th class="text-left font-weight-bold">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="reserva in reservasRegistros" :key="reserva.id">
+                      <td class="font-weight-medium">{{ formatDateShort(reserva.fecha_hora_inicio) }}</td>
+                      <td>
+                        <div class="d-flex flex-column">
+                          <span>{{ reserva.servicio?.nombre }}</span>
+                          <v-chip
+                            v-if="reserva.compra_paquete"
+                            size="x-small"
+                            color="purple"
+                            variant="flat"
+                            class="mt-1 align-self-start text-white font-weight-bold"
+                            prepend-icon="mdi-package-variant"
+                          >
+                            Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                          </v-chip>
+                        </div>
+                      </td>
+                      <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ reserva.estado }}</v-chip></td>
+                      <td>
+                        <div class="d-flex gap-2 flex-wrap">
+                          <v-btn 
+                            v-if="isCliente && puedeCalificar(reserva)" 
+                            color="warning" 
+                            size="small" 
+                            variant="tonal"
+                            @click="abrirCalificar(reserva)"
+                          >
+                            <v-icon left size="16" class="mr-1">mdi-star</v-icon> Calificar
+                          </v-btn>
+                          <v-btn 
+                            v-if="isCliente && reserva.estado === 'pendiente' && !reserva.compra_paquete" 
+                            color="success" 
+                            size="small" 
+                            variant="elevated"
+                            class="text-white font-weight-bold text-none"
+                            prepend-icon="mdi-credit-card"
+                            @click="abrirPagarReserva(reserva)"
+                          >
+                            Pagar
+                          </v-btn>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+                <div v-else class="text-center py-12 opacity-60">Historial vacío.</div>
+              </div>
             </v-card-text>
           </v-card>
         </v-col>
@@ -528,6 +532,10 @@
           </div>
         </v-card-text>
         <v-card-text class="pa-6 text-center">
+          <v-alert v-if="calificarError" type="error" variant="tonal" class="mb-4 rounded-lg text-left" closable @click:close="calificarError = ''">
+            {{ calificarError }}
+          </v-alert>
+
           <p class="text-body-1 mb-4">¿Qué te pareció el servicio <strong>{{ reservaACalificar?.servicio?.nombre }}</strong>?</p>
           
           <v-rating
@@ -542,16 +550,18 @@
           
           <v-textarea
             v-model="formCalificacion.comentario"
-            label="Déjale un comentario al profesional (opcional)"
+            label="Déjale una opinión escrita al profesional (obligatorio)"
             variant="outlined"
             rows="3"
             color="warning"
             counter="500"
+            :rules="[v => !!v || 'El comentario es obligatorio', v => (v && v.length >= 3) || 'Mínimo 3 caracteres']"
+            required
           ></v-textarea>
         </v-card-text>
         <v-card-actions class="pa-4 bg-grey-lighten-4 justify-end">
           <v-btn variant="text" color="grey" @click="dialogCalificar = false" class="text-none">Cancelar</v-btn>
-          <v-btn color="warning" variant="elevated" @click="enviarCalificacion" :loading="isLoading" class="text-none font-weight-bold px-4" :disabled="!formCalificacion.puntuacion">
+          <v-btn color="warning" variant="elevated" @click="enviarCalificacion" :loading="isLoading" class="text-none font-weight-bold px-4" :disabled="!formCalificacion.puntuacion || !formCalificacion.comentario">
             Enviar Calificación
           </v-btn>
         </v-card-actions>
@@ -849,6 +859,7 @@ const paypalClientId = ref('')
 
 // Modal Calificar
 const dialogCalificar = ref(false)
+const calificarError = ref('')
 const reservaACalificar = ref(null)
 const formCalificacion = ref({ puntuacion: 0, comentario: '' })
 const calificacionesEnviadas = ref(new Set())
@@ -1200,12 +1211,20 @@ const puedeCalificar = (reserva) => {
 const abrirCalificar = (reserva) => {
   reservaACalificar.value = reserva
   formCalificacion.value = { puntuacion: 0, comentario: '' }
+  calificarError.value = ''
   dialogCalificar.value = true
 }
 
 const enviarCalificacion = async () => {
   if (!formCalificacion.value.puntuacion || !reservaACalificar.value) return
+  
+  if (!formCalificacion.value.comentario || formCalificacion.value.comentario.trim().length < 3) {
+    calificarError.value = 'El comentario es obligatorio y debe tener al menos 3 caracteres.'
+    return
+  }
+  
   isLoading.value = true
+  calificarError.value = ''
   
   try {
     const res = await fetch(`http://localhost:8000/api/reservas/${reservaACalificar.value.id}/calificar`, {
@@ -1214,7 +1233,10 @@ const enviarCalificacion = async () => {
       body: JSON.stringify(formCalificacion.value)
     })
 
-    if (!res.ok) throw new Error((await res.json()).message || 'Error al calificar')
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error(data.message || 'Error al calificar')
+    }
 
     snackbar.value = { show: true, text: '¡Gracias por calificar el servicio!', color: 'success' }
     calificacionesEnviadas.value.add(reservaACalificar.value.id)
@@ -1224,8 +1246,10 @@ const enviarCalificacion = async () => {
     if (err.message === 'Esta reserva ya fue calificada.') {
       calificacionesEnviadas.value.add(reservaACalificar.value.id)
       dialogCalificar.value = false
+      snackbar.value = { show: true, text: err.message, color: 'error' }
+    } else {
+      calificarError.value = err.message
     }
-    snackbar.value = { show: true, text: err.message, color: 'error' }
   } finally {
     isLoading.value = false
   }

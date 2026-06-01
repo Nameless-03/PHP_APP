@@ -57,6 +57,9 @@ Route::prefix('usuarios')->middleware('auth:sanctum')->group(function () {
 // Categorías
 Route::get('/categorias', [CategoriaController::class, 'index']);
 
+// Calificaciones públicas por profesional
+Route::get('/profesionales/{idProfesional}/calificaciones', [CalificacionController::class, 'listarPorProfesional']);
+
 // Catálogo de Servicios (Público para ver, protegido para crear/editar)
 Route::prefix('servicios')->group(function () {
     Route::get('/', [ServicioController::class, 'index']);

@@ -1,5 +1,24 @@
 <template>
   <DashboardLayout title="Gestionar Usuarios">
+    <!-- Header visual -->
+    <v-row class="mb-6">
+      <v-col cols="12">
+        <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
+          <div class="d-flex align-center flex-wrap">
+            <v-avatar color="white" size="64" class="mr-6 elevation-2 text-primary font-weight-black">
+              <v-icon size="36" color="primary">mdi-shield-account</v-icon>
+            </v-avatar>
+            <div>
+              <h1 class="text-h4 font-weight-bold mb-2">Administración de Usuarios</h1>
+              <p class="text-body-1 opacity-80 mb-0">
+                Supervisa y gestiona las cuentas de todos los clientes, profesionales y administradores del sistema. Activa, desactiva o elimina perfiles de forma centralizada.
+              </p>
+            </div>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <!-- Search & Filters -->
     <v-row class="mb-4">
       <v-col cols="12" md="6">
@@ -310,3 +329,9 @@ onMounted(() => {
   fetchUsers()
 })
 </script>
+
+<style scoped>
+.bg-gradient {
+  background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
+</style>

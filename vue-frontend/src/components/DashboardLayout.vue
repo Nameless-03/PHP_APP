@@ -2,8 +2,8 @@
   <v-layout class="bg-grey-lighten-4">
     <v-navigation-drawer
       v-model="drawer"
-      :rail="rail"
-      permanent
+      :rail="rail && $vuetify.display.mdAndUp"
+      :permanent="$vuetify.display.mdAndUp"
       @click="rail = false"
       class="bg-primary-darken-1"
       theme="dark"
@@ -16,6 +16,7 @@
       >
         <template v-slot:append>
           <v-btn
+            v-if="$vuetify.display.mdAndUp"
             icon="mdi-chevron-left"
             variant="text"
             @click.stop="rail = !rail"
@@ -50,7 +51,7 @@
 
       <template v-slot:append>
         <div class="pa-2">
-          <v-btn v-if="!rail" block color="error" variant="tonal" prepend-icon="mdi-logout" @click="logout">
+          <v-btn v-if="!rail || !$vuetify.display.mdAndUp" block color="error" variant="tonal" prepend-icon="mdi-logout" @click="logout">
             Cerrar Sesión
           </v-btn>
           <v-btn v-else icon color="error" variant="tonal" @click="logout" class="mx-auto d-flex">
@@ -62,6 +63,7 @@
 
     <v-main>
       <v-app-bar elevation="0" class="bg-transparent px-4 mt-2">
+        <v-app-bar-nav-icon color="grey-darken-3" class="d-md-none mr-2" @click="drawer = !drawer"></v-app-bar-nav-icon>
         <v-app-bar-title class="text-h5 font-weight-bold text-grey-darken-3">{{ title }}</v-app-bar-title>
         <v-spacer></v-spacer>
         <v-menu
@@ -134,7 +136,7 @@
         </v-avatar>
       </v-app-bar>
 
-      <v-container fluid class="px-8 py-4">
+      <v-container fluid class="px-4 px-md-8 py-4">
         <slot></slot>
       </v-container>
     </v-main>
