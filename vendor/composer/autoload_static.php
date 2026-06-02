@@ -604,6 +604,7 @@ class ComposerStaticInit53b5d56b3b7e3cbac1713e68c8850f6c
         'App\\Models\\Servicio' => __DIR__ . '/../..' . '/app/Models/Servicio.php',
         'App\\Models\\Usuario' => __DIR__ . '/../..' . '/app/Models/Usuario.php',
         'App\\Models\\Videollamada' => __DIR__ . '/../..' . '/app/Models/Videollamada.php',
+        'App\\Notifications\\PagoNotificacion' => __DIR__ . '/../..' . '/app/Notifications/PagoNotificacion.php',
         'App\\Notifications\\RecordatorioTurnoNotification' => __DIR__ . '/../..' . '/app/Notifications/RecordatorioTurnoNotification.php',
         'App\\Notifications\\ReservaConfirmadaNotification' => __DIR__ . '/../..' . '/app/Notifications/ReservaConfirmadaNotification.php',
         'App\\Notifications\\ReservaEstadoNotificacion' => __DIR__ . '/../..' . '/app/Notifications/ReservaEstadoNotificacion.php',

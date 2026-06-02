@@ -9,6 +9,7 @@ import BusquedaServiciosView from '../views/BusquedaServiciosView.vue'
 import ComprarPaquetesView from '../views/ComprarPaquetesView.vue'
 import MisPaquetesView from '../views/MisPaquetesView.vue'
 import VideollamadaView from '../views/VideollamadaView.vue'
+import ListaVideollamadasView from '../views/ListaVideollamadasView.vue'
 
 import MisHorariosView from '../views/MisHorariosView.vue'
 import MisReservasView from '../views/MisReservasView.vue'
@@ -86,6 +87,12 @@ const router = createRouter({
       path: '/comprar-paquetes',
       name: 'comprar-paquetes',
       component: ComprarPaquetesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/videollamadas',
+      name: 'videollamadas',
+      component: ListaVideollamadasView,
       meta: { requiresAuth: true }
     },
     {

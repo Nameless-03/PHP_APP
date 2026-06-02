@@ -69,6 +69,7 @@ return array(
     'App\\Models\\Servicio' => $baseDir . '/app/Models/Servicio.php',
     'App\\Models\\Usuario' => $baseDir . '/app/Models/Usuario.php',
     'App\\Models\\Videollamada' => $baseDir . '/app/Models/Videollamada.php',
+    'App\\Notifications\\PagoNotificacion' => $baseDir . '/app/Notifications/PagoNotificacion.php',
     'App\\Notifications\\RecordatorioTurnoNotification' => $baseDir . '/app/Notifications/RecordatorioTurnoNotification.php',
     'App\\Notifications\\ReservaConfirmadaNotification' => $baseDir . '/app/Notifications/ReservaConfirmadaNotification.php',
     'App\\Notifications\\ReservaEstadoNotificacion' => $baseDir . '/app/Notifications/ReservaEstadoNotificacion.php',

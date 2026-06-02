@@ -29,12 +29,12 @@ class LiveKitService
         $payload = json_encode([
             'iss' => $this->apiKey,
             'sub' => $identity,
+            'name' => $name,
             'nbf' => $now - 60, // margen de deriva de reloj
             'exp' => $now + (2 * 3600), // expira en 2 horas
             'video' => [
                 'roomJoin' => true,
                 'room' => $room,
-                'name' => $name,
                 'canPublish' => true,
                 'canSubscribe' => true,
                 'canPublishData' => true

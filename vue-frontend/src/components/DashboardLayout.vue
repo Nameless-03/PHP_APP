@@ -45,6 +45,7 @@
           <v-list-item v-if="isProfesional" prepend-icon="mdi-calendar-clock" title="Mis Horarios" value="schedule" to="/mis-horarios"></v-list-item>
           <v-list-item prepend-icon="mdi-calendar-check" title="Mis Reservas" value="reservas" to="/mis-reservas"></v-list-item>
           <v-list-item prepend-icon="mdi-calendar-multiselect" title="Mi Agenda" value="agenda" to="/mi-agenda"></v-list-item>
+          <v-list-item prepend-icon="mdi-video" title="Videollamadas" value="videollamadas" to="/videollamadas"></v-list-item>
         </template>
 
       </v-list>
