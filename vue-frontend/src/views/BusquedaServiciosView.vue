@@ -364,7 +364,7 @@ const verOpiniones = async (profesional) => {
   opinionesList.value = []
   
   try {
-    const response = await fetch(`http://localhost:8000/api/profesionales/${profesional.id_usuario}/calificaciones`, {
+    const response = await fetch(`/api/profesionales/${profesional.id_usuario}/calificaciones`, {
       headers: getAuthHeaders()
     })
     if (response.ok) {
@@ -411,7 +411,7 @@ const fetchServices = async () => {
     if (filters.value.modalidad) queryParams.append('modalidad', filters.value.modalidad)
     if (filters.value.reputacion > 0) queryParams.append('reputacion', filters.value.reputacion)
 
-    const response = await fetch(`http://localhost:8000/api/servicios?${queryParams.toString()}`, {
+    const response = await fetch(`/api/servicios?${queryParams.toString()}`, {
       headers: getAuthHeaders()
     })
     

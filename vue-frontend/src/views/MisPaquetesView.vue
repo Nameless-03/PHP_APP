@@ -389,7 +389,7 @@ const loadPurchases = async () => {
   if (!token) return
 
   try {
-    const response = await fetch('http://localhost:8000/api/mis-paquetes', {
+    const response = await fetch('/api/mis-paquetes', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -449,7 +449,7 @@ const processPurchase = async () => {
   }
 
   try {
-    const response = await fetch('http://localhost:8000/api/pagos', {
+    const response = await fetch('/api/pagos', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -486,7 +486,7 @@ const cancelarCompra = async (id) => {
   isSubmitting.value = true
   const token = localStorage.getItem('auth_token')
   try {
-    const res = await fetch(`http://localhost:8000/api/mis-paquetes/${id}`, {
+    const res = await fetch(`/api/mis-paquetes/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -510,7 +510,7 @@ const cancelarCompraDesdePago = async () => {
   isSubmitting.value = true
   const token = localStorage.getItem('auth_token')
   try {
-    const res = await fetch(`http://localhost:8000/api/mis-paquetes/${selectedPurchase.value.id}`, {
+    const res = await fetch(`/api/mis-paquetes/${selectedPurchase.value.id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -538,7 +538,7 @@ const cargarPaypalSdk = async () => {
   cargandoPaypalSdk.value = true
   try {
     const token = localStorage.getItem('auth_token')
-    const res = await fetch('http://localhost:8000/api/config/paypal', {
+    const res = await fetch('/api/config/paypal', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {
@@ -613,7 +613,7 @@ const renderizarBotonesPaypal = () => {
             }
           }
 
-          const response = await fetch('http://localhost:8000/api/pagos', {
+          const response = await fetch('/api/pagos', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,

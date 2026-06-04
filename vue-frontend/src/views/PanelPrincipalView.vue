@@ -243,7 +243,7 @@ onMounted(async () => {
 
   try {
     // Fetch user info
-    const authResponse = await fetch('http://localhost:8000/api/auth/me', { headers })
+    const authResponse = await fetch('/api/auth/me', { headers })
 
     if (authResponse.ok) {
       const data = await authResponse.json()
@@ -261,7 +261,7 @@ onMounted(async () => {
     // Admin: fetch stats
     if (isAdmin.value) {
       try {
-        const statsRes = await fetch('http://localhost:8000/api/admin/stats', { headers })
+        const statsRes = await fetch('/api/admin/stats', { headers })
         if (statsRes.ok) {
           adminStats.value = await statsRes.json()
         }
@@ -277,7 +277,7 @@ onMounted(async () => {
         try {
           const user = JSON.parse(userStr)
           if (user.id) {
-            const servResponse = await fetch(`http://localhost:8000/api/servicios?id_profesional=${user.id}`, { headers })
+            const servResponse = await fetch(`/api/servicios?id_profesional=${user.id}`, { headers })
             if (servResponse.ok) {
               const servData = await servResponse.json()
               activeServicesCount.value = servData.data ? servData.data.length : 0

@@ -581,7 +581,7 @@ const renderDoughnutChart = () => {
 const fetchStats = async () => {
   loading.value = true
   try {
-    const res = await fetch('http://localhost:8000/api/admin/stats', { headers: getAuthHeaders() })
+    const res = await fetch('/api/admin/stats', { headers: getAuthHeaders() })
     if (res.ok) {
       stats.value = await res.json()
       lastUpdated.value = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })

@@ -236,7 +236,7 @@ const getRoleLabel = (role) => {
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const res = await fetch('http://localhost:8000/api/usuarios', { headers: getAuthHeaders() })
+    const res = await fetch('/api/usuarios', { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       allUsers.value = data.data || []
@@ -254,7 +254,7 @@ const fetchUsers = async () => {
 const toggleActivo = async (user) => {
   const newStatus = !user.activo
   try {
-    const res = await fetch(`http://localhost:8000/api/usuarios/${user.id}`, {
+    const res = await fetch(`/api/usuarios/${user.id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ activo: newStatus })
@@ -283,7 +283,7 @@ const deleteUser = async () => {
   if (!userToDelete.value) return
   deleting.value = true
   try {
-    const res = await fetch(`http://localhost:8000/api/usuarios/${userToDelete.value.id}`, {
+    const res = await fetch(`/api/usuarios/${userToDelete.value.id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })

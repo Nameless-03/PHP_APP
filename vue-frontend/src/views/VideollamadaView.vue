@@ -379,7 +379,7 @@ const decoder = new TextDecoder()
 async function initCall() {
   try {
     // 1. Obtener detalles de la reserva para el UI
-    const resReserva = await fetch(`http://localhost:8000/api/reservas`, {
+    const resReserva = await fetch(`/api/reservas`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
     })
     if (resReserva.ok) {
@@ -402,7 +402,7 @@ async function initCall() {
     }
 
     // 2. Obtener Token
-    const resp = await fetch(`http://localhost:8000/api/reservas/${reservationId}/videollamada/token`, {
+    const resp = await fetch(`/api/reservas/${reservationId}/videollamada/token`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
     })
     if (!resp.ok) throw new Error('No se pudo obtener el token de la videollamada')

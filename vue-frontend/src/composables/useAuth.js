@@ -57,7 +57,7 @@ export function useAuth() {
     }
     if (currentToken) {
       try {
-        await fetch('http://localhost:8000/api/auth/logout', {
+        await fetch('/api/auth/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${currentToken}`,

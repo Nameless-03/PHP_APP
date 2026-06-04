@@ -211,7 +211,7 @@ const { token, user: userState, getAuthHeaders } = useAuth()
 const cargarOpiniones = async (userId) => {
   cargandoOpiniones.value = true
   try {
-    const response = await fetch(`http://localhost:8000/api/profesionales/${userId}/calificaciones`, {
+    const response = await fetch(`/api/profesionales/${userId}/calificaciones`, {
       headers: getAuthHeaders()
     })
     if (response.ok) {
@@ -257,7 +257,7 @@ onMounted(async () => {
   }
 
   try {
-    const response = await fetch('http://localhost:8000/api/auth/me', {
+    const response = await fetch('/api/auth/me', {
       headers: getAuthHeaders()
     })
     
@@ -307,7 +307,7 @@ const saveProfile = async () => {
       formData.append('foto_perfil', selectedFile.value)
     }
 
-    const response = await fetch(`http://localhost:8000/api/usuarios/${userId}`, {
+    const response = await fetch(`/api/usuarios/${userId}`, {
       method: 'POST', // Use POST with _method=PUT to allow file uploads under standard PHP/Laravel configurations
       headers: {
         'Authorization': `Bearer ${token.value}`,

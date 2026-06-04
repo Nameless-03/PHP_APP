@@ -355,7 +355,7 @@ const getAuthHeaders = () => ({
 const cargarReservas = async () => {
   loading.value = true
   try {
-    const res = await fetch('http://localhost:8000/api/reservas', { headers: getAuthHeaders() })
+    const res = await fetch('/api/reservas', { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       reservas.value = data.data || []

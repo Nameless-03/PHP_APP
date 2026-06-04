@@ -294,7 +294,7 @@ const cargarHorarios = async () => {
   if (!userId) return
 
   try {
-    const response = await fetch(`http://localhost:8000/api/disponibilidad/${userId}`, { headers: getAuthHeaders() })
+    const response = await fetch(`/api/disponibilidad/${userId}`, { headers: getAuthHeaders() })
     if (response.ok) {
       const data = await response.json()
       const disponibilidades = data.data || []
@@ -340,7 +340,7 @@ const saveHorarios = async () => {
           buffer_minutos: parseInt(dia.buffer_minutos)
         }
 
-        const url = dia.id ? `http://localhost:8000/api/disponibilidad/${dia.id}` : `http://localhost:8000/api/disponibilidad`
+        const url = dia.id ? `/api/disponibilidad/${dia.id}` : `/api/disponibilidad`
         const method = dia.id ? 'PUT' : 'POST'
 
         promises.push(
@@ -349,7 +349,7 @@ const saveHorarios = async () => {
         )
       } else if (dia.id) {
         promises.push(
-          fetch(`http://localhost:8000/api/disponibilidad/${dia.id}`, { method: 'DELETE', headers: getAuthHeaders() })
+          fetch(`/api/disponibilidad/${dia.id}`, { method: 'DELETE', headers: getAuthHeaders() })
             .then(async res => { if (!res.ok) throw new Error(await res.text()) })
         )
       }
@@ -388,7 +388,7 @@ const cargarExcepciones = async () => {
 
   isLoading.value = true
   try {
-    const response = await fetch(`http://localhost:8000/api/excepciones-agenda/${userId}`, { headers: getAuthHeaders() })
+    const response = await fetch(`/api/excepciones-agenda/${userId}`, { headers: getAuthHeaders() })
     if (response.ok) {
       const data = await response.json()
       excepciones.value = data.data || []
@@ -408,7 +408,7 @@ const saveExcepcion = async () => {
   errorExcepciones.value = ''
 
   try {
-    const response = await fetch(`http://localhost:8000/api/excepciones-agenda`, {
+    const response = await fetch(`/api/excepciones-agenda`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -446,7 +446,7 @@ const runDeleteExcepcion = async () => {
 
   isLoading.value = true
   try {
-    const response = await fetch(`http://localhost:8000/api/excepciones-agenda/${idToDelete.value}`, {
+    const response = await fetch(`/api/excepciones-agenda/${idToDelete.value}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })

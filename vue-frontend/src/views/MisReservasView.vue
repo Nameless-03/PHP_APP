@@ -989,7 +989,7 @@ const reservasPendientesDePago = computed(() => {
 const cargarRegistros = async () => {
   cargandoRegistros.value = true
   try {
-    const res = await fetch('http://localhost:8000/api/reservas', { headers: getAuthHeaders() })
+    const res = await fetch('/api/reservas', { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       // Sort by date ascending for active/pendientes, descending for history
@@ -1002,7 +1002,7 @@ const cargarRegistros = async () => {
 
 const cargarServicios = async () => {
   try {
-    const res = await fetch('http://localhost:8000/api/servicios', { headers: getAuthHeaders() })
+    const res = await fetch('/api/servicios', { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       serviciosList.value = data.data || data
@@ -1012,7 +1012,7 @@ const cargarServicios = async () => {
 
 const cargarMisPaquetes = async () => {
   try {
-    const res = await fetch('http://localhost:8000/api/mis-paquetes', { headers: getAuthHeaders() })
+    const res = await fetch('/api/mis-paquetes', { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       misPaquetesList.value = data.data || []
@@ -1031,7 +1031,7 @@ const cargarPaypalSdk = async () => {
   if (paypalLoaded.value) return true
   cargandoPaypalSdk.value = true
   try {
-    const res = await fetch('http://localhost:8000/api/config/paypal', { headers: getAuthHeaders() })
+    const res = await fetch('/api/config/paypal', { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       const cid = data.client_id || ''
@@ -1103,7 +1103,7 @@ const renderizarBotonesPaypal = () => {
             }
           }
 
-          const res = await fetch('http://localhost:8000/api/pagos', {
+          const res = await fetch('/api/pagos', {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(payload)
@@ -1146,7 +1146,7 @@ const buscarTurnos = async (contexto) => {
   turnosDisponibles.value = []
   
   try {
-    const res = await fetch(`http://localhost:8000/api/servicios/${idServ}/turnos?fecha=${formData.value.fecha}`, {
+    const res = await fetch(`/api/servicios/${idServ}/turnos?fecha=${formData.value.fecha}`, {
       headers: getAuthHeaders()
     })
     if (res.ok) {
@@ -1172,7 +1172,7 @@ const confirmarReserva = async () => {
       id_compra_paquete: pagarConPaquete.value ? formData.value.id_compra_paquete : null
     }
 
-    const res = await fetch('http://localhost:8000/api/reservas', {
+    const res = await fetch('/api/reservas', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload)
@@ -1215,7 +1215,7 @@ const confirmarReprogramacion = async () => {
 
   try {
     const dateTime = `${formData.value.fecha} ${formData.value.hora}:00`
-    const res = await fetch(`http://localhost:8000/api/reservas/${reservaSeleccionada.value.id}/reprogramar`, {
+    const res = await fetch(`/api/reservas/${reservaSeleccionada.value.id}/reprogramar`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ fecha_hora_inicio: dateTime })
@@ -1243,7 +1243,7 @@ const cancelarReserva = async (id) => {
 const cambiarEstadoReserva = async (id, estado) => {
   isLoading.value = true
   try {
-    const res = await fetch(`http://localhost:8000/api/reservas/${id}/estado`, {
+    const res = await fetch(`/api/reservas/${id}/estado`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ estado })
@@ -1287,7 +1287,7 @@ const enviarCalificacion = async () => {
   calificarError.value = ''
   
   try {
-    const res = await fetch(`http://localhost:8000/api/reservas/${reservaACalificar.value.id}/calificar`, {
+    const res = await fetch(`/api/reservas/${reservaACalificar.value.id}/calificar`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(formCalificacion.value)
@@ -1357,7 +1357,7 @@ const procesarPagoReserva = async () => {
       detalles_pago: { ...datosPago.value }
     }
 
-    const res = await fetch('http://localhost:8000/api/pagos', {
+    const res = await fetch('/api/pagos', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload)
@@ -1392,7 +1392,7 @@ const cancelarReservaDesdePago = async () => {
   if (!reservaAPagar.value) return
   isLoading.value = true
   try {
-    const res = await fetch(`http://localhost:8000/api/reservas/${reservaAPagar.value.id}/estado`, {
+    const res = await fetch(`/api/reservas/${reservaAPagar.value.id}/estado`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ estado: 'cancelada' })

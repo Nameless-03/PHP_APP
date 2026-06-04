@@ -290,7 +290,7 @@ const loadData = async () => {
 
   try {
     // 1. Cargar servicios del profesional
-    const servicesResponse = await fetch(`http://localhost:8000/api/servicios?id_profesional=${user.id}`, {
+    const servicesResponse = await fetch(`/api/servicios?id_profesional=${user.id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -302,7 +302,7 @@ const loadData = async () => {
     }
 
     // 2. Cargar paquetes del profesional
-    const packagesResponse = await fetch('http://localhost:8000/api/paquetes', {
+    const packagesResponse = await fetch('/api/paquetes', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -347,7 +347,7 @@ const savePackage = async () => {
   }
 
   try {
-    const response = await fetch('http://localhost:8000/api/paquetes', {
+    const response = await fetch('/api/paquetes', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload)
@@ -379,7 +379,7 @@ const deletePackage = async () => {
   if (!selectedPackage.value) return
 
   try {
-    const response = await fetch(`http://localhost:8000/api/paquetes/${selectedPackage.value.id}`, {
+    const response = await fetch(`/api/paquetes/${selectedPackage.value.id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })

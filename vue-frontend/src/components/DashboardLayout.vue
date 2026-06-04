@@ -218,7 +218,7 @@ let pollingInterval = null
 
 const cargarNotificaciones = async () => {
   try {
-    const res = await fetch('http://localhost:8000/api/auth/notificaciones', { headers: getAuthHeaders() })
+    const res = await fetch('/api/auth/notificaciones', { headers: getAuthHeaders() })
     if (res.status === 401) {
       logout()
       return
@@ -245,7 +245,7 @@ watch(menuNotificaciones, (val) => {
 
 const marcarComoLeida = async (id) => {
   try {
-    await fetch(`http://localhost:8000/api/auth/notificaciones/${id}/marcar-leida`, {
+    await fetch(`/api/auth/notificaciones/${id}/marcar-leida`, {
       method: 'PATCH',
       headers: getAuthHeaders()
     })

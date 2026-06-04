@@ -135,7 +135,7 @@ const handleLogin = async () => {
   error.value = ''
 
   try {
-    const response = await fetch('http://localhost:8000/api/auth/login', {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ onMounted(() => {
 })
 
 const loginWithGoogle = () => {
-  window.location.href = 'http://localhost:8000/api/auth/google/redirect'
+  window.location.href = '/api/auth/google/redirect'
 }
 </script>
 

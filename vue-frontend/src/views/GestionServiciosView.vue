@@ -294,7 +294,7 @@ const editingServiceId = ref(null)
 
 const loadCategories = async () => {
   try {
-    const response = await fetch('http://localhost:8000/api/categorias', {
+    const response = await fetch('/api/categorias', {
       headers: {
         'Accept': 'application/json'
       }
@@ -320,8 +320,8 @@ onMounted(async () => {
 
   try {
     const url = idProfesional
-      ? `http://localhost:8000/api/servicios?id_profesional=${idProfesional}&incluir_inactivos=1`
-      : 'http://localhost:8000/api/servicios'
+      ? `/api/servicios?id_profesional=${idProfesional}&incluir_inactivos=1`
+      : '/api/servicios'
       
     const response = await fetch(url, {
       headers: {
@@ -382,8 +382,8 @@ const saveService = async () => {
 
   try {
     const url = isEditing.value 
-      ? `http://localhost:8000/api/servicios/${editingServiceId.value}`
-      : 'http://localhost:8000/api/servicios'
+      ? `/api/servicios/${editingServiceId.value}`
+      : '/api/servicios'
       
     const resolvedCategoryId = service.value.category 
       ? (typeof service.value.category === 'object' ? (service.value.category.id || service.value.category.nombre) : service.value.category)
@@ -485,7 +485,7 @@ const deleteService = async (item) => {
   }
   
   try {
-    const response = await fetch(`http://localhost:8000/api/servicios/${item.id}`, {
+    const response = await fetch(`/api/servicios/${item.id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })

@@ -367,7 +367,7 @@ const loadPackages = async () => {
   if (!token) return
 
   try {
-    const response = await fetch('http://localhost:8000/api/paquetes', {
+    const response = await fetch('/api/paquetes', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -441,7 +441,7 @@ const processPurchase = async () => {
         detalles_pago: { ...datosPago.value }
       }
 
-      response = await fetch('http://localhost:8000/api/pagos', {
+      response = await fetch('/api/pagos', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -479,7 +479,7 @@ const processPurchase = async () => {
         detalles_pago: { ...datosPago.value }
       }
 
-      response = await fetch(`http://localhost:8000/api/paquetes/${selectedPackage.value.id}/comprar`, {
+      response = await fetch(`/api/paquetes/${selectedPackage.value.id}/comprar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -525,7 +525,7 @@ const cancelarCompraDesdePago = async () => {
   isSubmitting.value = true
   const token = localStorage.getItem('auth_token')
   try {
-    const res = await fetch(`http://localhost:8000/api/mis-paquetes/${compraCreada.value.id}`, {
+    const res = await fetch(`/api/mis-paquetes/${compraCreada.value.id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -553,7 +553,7 @@ const cargarPaypalSdk = async () => {
   cargandoPaypalSdk.value = true
   try {
     const token = localStorage.getItem('auth_token')
-    const res = await fetch('http://localhost:8000/api/config/paypal', {
+    const res = await fetch('/api/config/paypal', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {
@@ -633,7 +633,7 @@ const renderizarBotonesPaypal = () => {
               }
             }
 
-            response = await fetch('http://localhost:8000/api/pagos', {
+            response = await fetch('/api/pagos', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -654,7 +654,7 @@ const renderizarBotonesPaypal = () => {
               }
             }
 
-            response = await fetch(`http://localhost:8000/api/paquetes/${selectedPackage.value.id}/comprar`, {
+            response = await fetch(`/api/paquetes/${selectedPackage.value.id}/comprar`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
