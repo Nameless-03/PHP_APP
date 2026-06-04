@@ -143,7 +143,7 @@ class ReservaService
      */
     public function listarPorCliente(int $idCliente): Collection
     {
-        return Reserva::with(['servicio', 'compraPaquete.paquete'])->where('id_cliente', $idCliente)->get();
+        return Reserva::with(['servicio', 'compraPaquete.paquete', 'pago'])->where('id_cliente', $idCliente)->get();
     }
 
     /**
@@ -151,7 +151,7 @@ class ReservaService
      */
     public function listarPorProfesional(int $idProfesional): Collection
     {
-        return Reserva::with(['cliente.usuario', 'servicio', 'compraPaquete.paquete'])
+        return Reserva::with(['cliente.usuario', 'servicio', 'compraPaquete.paquete', 'pago'])
             ->whereHas('servicio', function ($q) use ($idProfesional) {
                 $q->where('id_profesional', $idProfesional);
             })->get();
@@ -174,6 +174,21 @@ class ReservaService
                         $compra->update(['estado' => 'activo']);
                     }
                 }
+            }
+
+            // Si la reserva se confirma y tiene un pago pendiente, completamos el pago
+            if ($nuevoEstado === EstadoReservaEnum::CONFIRMADA && $reserva->pago && $reserva->pago->estado === 'pendiente') {
+                $reserva->pago->update([
+                    'estado' => 'completado',
+                    'referencia_externa' => 'CASH_' . strtoupper(uniqid()),
+                ]);
+            }
+
+            // Si la reserva se cancela y tiene un pago pendiente, lo marcamos como fallido
+            if ($nuevoEstado === EstadoReservaEnum::CANCELADA && $reserva->pago && $reserva->pago->estado === 'pendiente') {
+                $reserva->pago->update([
+                    'estado' => 'fallido',
+                ]);
             }
 
             $reserva->update([

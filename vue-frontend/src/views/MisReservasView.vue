@@ -494,9 +494,52 @@
                             <p class="text-body-2 mb-0">
                               {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} — {{ reserva.servicio?.nombre }}
                             </p>
-                            <v-chip size="x-small" color="warning" variant="tonal" class="mt-1 font-weight-bold">Pago pendiente del cliente</v-chip>
+                            <v-chip
+                              v-if="reserva.pago && reserva.pago.metodo === 'efectivo'"
+                              size="x-small"
+                              color="success"
+                              variant="flat"
+                              class="text-white font-weight-bold mt-1"
+                              prepend-icon="mdi-cash"
+                            >
+                              Pago en efectivo pendiente
+                            </v-chip>
+                            <v-chip
+                              v-else
+                              size="x-small"
+                              color="warning"
+                              variant="tonal"
+                              class="font-weight-bold mt-1"
+                              prepend-icon="mdi-credit-card-outline"
+                            >
+                              Pago online pendiente del cliente
+                            </v-chip>
                           </div>
-                          <v-icon color="warning" size="28" class="opacity-60">mdi-lock-outline</v-icon>
+                          <div v-if="reserva.pago && reserva.pago.metodo === 'efectivo'" class="d-flex gap-2 mt-2 mt-sm-0">
+                            <v-btn
+                              color="success"
+                              size="small"
+                              variant="elevated"
+                              class="text-none font-weight-bold rounded-pill px-4 text-white"
+                              prepend-icon="mdi-cash-check"
+                              @click="cambiarEstadoReserva(reserva.id, 'confirmada')"
+                              :loading="isLoading"
+                            >
+                              Aprobar Pago
+                            </v-btn>
+                            <v-btn
+                              color="error"
+                              size="small"
+                              variant="outlined"
+                              class="text-none font-weight-bold rounded-pill px-4"
+                              prepend-icon="mdi-close-circle"
+                              @click="cambiarEstadoReserva(reserva.id, 'cancelada')"
+                              :loading="isLoading"
+                            >
+                              Cancelar Turno
+                            </v-btn>
+                          </div>
+                          <v-icon v-else color="warning" size="28" class="opacity-60">mdi-lock-outline</v-icon>
                         </v-card-text>
                       </v-card>
                     </v-col>
@@ -1437,6 +1480,12 @@ const procesarPagoReserva = async () => {
     let finalEstado = pago.estado
 
     if (pago.estado === 'pendiente') {
+      if (metodoPago.value === 'efectivo') {
+        showSnackbar('¡Reserva registrada! Abonarás en efectivo con el profesional.', 'success')
+        dialogPagarReserva.value = false
+        cargarRegistros()
+        return
+      }
       const pollResult = await pollPaymentStatus(pago.id)
       if (pollResult.success) {
         finalEstado = 'completado'

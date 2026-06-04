@@ -41,9 +41,12 @@ class PagoService
                 'id_compra' => $data['id_compra'] ?? null,
             ]);
 
-            // Enviar el trabajo a la cola
-            $simularError = isset($data['simular_error']) ? (bool)$data['simular_error'] : false;
-            ProcesarPagoJob::dispatch($pago, $simularError);
+            // Enviar el trabajo a la cola si no es en efectivo
+            $metodoVal = $data['metodo'] instanceof \App\Enums\MetodoPagoEnum ? $data['metodo']->value : $data['metodo'];
+            if ($metodoVal !== 'efectivo') {
+                $simularError = isset($data['simular_error']) ? (bool)$data['simular_error'] : false;
+                ProcesarPagoJob::dispatch($pago, $simularError);
+            }
 
             $pago->refresh();
 

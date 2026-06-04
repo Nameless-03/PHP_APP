@@ -43,6 +43,15 @@ class ReservaResource extends JsonResource
                     ] : null,
                 ];
             }),
+            'pago' => $this->whenLoaded('pago', function () {
+                return [
+                    'id' => $this->pago->id,
+                    'monto' => $this->pago->monto,
+                    'metodo' => $this->pago->metodo->value ?? $this->pago->metodo,
+                    'estado' => $this->pago->estado->value ?? $this->pago->estado,
+                    'referencia_externa' => $this->pago->referencia_externa,
+                ];
+            }),
         ];
     }
 }

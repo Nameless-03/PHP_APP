@@ -73,7 +73,7 @@ class ReservaController extends Controller
         $this->authorize('view', $reserva);
 
         // Load relationships
-        $reserva->load(['servicio.profesional.usuario', 'cliente.usuario']);
+        $reserva->load(['servicio.profesional.usuario', 'cliente.usuario', 'pago']);
 
         return response()->json([
             'data' => new ReservaResource($reserva),
