@@ -32,6 +32,7 @@ class Servicio extends Model
         'activo',
         'id_profesional',
         'id_categoria',
+        'limite_cancelacion_horas',
     ];
 
     /**
@@ -45,6 +46,7 @@ class Servicio extends Model
         'activo' => 'boolean',
         'id_profesional' => 'integer',
         'id_categoria' => 'integer',
+        'limite_cancelacion_horas' => 'integer',
     ];
 
     /**
@@ -54,6 +56,7 @@ class Servicio extends Model
      */
     protected $attributes = [
         'activo' => true,
+        'limite_cancelacion_horas' => 10,
     ];
 
     /**

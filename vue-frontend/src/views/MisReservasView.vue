@@ -359,7 +359,7 @@
 
             <v-card-text class="pa-6">
               <v-alert v-if="isCliente" type="info" variant="tonal" class="mb-6 rounded-lg text-body-2">
-                <strong>Política:</strong> Las cancelaciones deben realizarse con al menos 10 horas de anticipación al turno.
+                <strong>Política:</strong> Las cancelaciones deben realizarse con la antelación mínima definida por el profesional para cada servicio.
               </v-alert>
 
               <div v-if="cargandoRegistros" class="text-center py-8">
@@ -383,6 +383,15 @@
                           prepend-icon="mdi-package-variant"
                         >
                           Paquete: {{ reserva.compra_paquete.paquete?.nombre }}
+                        </v-chip>
+                        <v-chip
+                          size="x-small"
+                          color="error"
+                          variant="tonal"
+                          class="font-weight-bold"
+                          prepend-icon="mdi-clock-alert-outline"
+                        >
+                          Antelación: {{ reserva.servicio?.limite_cancelacion_horas !== undefined ? reserva.servicio.limite_cancelacion_horas : 10 }}h
                         </v-chip>
                       </p>
                     </div>
@@ -634,234 +643,243 @@
             <p class="text-subtitle-2 opacity-90 mb-0">Completa tu pago de forma segura</p>
           </div>
         </v-card-text>
+          <v-form ref="formPagoRef" @submit.prevent="procesarPagoReserva">
+            <v-card-text class="pa-6" style="max-height: 65vh; overflow-y: auto;">
+              <!-- Aviso de Pre-reserva Temporal -->
+              <v-alert type="info" variant="tonal" class="mb-4 rounded-lg text-body-2" density="comfortable" color="info" icon="mdi-information-outline" v-if="!cargandoPago">
+                <strong>Pre-reserva Temporal:</strong> Tu turno ha sido pre-reservado. Completa el pago a continuación para activarlo definitivamente. Si sales del pago, se liberará el turno.
+              </v-alert>
 
-        <v-form ref="formPagoRef" @submit.prevent="procesarPagoReserva">
-          <v-card-text class="pa-6" style="max-height: 65vh; overflow-y: auto;">
-            <!-- Aviso de Pre-reserva Temporal -->
-            <v-alert type="info" variant="tonal" class="mb-4 rounded-lg text-body-2" density="comfortable" color="info" icon="mdi-information-outline">
-              <strong>Pre-reserva Temporal:</strong> Tu turno ha sido pre-reservado. Completa el pago a continuación para activarlo definitivamente. Si sales del pago, se liberará el turno.
-            </v-alert>
+              <v-alert v-if="pagoError" type="error" variant="tonal" class="mb-4 rounded-lg animate-fade">
+                <div class="font-weight-bold mb-1">Error al procesar el pago</div>
+                <div class="text-body-2 mb-2">{{ pagoError }}</div>
+                <div class="d-flex gap-2">
+                  <v-btn size="small" color="error" variant="elevated" @click="pagoError = ''" class="text-none">Reintentar</v-btn>
+                  <v-btn size="small" color="error" variant="outlined" @click="cancelarReservaDesdePago" :loading="isLoading" class="text-none">Cancelar Reserva</v-btn>
+                </div>
+              </v-alert>
 
-            <v-alert v-if="pagoError" type="error" variant="tonal" class="mb-4 rounded-lg animate-fade">
-              <div class="font-weight-bold mb-1">Error al procesar el pago</div>
-              <div class="text-body-2 mb-2">{{ pagoError }}</div>
-              <div class="d-flex gap-2">
-                <v-btn size="small" color="error" variant="elevated" @click="pagoError = ''" class="text-none">Reintentar</v-btn>
-                <v-btn size="small" color="error" variant="outlined" @click="cancelarReservaDesdePago" :loading="isLoading" class="text-none">Cancelar Reserva</v-btn>
+              <!-- Loading overlay inside card -->
+              <div v-if="cargandoPago && !pagoError" class="text-center py-8">
+                <v-progress-circular indeterminate color="primary" size="64" width="6" class="mb-4"></v-progress-circular>
+                <h4 class="text-h6 font-weight-bold text-grey-darken-3 mb-2">Procesando Pago</h4>
+                <p class="text-body-2 text-medium-emphasis">
+                  Estamos validando tu transacción con la pasarela de pagos. Por favor no cierres ni recargues la página.
+                </p>
               </div>
-            </v-alert>
 
-            <!-- Detalles del Turno -->
-            <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6" v-if="reservaAPagar">
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-caption text-medium-emphasis">Servicio:</span>
-                <strong class="text-body-2 text-grey-darken-4">{{ reservaAPagar.servicio?.nombre }}</strong>
-              </div>
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-caption text-medium-emphasis">Profesional:</span>
-                <strong class="text-body-2 text-grey-darken-4">
-                  {{ reservaAPagar.servicio?.profesional?.usuario?.nombre }} {{ reservaAPagar.servicio?.profesional?.usuario?.apellido || '' }}
-                </strong>
-              </div>
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-caption text-medium-emphasis">Fecha y Hora:</span>
-                <strong class="text-body-2 text-grey-darken-4">{{ formatDateObj(reservaAPagar.fecha_hora_inicio) }}</strong>
-              </div>
-              <v-divider class="my-2"></v-divider>
-              <div class="d-flex justify-space-between align-center">
-                <span class="text-subtitle-2 font-weight-bold">Total a pagar:</span>
-                <strong class="text-h5 text-success font-weight-black">${{ reservaAPagar.servicio?.precio }} USD</strong>
-              </div>
-            </div>
-
-            <!-- Selector de Método de Pago -->
-            <div v-if="!pagoError">
-              <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2">1. Selecciona un Método de Pago</h4>
-              <v-radio-group v-model="metodoPago" inline class="mb-4">
-                <v-row>
-                  <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
-                  </v-col>
-                  <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
-                  </v-col>
-                  <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
-                  </v-col>
-                  <v-col cols="12" sm="6" class="py-1">
-                    <v-radio label="Otro" value="otro" color="primary" class="font-weight-medium"></v-radio>
-                  </v-col>
-                </v-row>
-              </v-radio-group>
-
-              <!-- DETALLES DE PAGO SEGÚN MÉTODO SELECCIONADO -->
-              <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2">2. Completa los Datos de Pago</h4>
-              <v-expand-transition>
-                <div v-if="metodoPago === 'paypal'" class="pa-4 mb-4 rounded-xl border payment-box-paypal">
-                  <div class="d-flex align-center mb-3">
-                    <v-icon color="blue-darken-3" class="mr-2">mdi-paypal</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-blue-darken-3">Pasarela de Pago PayPal</span>
+              <div v-if="!cargandoPago && !pagoError">
+                <!-- Detalles del Turno -->
+                <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6" v-if="reservaAPagar">
+                  <div class="d-flex justify-space-between align-center mb-2">
+                    <span class="text-caption text-medium-emphasis">Servicio:</span>
+                    <strong class="text-body-2 text-grey-darken-4">{{ reservaAPagar.servicio?.nombre }}</strong>
                   </div>
-
-                  <!-- Botones Oficiales del SDK de PayPal -->
-                  <div v-if="cargandoPaypalSdk" class="text-center py-4">
-                    <v-progress-circular indeterminate color="blue"></v-progress-circular>
-                    <div class="text-caption text-blue mt-2">Iniciando pasarela de PayPal...</div>
+                  <div class="d-flex justify-space-between align-center mb-2">
+                    <span class="text-caption text-medium-emphasis">Profesional:</span>
+                    <strong class="text-body-2 text-grey-darken-4">
+                      {{ reservaAPagar.servicio?.profesional?.usuario?.nombre }} {{ reservaAPagar.servicio?.profesional?.usuario?.apellido || '' }}
+                    </strong>
                   </div>
-                  <div v-else-if="paypalClientId" id="paypal-button-container" class="mt-2"></div>
-
-                  <div v-else>
-                    <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
-                      Nota: No se detectó configuración de PayPal Sandbox en el servidor. Mostrando simulador directo:
-                    </div>
-                    <v-text-field
-                      v-model="datosPago.paypal_email"
-                      label="Correo Electrónico de PayPal"
-                      type="email"
-                      variant="outlined"
-                      density="comfortable"
-                      color="secondary"
-                      class="mb-2"
-                      :rules="[v => !!v || 'El correo es obligatorio', v => /.+@.+\..+/.test(v) || 'Correo no válido']"
-                      required
-                    ></v-text-field>
-                    <v-text-field
-                      v-model="datosPago.paypal_password"
-                      label="Contraseña de PayPal"
-                      type="password"
-                      variant="outlined"
-                      density="comfortable"
-                      color="secondary"
-                      hide-details
-                      :rules="[v => !!v || 'La contraseña es obligatoria']"
-                      required
-                    ></v-text-field>
+                  <div class="d-flex justify-space-between align-center mb-2">
+                    <span class="text-caption text-medium-emphasis">Fecha y Hora:</span>
+                    <strong class="text-body-2 text-grey-darken-4">{{ formatDateObj(reservaAPagar.fecha_hora_inicio) }}</strong>
+                  </div>
+                  <v-divider class="my-2"></v-divider>
+                  <div class="d-flex justify-space-between align-center">
+                    <span class="text-subtitle-2 font-weight-bold">Total a pagar:</span>
+                    <strong class="text-h5 text-success font-weight-black">${{ reservaAPagar.servicio?.precio }} USD</strong>
                   </div>
                 </div>
 
-                <div v-if="metodoPago === 'transferencia'" class="pa-4 mb-4 rounded-xl border payment-box-transferencia">
-                  <div class="d-flex align-center mb-3">
-                    <v-icon color="secondary" class="mr-2">mdi-bank</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-secondary">Datos de Transferencia</span>
-                  </div>
-                  <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
-                    <strong>CBU de Destino:</strong> 0000003100012345678901<br>
-                    <strong>Alias:</strong> centro.estetica.alias<br>
-                    <strong>Titular:</strong> Centro de Estética S.A.
-                  </div>
-                  <v-text-field
-                    v-model="datosPago.transferencia_titular"
-                    label="Nombre del Titular de la cuenta"
-                    variant="outlined"
-                    density="comfortable"
-                    color="secondary"
-                    class="mb-2"
-                    :rules="[v => !!v || 'El nombre es obligatorio']"
-                    required
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="datosPago.transferencia_cbu"
-                    label="CBU o CVU de Origen"
-                    variant="outlined"
-                    density="comfortable"
-                    color="secondary"
-                    hide-details
-                    :rules="[v => !!v || 'El CBU/CVU es obligatorio', v => /^\d{22}$/.test(v) || 'Debe tener exactamente 22 números']"
-                    required
-                  ></v-text-field>
-                </div>
-
-                <div v-if="metodoPago === 'otro'" class="pa-4 mb-4 rounded-xl border payment-box-tarjeta">
-                  <div class="d-flex align-center mb-3">
-                    <v-icon color="secondary" class="mr-2">mdi-credit-card</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-secondary">Datos de tu Tarjeta</span>
-                  </div>
-                  <v-text-field
-                    v-model="datosPago.tarjeta_nombre"
-                    label="Nombre en la Tarjeta"
-                    variant="outlined"
-                    density="comfortable"
-                    color="secondary"
-                    class="mb-2"
-                    :rules="[v => !!v || 'El nombre es obligatorio']"
-                    required
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="datosPago.tarjeta_numero"
-                    label="Número de Tarjeta"
-                    variant="outlined"
-                    density="comfortable"
-                    color="secondary"
-                    class="mb-2"
-                    :rules="[v => !!v || 'El número de tarjeta es obligatorio', v => /^\d{16}$/.test(v) || 'Deben ser 16 dígitos']"
-                    required
-                  ></v-text-field>
+                <!-- Selector de Método de Pago -->
+                <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2">1. Selecciona un Método de Pago</h4>
+                <v-radio-group v-model="metodoPago" inline class="mb-4">
                   <v-row>
-                    <v-col cols="6" class="py-0 pr-1">
+                    <v-col cols="12" sm="6" class="py-1">
+                      <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
+                    </v-col>
+                    <v-col cols="12" sm="6" class="py-1">
+                      <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
+                    </v-col>
+                    <v-col cols="12" sm="6" class="py-1">
+                      <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
+                    </v-col>
+                    <v-col cols="12" sm="6" class="py-1">
+                      <v-radio label="Otro" value="otro" color="primary" class="font-weight-medium"></v-radio>
+                    </v-col>
+                  </v-row>
+                </v-radio-group>
+
+                <!-- DETALLES DE PAGO SEGÚN MÉTODO SELECCIONADO -->
+                <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2">2. Completa los Datos de Pago</h4>
+                <v-expand-transition>
+                  <div v-if="metodoPago === 'paypal'" class="pa-4 mb-4 rounded-xl border payment-box-paypal">
+                    <div class="d-flex align-center mb-3">
+                      <v-icon color="blue-darken-3" class="mr-2">mdi-paypal</v-icon>
+                      <span class="text-subtitle-2 font-weight-bold text-blue-darken-3">Pasarela de Pago PayPal</span>
+                    </div>
+
+                    <!-- Botones Oficiales del SDK de PayPal -->
+                    <div v-if="cargandoPaypalSdk" class="text-center py-4">
+                      <v-progress-circular indeterminate color="blue"></v-progress-circular>
+                      <div class="text-caption text-blue mt-2">Iniciando pasarela de PayPal...</div>
+                    </div>
+                    <div v-else-if="paypalClientId" id="paypal-button-container" class="mt-2"></div>
+
+                    <div v-else>
+                      <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
+                        Nota: No se detectó configuración de PayPal Sandbox en el servidor. Mostrando simulador directo:
+                      </div>
                       <v-text-field
-                        v-model="datosPago.tarjeta_vence"
-                        label="Vence (MM/AA)"
+                        v-model="datosPago.paypal_email"
+                        label="Correo Electrónico de PayPal"
+                        type="email"
                         variant="outlined"
                         density="comfortable"
                         color="secondary"
-                        :rules="[v => !!v || 'Obligatorio', v => /^(0[1-9]|1[0-2])\/\d{2}$/.test(v) || 'MM/AA']"
+                        class="mb-2"
+                        :rules="[v => !!v || 'El correo es obligatorio', v => /.+@.+\..+/.test(v) || 'Correo no válido']"
                         required
                       ></v-text-field>
-                    </v-col>
-                    <v-col cols="6" class="py-0 pl-1">
                       <v-text-field
-                        v-model="datosPago.tarjeta_cvv"
-                        label="CVV"
+                        v-model="datosPago.paypal_password"
+                        label="Contraseña de PayPal"
                         type="password"
                         variant="outlined"
                         density="comfortable"
                         color="secondary"
-                        :rules="[v => !!v || 'Obligatorio', v => /^\d{3,4}$/.test(v) || '3-4 dígitos']"
+                        hide-details
+                        :rules="[v => !!v || 'La contraseña es obligatoria']"
                         required
                       ></v-text-field>
-                    </v-col>
-                  </v-row>
-                </div>
-
-                <div v-if="metodoPago === 'efectivo'" class="pa-4 mb-4 rounded-xl border payment-box-efectivo">
-                  <div class="d-flex align-center">
-                    <v-icon color="success" class="mr-2">mdi-cash-multiple</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold text-success">Pago en Efectivo</span>
+                    </div>
                   </div>
-                  <div class="text-caption text-grey-darken-3 mt-2">
-                    No se requiere ingresar datos bancarios o virtuales. Realizarás el pago en persona directamente al profesional al momento de tu sesión.
-                  </div>
-                </div>
-              </v-expand-transition>
 
-              <!-- Error simulation switch -->
-              <v-divider class="my-4"></v-divider>
-              <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
-                <div>
-                  <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
-                  <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
+                  <div v-if="metodoPago === 'transferencia'" class="pa-4 mb-4 rounded-xl border payment-box-transferencia">
+                    <div class="d-flex align-center mb-3">
+                      <v-icon color="secondary" class="mr-2">mdi-bank</v-icon>
+                      <span class="text-subtitle-2 font-weight-bold text-secondary">Datos de Transferencia</span>
+                    </div>
+                    <div class="text-caption text-grey-darken-3 mb-3 bg-white pa-3 rounded border">
+                      <strong>CBU de Destino:</strong> 0000003100012345678901<br>
+                      <strong>Alias:</strong> centro.estetica.alias<br>
+                      <strong>Titular:</strong> Centro de Estética S.A.
+                    </div>
+                    <v-text-field
+                      v-model="datosPago.transferencia_titular"
+                      label="Nombre del Titular de la cuenta"
+                      variant="outlined"
+                      density="comfortable"
+                      color="secondary"
+                      class="mb-2"
+                      :rules="[v => !!v || 'El nombre es obligatorio']"
+                      required
+                    ></v-text-field>
+                    <v-text-field
+                      v-model="datosPago.transferencia_cbu"
+                      label="CBU o CVU de Origen"
+                      variant="outlined"
+                      density="comfortable"
+                      color="secondary"
+                      hide-details
+                      :rules="[v => !!v || 'El CBU/CVU es obligatorio', v => /^\d{22}$/.test(v) || 'Debe tener exactamente 22 números']"
+                      required
+                    ></v-text-field>
+                  </div>
+
+                  <div v-if="metodoPago === 'otro'" class="pa-4 mb-4 rounded-xl border payment-box-tarjeta">
+                    <div class="d-flex align-center mb-3">
+                      <v-icon color="deep-purple-darken-1" class="mr-2">mdi-credit-card</v-icon>
+                      <span class="text-subtitle-2 font-weight-bold text-deep-purple-darken-1">Datos de Tarjeta</span>
+                    </div>
+                    <v-text-field
+                      v-model="datosPago.tarjeta_nombre"
+                      label="Nombre en la Tarjeta"
+                      variant="outlined"
+                      density="comfortable"
+                      color="secondary"
+                      class="mb-2"
+                      :rules="[v => !!v || 'El nombre es obligatorio']"
+                      required
+                    ></v-text-field>
+                    <v-text-field
+                      v-model="datosPago.tarjeta_numero"
+                      label="Número de Tarjeta"
+                      variant="outlined"
+                      density="comfortable"
+                      color="secondary"
+                      class="mb-2"
+                      :rules="[v => !!v || 'El número de tarjeta es obligatorio', v => /^\d{16}$/.test(v) || 'Debe tener exactamente 16 números']"
+                      required
+                    ></v-text-field>
+                    <v-row>
+                      <v-col cols="6" class="py-1 pr-1">
+                        <v-text-field
+                          v-model="datosPago.tarjeta_vence"
+                          label="Vencimiento (MM/AA)"
+                          placeholder="12/28"
+                          variant="outlined"
+                          density="comfortable"
+                          color="secondary"
+                          :rules="[v => !!v || 'Obligatorio', v => /^(0[1-9]|1[0-2])\/\d{2}$/.test(v) || 'Formato MM/AA']"
+                          required
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="6" class="py-1 pl-1">
+                        <v-text-field
+                          v-model="datosPago.tarjeta_cvv"
+                          label="CVV"
+                          type="password"
+                          variant="outlined"
+                          density="comfortable"
+                          color="secondary"
+                          :rules="[v => !!v || 'Obligatorio', v => /^\d{3}$/.test(v) || '3 dígitos']"
+                          required
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                  </div>
+
+                  <div v-if="metodoPago === 'efectivo'" class="pa-4 mb-4 rounded-xl border payment-box-efectivo">
+                    <div class="d-flex align-center">
+                      <v-icon color="success" class="mr-2">mdi-cash-multiple</v-icon>
+                      <span class="text-subtitle-2 font-weight-bold text-success">Pago en Efectivo</span>
+                    </div>
+                    <div class="text-caption text-grey-darken-3 mt-2">
+                      No se requiere ingresar datos bancarios o virtuales. Realizarás el pago en persona directamente al profesional al momento de tu sesión.
+                    </div>
+                  </div>
+                </v-expand-transition>
+
+                <!-- Error simulation switch -->
+                <v-divider class="my-4"></v-divider>
+                <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
+                  <div>
+                    <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
+                    <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
+                  </div>
+                  <v-switch
+                    v-model="simularError"
+                    color="error"
+                    hide-details
+                    density="compact"
+                  ></v-switch>
                 </div>
-                <v-switch
-                  v-model="simularError"
-                  color="error"
-                  hide-details
-                  density="compact"
-                ></v-switch>
               </div>
-            </div>
-          </v-card-text>
+            </v-card-text>
 
-          <v-card-actions class="pa-6 pt-0 d-flex justify-end">
-            <v-btn variant="outlined" color="grey-darken-1" class="mr-3 px-6 text-none font-weight-bold" :disabled="cargandoPago" @click="dialogPagarReserva = false">
-              Cerrar
-            </v-btn>
-            <v-btn v-if="!pagoError && (metodoPago !== 'paypal' || !paypalClientId)" type="submit" color="secondary" class="px-8 text-none font-weight-bold elevation-2 text-white" :loading="cargandoPago">
-              Confirmar Pago
-              <v-icon end>mdi-check-circle-outline</v-icon>
-            </v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card>
+            <v-card-actions class="pa-6 pt-0 d-flex justify-end" v-if="!cargandoPago">
+              <v-btn variant="outlined" color="grey-darken-1" class="mr-3 px-6 text-none font-weight-bold" :disabled="cargandoPago" @click="dialogPagarReserva = false">
+                Cerrar
+              </v-btn>
+              <v-btn v-if="!pagoError && (metodoPago !== 'paypal' || !paypalClientId)" type="submit" color="secondary" class="px-8 text-none font-weight-bold elevation-2 text-white" :loading="cargandoPago">
+                Confirmar Pago
+                <v-icon end>mdi-check-circle-outline</v-icon>
+              </v-btn>
+            </v-card-actions>
+          </v-form>
+        </v-card>
     </v-dialog>
 
     <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="4000" location="top">
@@ -1112,9 +1130,25 @@ const renderizarBotonesPaypal = () => {
           const resData = await res.json()
           if (!res.ok) throw new Error(resData.message || 'Error al procesar el pago')
 
-          showSnackbar('¡Pago completado con éxito mediante PayPal!', 'success')
-          dialogPagarReserva.value = false
-          cargarRegistros()
+          const pago = resData.data
+          let finalEstado = pago?.estado
+
+          if (pago && pago.estado === 'pendiente') {
+            const pollResult = await pollPaymentStatus(pago.id)
+            if (pollResult.success) {
+              finalEstado = 'completado'
+            } else {
+              throw new Error(pollResult.error)
+            }
+          }
+
+          if (finalEstado === 'completado') {
+            showSnackbar('¡Pago completado con éxito mediante PayPal!', 'success')
+            dialogPagarReserva.value = false
+            cargarRegistros()
+          } else {
+            throw new Error('El pago no pudo completarse con éxito.')
+          }
         } catch (err) {
           pagoError.value = err.message || 'Error en la pasarela de PayPal'
         } finally {
@@ -1337,6 +1371,35 @@ const abrirPagarReserva = (reserva) => {
   dialogPagarReserva.value = true
 }
 
+const pollPaymentStatus = async (pagoId) => {
+  const maxAttempts = 15
+  const interval = 1500
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(`/api/pagos/${pagoId}`, {
+        headers: getAuthHeaders()
+      })
+      if (!res.ok) {
+        throw new Error('Error al consultar el estado del pago.')
+      }
+      const data = await res.json()
+      const status = data.data?.estado
+
+      if (status === 'completado') {
+        return { success: true, pago: data.data }
+      } else if (status === 'fallido') {
+        return { success: false, error: 'El pago fue rechazado por la pasarela de pagos.' }
+      }
+    } catch (err) {
+      console.error(`Intento de polling ${attempt} fallido:`, err)
+    }
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+
+  return { success: false, error: 'Tiempo de espera agotado. El pago sigue pendiente de confirmación.' }
+}
+
 const procesarPagoReserva = async () => {
   if (!reservaAPagar.value) return
   
@@ -1369,12 +1432,20 @@ const procesarPagoReserva = async () => {
       throw new Error(data.message || 'Error al procesar el pago')
     }
 
-    // Wait a brief moment to simulate pasarela loading feedback if connection is sync
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
     // Check outcome of payment
     const pago = data.data
-    if (pago.estado === 'completado') {
+    let finalEstado = pago.estado
+
+    if (pago.estado === 'pendiente') {
+      const pollResult = await pollPaymentStatus(pago.id)
+      if (pollResult.success) {
+        finalEstado = 'completado'
+      } else {
+        throw new Error(pollResult.error)
+      }
+    }
+
+    if (finalEstado === 'completado') {
       showSnackbar('¡Pago completado con éxito! Tu turno ha sido reservado y pagado.', 'success')
       dialogPagarReserva.value = false
       cargarRegistros()

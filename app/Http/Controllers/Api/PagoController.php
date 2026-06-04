@@ -8,6 +8,8 @@ use App\Services\PagoService;
 use Illuminate\Http\JsonResponse;
 use Exception;
 
+use App\Models\Pago;
+
 class PagoController extends Controller
 {
     public function __construct(
@@ -31,5 +33,28 @@ class PagoController extends Controller
                 'message' => $e->getMessage()
             ], 422);
         }
+    }
+
+    /**
+     * Consultar estado de un pago.
+     */
+    public function show(Pago $pago): JsonResponse
+    {
+        $usuario = auth()->user();
+        
+        // Validar propiedad del pago
+        if ($pago->id_reserva) {
+            if ($pago->reserva->id_cliente !== $usuario->id) {
+                return response()->json(['message' => 'Unauthorized.'], 403);
+            }
+        } elseif ($pago->id_compra) {
+            if ($pago->compraPaquete->id_cliente !== $usuario->id) {
+                return response()->json(['message' => 'Unauthorized.'], 403);
+            }
+        }
+        
+        return response()->json([
+            'data' => $pago
+        ]);
     }
 }

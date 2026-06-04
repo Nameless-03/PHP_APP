@@ -119,6 +119,7 @@ Route::prefix('reservas')->middleware('auth:sanctum')->group(function () {
 Route::prefix('pagos')->middleware('auth:sanctum')->group(function () {
     Route::middleware('role:cliente')->group(function () {
         Route::post('/', [PagoController::class, 'store']);
+        Route::get('/{pago}', [PagoController::class, 'show']);
     });
 });
 

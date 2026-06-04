@@ -286,5 +286,63 @@ class ReservaTest extends TestCase
         $this->assertEquals(1, $compra->sesiones_disponibles);
         $this->assertEquals('activo', $compra->estado);
     }
+
+    /**
+     * Test de validación de cancelación con límite dinámico de horas.
+     */
+    public function test_cliente_no_puede_cancelar_si_se_supera_el_limite_dinamico_del_servicio(): void
+    {
+        // 1. Configurar el servicio con límite de cancelación de 12 horas
+        $this->servicio->update(['limite_cancelacion_horas' => 12]);
+
+        // 2. Crear reserva para dentro de 11 horas (menos de las 12 horas requeridas)
+        $inicio = Carbon::now()->addHours(11);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 3. Intentar cancelar
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'cancelada'
+            ]);
+
+        // Debería fallar con 422
+        $response->assertStatus(422);
+        $response->assertJsonPath('message', 'Política de cancelación: No puedes cancelar con menos de 12 horas de anticipación.');
+    }
+
+    /**
+     * Test de cancelación exitosa respetando el límite dinámico de horas.
+     */
+    public function test_cliente_puede_cancelar_si_esta_antes_del_limite_dinamico_del_servicio(): void
+    {
+        // 1. Configurar el servicio con límite de cancelación de 12 horas
+        $this->servicio->update(['limite_cancelacion_horas' => 12]);
+
+        // 2. Crear reserva para dentro de 13 horas (más de las 12 horas requeridas)
+        $inicio = Carbon::now()->addHours(13);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 3. Intentar cancelar
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'cancelada'
+            ]);
+
+        // Debería tener éxito
+        $response->assertStatus(200);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CANCELADA->value, $reserva->fresh()->estado->value);
+    }
 }
 

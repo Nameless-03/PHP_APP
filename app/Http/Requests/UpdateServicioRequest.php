@@ -31,6 +31,7 @@ class UpdateServicioRequest extends FormRequest
             'duracion' => ['sometimes', 'integer', 'min:1'],
             'ubicacion' => ['nullable', 'string', 'max:255'],
             'activo' => ['sometimes', 'boolean'],
+            'limite_cancelacion_horas' => ['sometimes', 'integer', 'min:0'],
             'id_categoria' => ['sometimes', function ($attribute, $value, $fail) {
                 if (is_numeric($value)) {
                     if (!\DB::table('categorias')->where('id', $value)->exists()) {

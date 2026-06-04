@@ -32,6 +32,7 @@ class StoreServicioRequest extends FormRequest
             'duracion' => ['required', 'integer', 'min:1'], // in minutes
             'ubicacion' => ['nullable', 'string', 'max:255'],
             'activo' => ['boolean'],
+            'limite_cancelacion_horas' => ['sometimes', 'integer', 'min:0'],
             'id_categoria' => ['required', function ($attribute, $value, $fail) {
                 if (is_numeric($value)) {
                     if (!\DB::table('categorias')->where('id', $value)->exists()) {

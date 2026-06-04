@@ -13,9 +13,11 @@ return new class extends Migration
     public function up(): void
     {
         // Alter enum column to string (VARCHAR) to support 'pendiente' state
-        DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado DROP DEFAULT;");
-        DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado TYPE VARCHAR(255) USING estado::varchar;");
-        DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado SET DEFAULT 'pendiente';");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado DROP DEFAULT;");
+            DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado TYPE VARCHAR(255) USING estado::varchar;");
+            DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado SET DEFAULT 'pendiente';");
+        }
     }
 
     /**
@@ -24,8 +26,10 @@ return new class extends Migration
     public function down(): void
     {
         // Restore back to original enum type and default 'activo'
-        DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado DROP DEFAULT;");
-        DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado TYPE compras_paquete_estado_enum USING estado::compras_paquete_estado_enum;");
-        DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado SET DEFAULT 'activo';");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado DROP DEFAULT;");
+            DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado TYPE compras_paquete_estado_enum USING estado::compras_paquete_estado_enum;");
+            DB::statement("ALTER TABLE compras_paquete ALTER COLUMN estado SET DEFAULT 'activo';");
+        }
     }
 };

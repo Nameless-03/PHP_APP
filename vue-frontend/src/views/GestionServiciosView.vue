@@ -82,6 +82,19 @@
                 ></v-text-field>
               </v-col>
 
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="service.limite_cancelacion_horas"
+                  :rules="[rules.required, rules.isInteger]"
+                  label="Antelación para Cancelación (Horas)"
+                  placeholder="Ej: 10"
+                  variant="outlined"
+                  type="number"
+                  prepend-inner-icon="mdi-clock-alert-outline"
+                  color="primary"
+                ></v-text-field>
+              </v-col>
+
               <v-col cols="12">
                 <v-combobox
                   v-model="service.category"
@@ -230,6 +243,9 @@
                       <span class="text-subtitle-2 font-weight-bold text-success ml-3">
                         ${{ item.price }} USD
                       </span>
+                      <span class="text-caption font-weight-bold text-error ml-3" title="Límite de cancelación">
+                        <v-icon size="small" class="mr-1" color="error">mdi-clock-alert-outline</v-icon> {{ item.limite_cancelacion_horas }}h antelación
+                      </span>
                     </span>
                     <div class="d-flex" style="gap: 4px;">
                       <v-btn
@@ -284,7 +300,8 @@ const service = ref({
   price: '',
   modality: 'presencial',
   location: '',
-  active: true
+  active: true,
+  limite_cancelacion_horas: 10
 })
 
 const categoriesList = ref([])
@@ -339,6 +356,7 @@ onMounted(async () => {
         description: s.descripcion,
         duration: s.duracion,
         price: s.precio,
+        limite_cancelacion_horas: s.limite_cancelacion_horas !== undefined ? s.limite_cancelacion_horas : 10,
         modality: s.modalidad,
         location: s.ubicacion || '',
         active: s.activo !== undefined ? s.activo : true,
@@ -397,6 +415,7 @@ const saveService = async () => {
         descripcion: service.value.description,
         duracion: parseInt(service.value.duration),
         precio: parseFloat(service.value.price),
+        limite_cancelacion_horas: parseInt(service.value.limite_cancelacion_horas),
         modalidad: service.value.modality,
         ubicacion: service.value.modality !== 'remota' ? service.value.location : null,
         activo: service.value.active,
@@ -421,6 +440,7 @@ const saveService = async () => {
           description: s.descripcion,
           duration: s.duracion,
           price: s.precio,
+          limite_cancelacion_horas: s.limite_cancelacion_horas !== undefined ? s.limite_cancelacion_horas : 10,
           modality: s.modalidad,
           location: s.ubicacion || '',
           active: s.activo !== undefined ? s.activo : true,
@@ -437,6 +457,7 @@ const saveService = async () => {
         description: s.descripcion,
         duration: s.duracion,
         price: s.precio,
+        limite_cancelacion_horas: s.limite_cancelacion_horas !== undefined ? s.limite_cancelacion_horas : 10,
         modality: s.modalidad,
         location: s.ubicacion || '',
         active: s.activo !== undefined ? s.activo : true,
@@ -448,6 +469,7 @@ const saveService = async () => {
       service.value.modality = 'presencial'
       service.value.active = true
       service.value.category = null
+      service.value.limite_cancelacion_horas = 10
     }
     
   } catch (err) {
@@ -469,7 +491,8 @@ const editService = (item) => {
     modality: item.modality,
     location: item.location || '',
     active: item.active,
-    category: item.categoryObj || null
+    category: item.categoryObj || null,
+    limite_cancelacion_horas: item.limite_cancelacion_horas !== undefined ? item.limite_cancelacion_horas : 10
   }
 }
 
@@ -511,6 +534,7 @@ const resetForm = () => {
   service.value.modality = 'presencial'
   service.value.active = true
   service.value.category = null
+  service.value.limite_cancelacion_horas = 10
   errorMsg.value = ''
   successMsg.value = ''
 }

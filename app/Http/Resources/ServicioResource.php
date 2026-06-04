@@ -25,6 +25,7 @@ class ServicioResource extends JsonResource
             'activo' => (bool) $this->activo,
             'id_profesional' => $this->id_profesional,
             'id_categoria' => $this->id_categoria,
+            'limite_cancelacion_horas' => (int) $this->limite_cancelacion_horas,
             'created_at' => $this->created_at?->toIso8601String(),
             
             // Relaciones opcionales

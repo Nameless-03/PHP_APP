@@ -157,25 +157,34 @@
               </div>
             </v-alert>
 
-            <!-- Summary info -->
-            <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6">
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-body-2 text-medium-emphasis">Paquete:</span>
-                <strong class="text-body-1 text-grey-darken-3">{{ selectedPackage?.nombre }}</strong>
-              </div>
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-body-2 text-medium-emphasis">Sesiones Incluidas:</span>
-                <strong class="text-body-1 text-primary">{{ selectedPackage?.cantidad_sesiones }} sesiones</strong>
-              </div>
-              <v-divider class="my-2"></v-divider>
-              <div class="d-flex justify-space-between align-center">
-                <span class="text-subtitle-1 font-weight-bold">Total a pagar:</span>
-                <strong class="text-h5 text-success font-weight-black">${{ selectedPackage?.precio }} USD</strong>
-              </div>
+            <!-- Loading overlay inside card -->
+            <div v-if="isSubmitting && !dialogError" class="text-center py-8">
+              <v-progress-circular indeterminate color="primary" size="64" width="6" class="mb-4"></v-progress-circular>
+              <h4 class="text-h6 font-weight-bold text-grey-darken-3 mb-2">Procesando Pago</h4>
+              <p class="text-body-2 text-medium-emphasis">
+                Estamos validando tu transacción con la pasarela de pagos. Por favor no cierres ni recargues la página.
+              </p>
             </div>
 
-            <!-- Select Payment Method -->
-            <div v-if="!dialogError">
+            <div v-if="!isSubmitting && !dialogError">
+              <!-- Summary info -->
+              <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6">
+                <div class="d-flex justify-space-between align-center mb-2">
+                  <span class="text-body-2 text-medium-emphasis">Paquete:</span>
+                  <strong class="text-body-1 text-grey-darken-3">{{ selectedPackage?.nombre }}</strong>
+                </div>
+                <div class="d-flex justify-space-between align-center mb-2">
+                  <span class="text-body-2 text-medium-emphasis">Sesiones Incluidas:</span>
+                  <strong class="text-body-1 text-primary">{{ selectedPackage?.cantidad_sesiones }} sesiones</strong>
+                </div>
+                <v-divider class="my-2"></v-divider>
+                <div class="d-flex justify-space-between align-center">
+                  <span class="text-subtitle-1 font-weight-bold">Total a pagar:</span>
+                  <strong class="text-h5 text-success font-weight-black">${{ selectedPackage?.precio }} USD</strong>
+                </div>
+              </div>
+
+              <!-- Select Payment Method -->
               <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-3">1. Método de Pago</h4>
               <v-radio-group v-model="paymentMethod" inline class="mb-4">
                 <v-row>
@@ -296,7 +305,7 @@
             </div>
           </v-card-text>
 
-          <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-card-actions class="pa-6 pt-0 d-flex justify-end" v-if="!isSubmitting">
             <v-btn
               variant="outlined"
               color="grey-darken-1"
@@ -414,6 +423,39 @@ const closePurchaseDialog = () => {
   compraCreada.value = null
 }
 
+const pollPaymentStatus = async (pagoId) => {
+  const token = localStorage.getItem('auth_token')
+  const maxAttempts = 15
+  const interval = 1500
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(`/api/pagos/${pagoId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      })
+      if (!res.ok) {
+        throw new Error('Error al consultar el estado del pago.')
+      }
+      const data = await res.json()
+      const status = data.data?.estado
+
+      if (status === 'completado') {
+        return { success: true, pago: data.data }
+      } else if (status === 'fallido') {
+        return { success: false, error: 'El pago fue rechazado por la pasarela de pagos.' }
+      }
+    } catch (err) {
+      console.error(`Intento de polling ${attempt} fallido:`, err)
+    }
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+
+  return { success: false, error: 'Tiempo de espera agotado. El pago sigue pendiente de confirmación.' }
+}
+
 const processPurchase = async () => {
   if (!selectedPackage.value) return
 
@@ -454,11 +496,19 @@ const processPurchase = async () => {
       data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Error al procesar el pago')
 
-      // Wait a moment for simulated pasarela feedback
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
       const pagoResult = data.data
-      if (pagoResult.estado === 'completado') {
+      let finalEstado = pagoResult.estado
+
+      if (pagoResult.estado === 'pendiente') {
+        const pollResult = await pollPaymentStatus(pagoResult.id)
+        if (pollResult.success) {
+          finalEstado = 'completado'
+        } else {
+          throw new Error(pollResult.error)
+        }
+      }
+
+      if (finalEstado === 'completado') {
         snackbar.value = {
           show: true,
           text: '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
@@ -492,13 +542,21 @@ const processPurchase = async () => {
       data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Error al procesar la compra')
 
-      // Wait a moment for simulated pasarela feedback
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
       const compra = data.data
       const pago = compra?.pagos?.[0]
+      let finalEstado = pago?.estado
 
-      if (pago && pago.estado === 'completado') {
+      if (pago && pago.estado === 'pendiente') {
+        const pollResult = await pollPaymentStatus(pago.id)
+        if (pollResult.success) {
+          finalEstado = 'completado'
+        } else {
+          compraCreada.value = compra
+          throw new Error(pollResult.error)
+        }
+      }
+
+      if (finalEstado === 'completado') {
         snackbar.value = {
           show: true,
           text: '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
@@ -668,11 +726,42 @@ const renderizarBotonesPaypal = () => {
 
           if (!response.ok) throw new Error(resData.message || 'Error al completar la compra en nuestro servidor')
 
-          snackbar.value = { show: true, text: '¡Compra de paquete completada con éxito!', color: 'success' }
-          purchaseDialog.value = false
-          selectedPackage.value = null
-          compraCreada.value = null
-          setTimeout(() => { router.push('/mis-paquetes') }, 1500)
+          const compra = resData.data
+          let pagoId = null
+          let estado = null
+
+          if (compraCreada.value) {
+            estado = resData.data?.estado
+            pagoId = resData.data?.id
+          } else {
+            estado = compra?.pagos?.[0]?.estado
+            pagoId = compra?.pagos?.[0]?.id
+          }
+
+          if (estado === 'pendiente') {
+            const pollResult = await pollPaymentStatus(pagoId)
+            if (pollResult.success) {
+              estado = 'completado'
+            } else {
+              if (!compraCreada.value && compra) {
+                compraCreada.value = compra
+              }
+              throw new Error(pollResult.error)
+            }
+          }
+
+          if (estado === 'completado') {
+            snackbar.value = { show: true, text: '¡Compra de paquete completada con éxito!', color: 'success' }
+            purchaseDialog.value = false
+            selectedPackage.value = null
+            compraCreada.value = null
+            setTimeout(() => { router.push('/mis-paquetes') }, 1500)
+          } else {
+            if (!compraCreada.value && compra) {
+              compraCreada.value = compra
+            }
+            throw new Error('El pago no pudo completarse con éxito.')
+          }
         } catch (err) {
           dialogError.value = err.message || 'Error al procesar el pago de PayPal'
         } finally {

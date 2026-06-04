@@ -55,6 +55,14 @@ class CompraPaqueteController extends Controller
         $compra->refresh();
         $compra->load(['paquete.servicios', 'pagos']);
 
+        if ($compra->pagos->contains('estado', \App\Enums\EstadoPagoEnum::FALLIDO)) {
+            $compra->pagos()->delete();
+            $compra->delete();
+            return response()->json([
+                'message' => 'Error en el procesamiento del pago. Operación cancelada.'
+            ], 422);
+        }
+
         return response()->json([
             'message' => 'Compra registrada y proceso de pago iniciado.',
             'data' => new CompraPaqueteResource($compra),

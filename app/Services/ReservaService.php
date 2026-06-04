@@ -198,12 +198,13 @@ class ReservaService
      */
     public function cancelar(Reserva $reserva, \App\Models\Usuario $usuario): Reserva
     {
-        // Si el usuario es cliente, validar política de 10 horas
+        // Si el usuario es cliente, validar política de cancelación configurable
         if ($usuario->esCliente()) {
+            $limiteCancelacionHoras = $reserva->servicio->limite_cancelacion_horas ?? 10;
             $horasFaltantes = now()->diffInHours(Carbon::parse($reserva->fecha_hora_inicio), false);
             
-            if ($horasFaltantes < 10) {
-                throw new Exception("Política de cancelación: No puedes cancelar con menos de 10 horas de anticipación.");
+            if ($horasFaltantes < $limiteCancelacionHoras) {
+                throw new Exception("Política de cancelación: No puedes cancelar con menos de {$limiteCancelacionHoras} horas de anticipación.");
             }
         }
 

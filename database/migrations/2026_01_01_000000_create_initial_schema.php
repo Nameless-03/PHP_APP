@@ -121,7 +121,11 @@ return new class extends Migration
             $table->id();
             $table->integer('sesiones_disponibles');
             $table->dateTime('fecha_compra')->useCurrent();
-            $table->enum('estado', ['activo', 'agotado', 'vencido'])->default('activo');
+            if (DB::getDriverName() === 'sqlite') {
+                $table->string('estado')->default('activo');
+            } else {
+                $table->enum('estado', ['activo', 'agotado', 'vencido'])->default('activo');
+            }
             $table->foreignId('id_cliente')->constrained('clientes', 'id_usuario')->onDelete('cascade');
             $table->foreignId('id_paquete')->constrained('paquetes')->onDelete('cascade');
             $table->timestamps();
