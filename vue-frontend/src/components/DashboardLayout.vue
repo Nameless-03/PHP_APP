@@ -38,6 +38,7 @@
         <template v-else>
           <v-list-item v-if="isProfesional" prepend-icon="mdi-account-details" title="Mi Perfil" value="profile" to="/profile"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-magnify" title="Buscar Servicios" value="search" to="/buscar"></v-list-item>
+          <v-list-item v-if="!isProfesional" prepend-icon="mdi-account-group" title="Profesionales" value="profesionales" to="/profesionales"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-package-variant" title="Comprar Paquetes" value="comprar-paquetes" to="/comprar-paquetes"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-briefcase-account" title="Mis Paquetes" value="mis-paquetes" to="/mis-paquetes"></v-list-item>
           <v-list-item v-if="isProfesional" prepend-icon="mdi-briefcase-edit" title="Mis Servicios" value="services" to="/services"></v-list-item>

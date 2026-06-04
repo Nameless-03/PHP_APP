@@ -17,6 +17,7 @@ import MiAgendaView from '../views/MiAgendaView.vue'
 
 import AdminUsuariosView from '../views/AdminUsuariosView.vue'
 import AdminMonitoreoView from '../views/AdminMonitoreoView.vue'
+import ProfesionalesView from '../views/ProfesionalesView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -63,6 +64,12 @@ const router = createRouter({
       path: '/buscar',
       name: 'search',
       component: BusquedaServiciosView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/profesionales',
+      name: 'profesionales',
+      component: ProfesionalesView,
       meta: { requiresAuth: true }
     },
     {

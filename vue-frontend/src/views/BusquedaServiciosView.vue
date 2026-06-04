@@ -163,23 +163,23 @@
 
                 <v-divider class="mb-3"></v-divider>
 
-                <div class="d-flex align-center">
+                <div class="d-flex align-center cursor-pointer prof-link" @click.stop="verPerfilProfesional(service.profesional?.id_usuario)" title="Ver perfil del profesional">
                   <v-avatar size="36" color="primary-lighten-1" class="mr-3">
                     <span class="text-caption font-weight-bold text-white">
                       {{ service.profesional?.nombre ? service.profesional.nombre.substring(0, 2).toUpperCase() : 'PR' }}
                     </span>
                   </v-avatar>
                   <div>
-                    <div class="text-subtitle-2 font-weight-medium text-truncate" style="max-width: 140px;">
+                    <div class="text-subtitle-2 font-weight-bold text-truncate text-primary" style="max-width: 140px;">
                       {{ service.profesional?.nombre || 'Profesional Anónimo' }}
                     </div>
                     <div 
                       class="d-flex align-center text-caption text-warning font-weight-bold rating-clickable"
-                      @click.stop="verOpiniones(service.profesional)"
-                      title="Haga clic para ver opiniones escritas de este profesional"
+                      @click.stop="verPerfilProfesional(service.profesional?.id_usuario)"
+                      title="Ver calificaciones de este profesional"
                     >
                       <v-icon size="small" class="mr-1">mdi-star</v-icon>
-                      {{ service.profesional?.reputacion?.toFixed(1) || '0.0' }} (Ver opiniones)
+                      {{ service.profesional?.reputacion?.toFixed(1) || '0.0' }} (Ver perfil)
                     </div>
                   </div>
                 </div>
@@ -378,6 +378,11 @@ const verOpiniones = async (profesional) => {
   }
 }
 
+const verPerfilProfesional = (id_usuario) => {
+  if (!id_usuario) return
+  router.push({ name: 'profesionales', query: { id: id_usuario } })
+}
+
 const modalidades = [
   { title: 'Cualquiera', value: null },
   { title: 'Presencial', value: 'presencial' },
@@ -574,6 +579,12 @@ const reservarServicio = (id_servicio) => {
 }
 .rating-clickable:hover {
   color: #d48c00 !important;
+}
+.prof-link {
+  transition: transform 0.2s ease;
+}
+.prof-link:hover {
+  transform: scale(1.02);
 }
 .italic {
   font-style: italic;

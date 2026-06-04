@@ -84,7 +84,7 @@ class CalificacionController extends Controller
         $calificaciones = Calificacion::whereHas('reserva.servicio', function ($q) use ($idProfesional) {
             $q->where('id_profesional', $idProfesional);
         })
-        ->with(['reserva.cliente.usuario:id_usuario,nombre'])
+        ->with(['reserva.cliente.usuario:id,nombre'])
         ->orderByDesc('fecha')
         ->get()
         ->map(function ($c) {
