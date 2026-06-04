@@ -13,7 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         // Drop the enum check constraint in PostgreSQL to allow 'pendiente' status
-        DB::statement("ALTER TABLE compras_paquete DROP CONSTRAINT IF EXISTS compras_paquete_estado_check;");
+        if (DB::getDriverName() !== 'mysql') {
+            DB::statement("ALTER TABLE compras_paquete DROP CONSTRAINT IF EXISTS compras_paquete_estado_check;");
+        }
     }
 
     /**
@@ -22,6 +24,8 @@ return new class extends Migration
     public function down(): void
     {
         // Restore check constraint if needed
-        DB::statement("ALTER TABLE compras_paquete ADD CONSTRAINT compras_paquete_estado_check CHECK (estado::text = ANY (ARRAY['activo'::charactervarying, 'agotado'::charactervarying, 'vencido'::charactervarying]::text[]));");
+        if (DB::getDriverName() !== 'mysql') {
+            DB::statement("ALTER TABLE compras_paquete ADD CONSTRAINT compras_paquete_estado_check CHECK (estado::text = ANY (ARRAY['activo'::charactervarying, 'agotado'::charactervarying, 'vencido'::charactervarying]::text[]));");
+        }
     }
 };
