@@ -1,5 +1,11 @@
 <template>
   <v-layout class="bg-grey-lighten-4">
+    <!-- Barra superior de estado Offline -->
+    <v-system-bar v-if="isOffline" color="error" class="justify-center font-weight-bold text-white py-4" style="z-index: 1009; height: auto;">
+      <v-icon start class="mr-2">mdi-wifi-off</v-icon>
+      Sin conexión a Internet. Mostrando datos locales (Modo Offline).
+    </v-system-bar>
+
     <v-navigation-drawer
       v-model="drawer"
       :rail="rail && $vuetify.display.mdAndUp"
@@ -47,6 +53,15 @@
           <v-list-item prepend-icon="mdi-calendar-check" title="Mis Reservas" value="reservas" to="/mis-reservas"></v-list-item>
           <v-list-item prepend-icon="mdi-calendar-multiselect" title="Mi Agenda" value="agenda" to="/mi-agenda"></v-list-item>
           <v-list-item prepend-icon="mdi-video" title="Videollamadas" value="videollamadas" to="/videollamadas"></v-list-item>
+          <!-- Opción para instalar la PWA -->
+          <v-list-item
+            v-if="canInstall"
+            prepend-icon="mdi-download"
+            title="Instalar App"
+            value="install-pwa"
+            @click="instalarPwa"
+            class="bg-amber-darken-3 font-weight-bold text-white mt-4"
+          ></v-list-item>
         </template>
 
       </v-list>
@@ -68,6 +83,10 @@
         <v-app-bar-nav-icon color="grey-darken-3" class="d-md-none mr-2" @click="drawer = !drawer"></v-app-bar-nav-icon>
         <v-app-bar-title class="text-h5 font-weight-bold text-grey-darken-3">{{ title }}</v-app-bar-title>
         <v-spacer></v-spacer>
+        <!-- Botón de permiso de notificaciones PWA -->
+        <v-btn icon @click="solicitarPermisoNotificacion" class="mr-2" :title="tituloPermisoNotificacion">
+          <v-icon color="grey-darken-2">{{ iconoPermisoNotificacion }}</v-icon>
+        </v-btn>
         <v-menu
           v-model="menuNotificaciones"
           :close-on-content-click="false"
@@ -175,6 +194,9 @@
       icon="mdi-alert-circle-outline"
       @confirm="logout"
     />
+
+    <!-- Registro de Service Worker PWA -->
+    <RegisterSW />
   </v-layout>
 </template>
 
@@ -183,6 +205,7 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import ConfirmationDialog from './ConfirmationDialog.vue'
+import RegisterSW from './RegisterSW.vue'
 
 const props = defineProps({
   title: {
@@ -216,6 +239,74 @@ const bubbleHidden = ref(false)
 const menuNotificaciones = ref(false)
 const notificaciones = ref([])
 let pollingInterval = null
+
+// PWA: Estado de conexión
+const isOffline = ref(!navigator.onLine)
+const actualizarEstadoConexion = () => {
+  isOffline.value = !navigator.onLine
+}
+
+// PWA: Instalar Aplicación
+const installPromptEvent = ref(null)
+const canInstall = computed(() => !!installPromptEvent.value)
+
+const capturarPromptInstalacion = (e) => {
+  e.preventDefault()
+  installPromptEvent.value = e
+}
+
+const instalarPwa = async () => {
+  if (!installPromptEvent.value) return
+  installPromptEvent.value.prompt()
+  const { outcome } = await installPromptEvent.value.userChoice
+  console.log(`PWA install prompt result: ${outcome}`)
+  installPromptEvent.value = null
+}
+
+// PWA: Permiso y envío de notificaciones locales
+const permisoNotificacion = ref(typeof Notification !== 'undefined' ? Notification.permission : 'denied')
+
+const iconoPermisoNotificacion = computed(() => {
+  if (permisoNotificacion.value === 'granted') return 'mdi-bell-ring-outline'
+  if (permisoNotificacion.value === 'denied') return 'mdi-bell-off-outline'
+  return 'mdi-bell-plus-outline'
+})
+
+const tituloPermisoNotificacion = computed(() => {
+  if (permisoNotificacion.value === 'granted') return 'Notificaciones activadas (clic para enviar prueba)'
+  if (permisoNotificacion.value === 'denied') return 'Notificaciones bloqueadas por el navegador'
+  return 'Activar notificaciones de la plataforma'
+})
+
+const solicitarPermisoNotificacion = async () => {
+  if (typeof Notification === 'undefined') {
+    alert('Este navegador no soporta notificaciones.')
+    return
+  }
+  
+  if (Notification.permission === 'default') {
+    const permission = await Notification.requestPermission()
+    permisoNotificacion.value = permission
+    if (permission === 'granted') {
+      lanzarNotificacionPrueba()
+    }
+  } else if (Notification.permission === 'granted') {
+    lanzarNotificacionPrueba()
+  } else {
+    alert('Has bloqueado las notificaciones. Para habilitarlas, por favor cambia los permisos en la barra de direcciones de tu navegador.')
+  }
+}
+
+const lanzarNotificacionPrueba = () => {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    new Notification('Plataforma Profesional', {
+      body: '¡Notificaciones activadas con éxito! Recibirás recordatorios de turnos y confirmaciones aquí.',
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      vibrate: [200, 100, 200]
+    })
+  }
+}
 
 const cargarNotificaciones = async () => {
   try {
@@ -282,10 +373,18 @@ const formatTimeAgo = (dateStr) => {
 onMounted(() => {
   cargarNotificaciones()
   pollingInterval = setInterval(cargarNotificaciones, 30000) // Poll cada 30 segundos
+  
+  // PWA listeners
+  window.addEventListener('online', actualizarEstadoConexion)
+  window.addEventListener('offline', actualizarEstadoConexion)
+  window.addEventListener('beforeinstallprompt', capturarPromptInstalacion)
 })
 
 onUnmounted(() => {
   if (pollingInterval) clearInterval(pollingInterval)
+  window.removeEventListener('online', actualizarEstadoConexion)
+  window.removeEventListener('offline', actualizarEstadoConexion)
+  window.removeEventListener('beforeinstallprompt', capturarPromptInstalacion)
 })
 
 const logout = async () => {
