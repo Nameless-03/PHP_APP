@@ -91,8 +91,8 @@ class AuthController extends Controller
      */
     public function redirectToGoogle(Request $request)
     {
-        $clientId = env('GOOGLE_CLIENT_ID');
-        $redirectUri = env('GOOGLE_REDIRECT_URI', 'http://localhost:8000/api/auth/google/callback');
+        $clientId = config('services.google.client_id');
+        $redirectUri = config('services.google.redirect') ?? 'http://localhost:8000/api/auth/google/callback';
 
         if (empty($clientId) || $clientId === 'mock') {
             // In mock mode, immediately redirect to our callback endpoint with a mock code
@@ -116,15 +116,15 @@ class AuthController extends Controller
     public function handleGoogleCallback(Request $request)
     {
         $code = $request->query('code');
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('services.frontend_url') ?? 'http://localhost:5173';
 
         if (!$code) {
             return redirect($frontendUrl . '/login?error=auth_failed');
         }
 
-        $clientId = env('GOOGLE_CLIENT_ID');
-        $clientSecret = env('GOOGLE_CLIENT_SECRET');
-        $redirectUri = env('GOOGLE_REDIRECT_URI', 'http://localhost:8000/api/auth/google/callback');
+        $clientId = config('services.google.client_id');
+        $clientSecret = config('services.google.client_secret');
+        $redirectUri = config('services.google.redirect') ?? 'http://localhost:8000/api/auth/google/callback';
 
         $googleUser = null;
 

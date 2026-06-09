@@ -34,7 +34,7 @@ class ReservaEstadoNotificacion extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database']; // Simulamos database guardando en nuestra tabla personalizada si es necesario
+        return ['mail', 'database', 'broadcast']; // Guardamos en mail, bd y emitimos por ws
     }
 
     /**
@@ -60,12 +60,12 @@ class ReservaEstadoNotificacion extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        // En un proyecto real de Laravel esto iría a la tabla `notifications`
-        // Pero tenemos nuestra propia tabla `notificaciones` mapeada en Eloquent
-        // Podríamos guardar directamente usando Eloquent en el evento.
         return [
-            'reserva_id' => $this->reserva->id,
+            'titulo' => $this->titulo,
             'mensaje' => $this->mensaje,
+            'reserva_id' => $this->reserva->id,
+            'tipo' => 'otro',
+            'color' => 'primary'
         ];
     }
 }

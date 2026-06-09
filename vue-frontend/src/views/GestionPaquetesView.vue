@@ -290,11 +290,8 @@ const loadData = async () => {
 
   try {
     // 1. Cargar servicios del profesional
-    const servicesResponse = await fetch(`/api/servicios?id_profesional=${user.id}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+    const servicesResponse = await fetch(`/api/servicios?id_profesional=${user.value.id}`, {
+      headers: getAuthHeaders()
     })
     if (servicesResponse.ok) {
       const data = await servicesResponse.json()
@@ -303,10 +300,7 @@ const loadData = async () => {
 
     // 2. Cargar paquetes del profesional
     const packagesResponse = await fetch('/api/paquetes', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
     if (packagesResponse.ok) {
       const data = await packagesResponse.json()

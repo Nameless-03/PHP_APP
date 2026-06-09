@@ -10,9 +10,9 @@ class LiveKitService
 
     public function __construct()
     {
-        $this->apiKey = env('LIVEKIT_API_KEY', 'devkey');
-        $this->apiSecret = env('LIVEKIT_API_SECRET', 'secret');
-        $this->livekitUrl = env('LIVEKIT_URL', 'ws://localhost:7880');
+        $this->apiKey = config('services.livekit.api_key') ?? 'devkey';
+        $this->apiSecret = config('services.livekit.api_secret') ?? 'secret';
+        $this->livekitUrl = config('services.livekit.url') ?? 'ws://localhost:7880';
     }
 
     /**

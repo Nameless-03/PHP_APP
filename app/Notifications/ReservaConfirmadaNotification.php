@@ -25,13 +25,13 @@ class ReservaConfirmadaNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database']; // Guardamos en bd para la campana de notificaciones
+        return ['database', 'broadcast']; // Guardamos en bd y emitimos por ws
     }
 
     /**
      * Get the array representation of the notification.
      */
-    public function toDatabase(object $notifiable): array
+    public function toArray(object $notifiable): array
     {
         $fecha = \Carbon\Carbon::parse($this->reserva->fecha_hora_inicio)->format('d/m/Y H:i');
         

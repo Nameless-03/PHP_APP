@@ -47,4 +47,23 @@ return [
         'client_secret' => env('PAYPAL_CLIENT_SECRET'),
     ],
 
+    'nosql' => [
+        'driver' => env('NOSQL_LOG_DRIVER', 'redis'),
+        'mongodb' => [
+            'host' => env('MONGODB_HOST', 'mongodb'),
+            'port' => env('MONGODB_PORT', '27017'),
+            'database' => env('MONGODB_DATABASE', 'laravel_logs'),
+            'username' => env('MONGODB_USERNAME', 'admin'),
+            'password' => env('MONGODB_PASSWORD', 'secret'),
+        ],
+    ],
+
+    'livekit' => [
+        'api_key' => env('LIVEKIT_API_KEY', 'devkey'),
+        'api_secret' => env('LIVEKIT_API_SECRET', 'secret'),
+        'url' => env('LIVEKIT_URL', 'ws://localhost:7880'),
+    ],
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
 ];

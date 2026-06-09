@@ -11,7 +11,7 @@
       :rail="rail && $vuetify.display.mdAndUp"
       :permanent="$vuetify.display.mdAndUp"
       @click="rail = false"
-      class="bg-primary-darken-1"
+      class="bg-primary-darken-1 fixed-sidebar"
       theme="dark"
     >
       <v-list-item
@@ -206,6 +206,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import ConfirmationDialog from './ConfirmationDialog.vue'
 import RegisterSW from './RegisterSW.vue'
+import echo from '../plugins/echo'
 
 const props = defineProps({
   title: {
@@ -370,9 +371,58 @@ const formatTimeAgo = (dateStr) => {
   return `Hace ${Math.round(diffHrs / 24)} d`
 }
 
+let channelSubscribed = null
+
+const escucharCanalPrivado = (userId) => {
+  if (channelSubscribed) return
+  channelSubscribed = `App.Models.Usuario.${userId}`
+  
+  echo.private(channelSubscribed)
+    .notification((notification) => {
+      const newNotif = {
+        id: notification.id || Math.random().toString(),
+        created_at: new Date().toISOString(),
+        read_at: null,
+        data: {
+          titulo: notification.titulo || 'Nueva Notificación',
+          mensaje: notification.mensaje || '',
+          tipo: notification.tipo || 'otro',
+          color: notification.color || 'primary'
+        }
+      }
+      
+      // Añadir la nueva notificación al inicio de la lista
+      notificaciones.value.unshift(newNotif)
+      bubbleHidden.value = false
+      
+      // Lanzar notificación nativa PWA si se tienen permisos
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(newNotif.data.titulo, {
+          body: newNotif.data.mensaje,
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png'
+        })
+      }
+    })
+}
+
+const dejarCanalPrivado = () => {
+  if (channelSubscribed) {
+    echo.leave(channelSubscribed)
+    channelSubscribed = null
+  }
+}
+
+watch(() => user.value?.id, (newId) => {
+  if (newId) {
+    escucharCanalPrivado(newId)
+  } else {
+    dejarCanalPrivado()
+  }
+}, { immediate: true })
+
 onMounted(() => {
   cargarNotificaciones()
-  pollingInterval = setInterval(cargarNotificaciones, 30000) // Poll cada 30 segundos
   
   // PWA listeners
   window.addEventListener('online', actualizarEstadoConexion)
@@ -381,7 +431,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
+  dejarCanalPrivado()
   window.removeEventListener('online', actualizarEstadoConexion)
   window.removeEventListener('offline', actualizarEstadoConexion)
   window.removeEventListener('beforeinstallprompt', capturarPromptInstalacion)
@@ -394,6 +444,10 @@ const logout = async () => {
 </script>
 
 <style scoped>
+.fixed-sidebar {
+  position: fixed !important;
+  height: 100vh !important;
+}
 .bg-primary-darken-1 {
   background-color: #8C6D46 !important;
 }

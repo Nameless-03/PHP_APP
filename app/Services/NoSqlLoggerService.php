@@ -11,7 +11,7 @@ class NoSqlLoggerService
 
     public function __construct()
     {
-        $this->driver = env('NOSQL_LOG_DRIVER', 'redis');
+        $this->driver = config('services.nosql.driver') ?? 'redis';
     }
 
     /**
@@ -35,11 +35,11 @@ class NoSqlLoggerService
                 Redis::rpush('nosql_system_logs', json_encode($logData));
                 Redis::ltrim('nosql_system_logs', -1000, -1);
             } elseif ($this->driver === 'mongodb') {
-                $host = env('MONGODB_HOST', 'mongodb');
-                $port = env('MONGODB_PORT', '27017');
-                $dbName = env('MONGODB_DATABASE', 'laravel_logs');
-                $username = env('MONGODB_USERNAME', 'admin');
-                $password = env('MONGODB_PASSWORD', 'secret');
+                $host = config('services.nosql.mongodb.host') ?? 'mongodb';
+                $port = config('services.nosql.mongodb.port') ?? '27017';
+                $dbName = config('services.nosql.mongodb.database') ?? 'laravel_logs';
+                $username = config('services.nosql.mongodb.username') ?? 'admin';
+                $password = config('services.nosql.mongodb.password') ?? 'secret';
 
                 if (class_exists(\MongoDB\Client::class)) {
                     $uri = "mongodb://{$username}:{$password}@{$host}:{$port}/?authSource=admin";
@@ -75,11 +75,11 @@ class NoSqlLoggerService
                 $logs = array_map(fn($item) => json_decode($item, true), $rawLogs);
                 return array_reverse($logs); // Newest first
             } elseif ($this->driver === 'mongodb') {
-                $host = env('MONGODB_HOST', 'mongodb');
-                $port = env('MONGODB_PORT', '27017');
-                $dbName = env('MONGODB_DATABASE', 'laravel_logs');
-                $username = env('MONGODB_USERNAME', 'admin');
-                $password = env('MONGODB_PASSWORD', 'secret');
+                $host = config('services.nosql.mongodb.host') ?? 'mongodb';
+                $port = config('services.nosql.mongodb.port') ?? '27017';
+                $dbName = config('services.nosql.mongodb.database') ?? 'laravel_logs';
+                $username = config('services.nosql.mongodb.username') ?? 'admin';
+                $password = config('services.nosql.mongodb.password') ?? 'secret';
 
                 if (class_exists(\MongoDB\Client::class)) {
                     $uri = "mongodb://{$username}:{$password}@{$host}:{$port}/?authSource=admin";
