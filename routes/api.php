@@ -22,6 +22,10 @@ use App\Http\Controllers\Api\VideollamadaController;
 |--------------------------------------------------------------------------
 */
 
+Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+    return \Illuminate\Support\Facades\Broadcast::auth($request);
+})->middleware('auth:sanctum');
+
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register/cliente', [AuthController::class, 'registerCliente']);
