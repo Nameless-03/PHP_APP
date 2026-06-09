@@ -79,6 +79,9 @@ if (Test-Path "docker-compose.yml") {
     # Iniciar el escuchador de colas de Docker en una ventana aparte para procesar tareas asíncronas
     Start-Process "cmd.exe" -ArgumentList "/k title Queue Worker (Docker) && cd ""$backendPath"" && echo Esperando a que los contenedores inicien para activar el Queue Listener... && timeout /t 20 && docker-compose exec laravel.test php artisan queue:listen --tries=1 --timeout=0"
 
+    # Iniciar el servidor de WebSockets Reverb en Docker
+    Start-Process "cmd.exe" -ArgumentList "/k title Reverb WebSocket Server (Docker) && cd ""$backendPath"" && echo Esperando a que los contenedores inicien para activar Reverb... && timeout /t 20 && docker-compose exec laravel.test php artisan reverb:start --host=0.0.0.0 --port=8080"
+
     $rebuild = Read-Host "¿Deseas forzar la limpieza y reconstrucción de los contenedores? (s/N)"
     if ($rebuild -match "^[sS]") {
         Write-Host "      Limpiando contenedores antiguos y forzando reconstrucción (Esto tomará varios minutos)..." -ForegroundColor Yellow
@@ -97,6 +100,9 @@ if (Test-Path "docker-compose.yml") {
     
     # Iniciar el escuchador de colas local en una ventana aparte para procesar tareas asíncronas
     Start-Process "cmd.exe" -ArgumentList "/k title Queue Worker (Local) && cd ""$backendPath"" && echo Esperando para activar el Queue Listener... && timeout /t 3 && php artisan queue:listen --tries=1 --timeout=0"
+
+    # Iniciar el servidor de WebSockets Reverb local
+    Start-Process "cmd.exe" -ArgumentList "/k title Reverb WebSocket Server (Local) && cd ""$backendPath"" && echo Iniciando Reverb WebSocket Server... && php artisan reverb:start --host=0.0.0.0 --port=8080"
 
     Start-Process "cmd.exe" -ArgumentList "/k title Backend Laravel && cd ""$backendPath"" && $migrateCmdLocal php artisan serve"
 }

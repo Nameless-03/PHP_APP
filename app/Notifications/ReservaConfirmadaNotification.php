@@ -3,10 +3,11 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use App\Models\Reserva;
 
-class ReservaConfirmadaNotification extends Notification
+class ReservaConfirmadaNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
