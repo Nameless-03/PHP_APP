@@ -128,17 +128,56 @@
                               </div>
                             </div>
 
-                            <!-- Botón de Videollamada (Redondeado y a la derecha) -->
-                            <v-btn 
-                              v-if="(reserva.servicio?.modalidad === 'remota' || reserva.servicio?.modalidad === 'hibrida') && ['pagada', 'confirmada', 'en_curso'].includes(reserva.estado)" 
-                              color="secondary"
-                              class="text-none font-weight-bold rounded-pill px-4" 
-                              prepend-icon="mdi-video"
-                              elevation="1"
-                              @click="joinCall(reserva.id)"
-                            >
-                              Unirse a videollamada
-                            </v-btn>
+                            <div class="d-flex align-center flex-wrap gap-2">
+                              <!-- Botón de Videollamada (Redondeado y a la derecha) -->
+                              <v-btn 
+                                v-if="(reserva.servicio?.modalidad === 'remota' || reserva.servicio?.modalidad === 'hibrida') && ['pagada', 'confirmada', 'en_curso'].includes(reserva.estado)" 
+                                color="secondary"
+                                class="text-none font-weight-bold rounded-pill px-4" 
+                                prepend-icon="mdi-video"
+                                elevation="1"
+                                @click="joinCall(reserva.id)"
+                              >
+                                Unirse a videollamada
+                              </v-btn>
+
+                              <!-- Acciones de Estado (Solo Profesional/Admin) -->
+                              <template v-if="!isCliente">
+                                <v-btn
+                                  v-if="['confirmada', 'pagada'].includes(reserva.estado)"
+                                  color="primary"
+                                  class="text-none font-weight-bold rounded-pill px-4"
+                                  prepend-icon="mdi-play"
+                                  elevation="1"
+                                  :loading="actualizandoEstadoId === reserva.id"
+                                  @click="actualizarEstado(reserva.id, 'en_curso')"
+                                >
+                                  Iniciar
+                                </v-btn>
+                                <v-btn
+                                  v-if="['confirmada', 'pagada'].includes(reserva.estado)"
+                                  color="error"
+                                  variant="outlined"
+                                  class="text-none font-weight-bold rounded-pill px-4"
+                                  prepend-icon="mdi-account-off"
+                                  :loading="actualizandoEstadoId === reserva.id"
+                                  @click="actualizarEstado(reserva.id, 'no_asistida')"
+                                >
+                                  No Asistió
+                                </v-btn>
+                                <v-btn
+                                  v-if="reserva.estado === 'en_curso'"
+                                  color="success"
+                                  class="text-none font-weight-bold rounded-pill px-4 text-white"
+                                  prepend-icon="mdi-check-all"
+                                  elevation="1"
+                                  :loading="actualizandoEstadoId === reserva.id"
+                                  @click="actualizarEstado(reserva.id, 'finalizada')"
+                                >
+                                  Finalizar
+                                </v-btn>
+                              </template>
+                            </div>
                           </div>
                         </v-card-text>
                       </v-card>
@@ -220,6 +259,14 @@
         </div>
       </v-card>
     </v-dialog>
+
+    <!-- Snackbar para Notificaciones de Operaciones -->
+    <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="4000" location="top">
+      {{ snackbarText }}
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snackbarShow = false">Cerrar</v-btn>
+      </template>
+    </v-snackbar>
   </DashboardLayout>
 </template>
 
@@ -229,13 +276,20 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useAuth } from '../composables/useAuth.js'
+import { useSnackbar } from '../composables/useSnackbar.js'
 
 const router = useRouter()
+const { isCliente: authIsCliente } = useAuth()
+const { show: snackbarShow, text: snackbarText, color: snackbarColor, showSnackbar } = useSnackbar()
+
 // --- ESTADO ---
 const fechaSeleccionada = ref(new Date())
 const reservas = ref([])
 const cargando = ref(true)
-const isCliente = ref(false)
+const isCliente = computed(() => authIsCliente.value)
+
+const actualizandoEstadoId = ref(null)
 
 // Map state
 const mapDialog = ref(false)
@@ -255,7 +309,6 @@ const turnosDelDia = computed(() => {
   
   return reservas.value.filter(r => {
     // ignorar las canceladas o rechazadas para que la agenda se vea limpia, o mostrarlas pero grises.
-    // vamos a mostrar todas para tener la info completa, o quizas esconder las canceladas.
     if(r.estado === 'cancelada' || r.estado === 'rechazada') return false;
     
     return r.fecha_hora_inicio.startsWith(fechaStr)
@@ -406,7 +459,9 @@ const getColorEstado = (estado) => ({
   confirmada: 'success', 
   cancelada: 'error', 
   pagada: 'primary', 
-  finalizada: 'grey' 
+  en_curso: 'info',
+  finalizada: 'grey',
+  no_asistida: 'grey'
 }[estado] || 'grey')
 
 const getModalityColor = (modality) => {
@@ -418,9 +473,31 @@ const getModalityColor = (modality) => {
   }
 }
 
+const actualizarEstado = async (id, nuevoEstado) => {
+  actualizandoEstadoId.value = id
+  try {
+    const res = await fetch(`/api/reservas/${id}/estado`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ estado: nuevoEstado })
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error(data.message || 'Error al actualizar el estado')
+    }
+
+    showSnackbar(`Estado de la reserva actualizado a "${nuevoEstado}".`, 'success')
+    await cargarReservas()
+  } catch (err) {
+    console.error('Error al cambiar de estado:', err)
+    showSnackbar(err.message || 'No se pudo cambiar el estado de la reserva.', 'error')
+  } finally {
+    actualizandoEstadoId.value = null
+  }
+}
+
 onMounted(() => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
-  isCliente.value = user.role !== 'profesional'
   cargarReservas()
 })
 </script>

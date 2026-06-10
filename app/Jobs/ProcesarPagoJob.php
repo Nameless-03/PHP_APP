@@ -106,9 +106,7 @@ class ProcesarPagoJob implements ShouldQueue
             if ($this->pago->id_reserva) {
                 $reserva = \App\Models\Reserva::with('servicio')->find($this->pago->id_reserva);
                 if ($reserva) {
-                    $reserva->update([
-                        'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
-                    ]);
+                    app(\App\Services\ReservaService::class)->cambiarEstado($reserva, \App\Enums\EstadoReservaEnum::PAGADA);
 
                     $cliente = $reserva->cliente->usuario;
                     $mensaje = "El pago de tu reserva para '{$reserva->servicio->nombre}' fue aprobado con éxito. ¡Tu turno está pagado!";

@@ -344,5 +344,95 @@ class ReservaTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals(\App\Enums\EstadoReservaEnum::CANCELADA->value, $reserva->fresh()->estado->value);
     }
+
+    /**
+     * Test de transiciones de estado válidas y prohibidas.
+     */
+    public function test_transiciones_de_estado_respetan_la_maquina_de_estados(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 1. PENDIENTE -> FINALIZADA (Invalida)
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'finalizada'
+            ]);
+        $response->assertStatus(422);
+
+        // 2. PENDIENTE -> CONFIRMADA (Valida)
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'confirmada'
+            ]);
+        $response->assertStatus(200);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CONFIRMADA->value, $reserva->fresh()->estado->value);
+
+        // 3. CONFIRMADA -> EN_CURSO (Valida)
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'en_curso'
+            ]);
+        $response->assertStatus(200);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::EN_CURSO->value, $reserva->fresh()->estado->value);
+
+        // 4. EN_CURSO -> PENDIENTE (Invalida)
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'pendiente'
+            ]);
+        $response->assertStatus(422);
+
+        // 5. EN_CURSO -> FINALIZADA (Valida)
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'finalizada'
+            ]);
+        $response->assertStatus(200);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::FINALIZADA->value, $reserva->fresh()->estado->value);
+
+        // 6. FINALIZADA -> CANCELADA (Invalida, terminal)
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'cancelada'
+            ]);
+        $response->assertStatus(422);
+    }
+
+    /**
+     * Test de que el admin puede gestionar el estado de las reservas.
+     */
+    public function test_administrador_puede_cambiar_estado_de_reserva(): void
+    {
+        $adminUser = Usuario::create([
+            'nombre' => 'Admin Test',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password123'),
+            'role' => RoleEnum::ADMIN,
+        ]);
+
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $response = $this->actingAs($adminUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'confirmada'
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CONFIRMADA->value, $reserva->fresh()->estado->value);
+    }
 }
 

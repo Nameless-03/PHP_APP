@@ -158,7 +158,7 @@
             },
             "time": "2024-08-07T11:06:28+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "Clue\\Redis\\Protocol\\": "src/"
@@ -230,7 +230,7 @@
             },
             "time": "2025-01-03T16:18:33+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "Clue\\React\\Redis\\": "src/"
@@ -682,7 +682,7 @@
             },
             "time": "2023-08-08T05:53:35+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "Evenement\\": "src/"
@@ -1956,7 +1956,7 @@
                     ]
                 }
             },
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "Laravel\\Reverb\\": "src/"
@@ -4904,7 +4904,7 @@
                     "dev-master": "5.0-dev"
                 }
             },
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "Pusher\\": "src/"
@@ -5168,7 +5168,7 @@
             },
             "time": "2026-06-06T14:34:23+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "Ratchet\\RFC6455\\": "src"
@@ -5227,7 +5227,7 @@
             },
             "time": "2022-11-30T15:59:55+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "React\\Cache\\": "src/"
@@ -5306,7 +5306,7 @@
             },
             "time": "2025-11-18T19:34:28+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "React\\Dns\\": "src/"
@@ -5383,7 +5383,7 @@
             },
             "time": "2025-11-17T20:46:25+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "React\\EventLoop\\": "src/"
@@ -5456,7 +5456,7 @@
             },
             "time": "2025-08-19T18:57:03+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "files": [
                     "src/functions_include.php"
@@ -5533,7 +5533,7 @@
             },
             "time": "2024-06-04T14:27:45+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "files": [
                     "src/functions_include.php"
@@ -5621,7 +5621,7 @@
             },
             "time": "2025-11-19T20:47:34+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "React\\Socket\\": "src/"
@@ -5699,7 +5699,7 @@
             },
             "time": "2024-06-11T12:45:25+00:00",
             "type": "library",
-            "installation-source": "dist",
+            "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "React\\Stream\\": "src/"

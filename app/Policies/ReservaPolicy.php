@@ -25,6 +25,7 @@ class ReservaPolicy
         // El cliente puede cancelarla
         // El profesional puede confirmarla, finalizarla, marcar como no asistida
         return $usuario->id === $reserva->id_cliente || 
-               $usuario->id === $reserva->servicio->id_profesional;
+               $usuario->id === $reserva->servicio->id_profesional ||
+               $usuario->esAdmin();
     }
 }

@@ -158,11 +158,54 @@ class ReservaService
     }
 
     /**
+     * Verificar si una transición de estado es válida.
+     */
+    public function esTransicionValida(EstadoReservaEnum $estadoActual, EstadoReservaEnum $nuevoEstado): bool
+    {
+        if ($estadoActual === $nuevoEstado) {
+            return true;
+        }
+
+        $transiciones = [
+            EstadoReservaEnum::PENDIENTE->value => [
+                EstadoReservaEnum::CONFIRMADA->value,
+                EstadoReservaEnum::PAGADA->value,
+                EstadoReservaEnum::CANCELADA->value,
+            ],
+            EstadoReservaEnum::CONFIRMADA->value => [
+                EstadoReservaEnum::PAGADA->value,
+                EstadoReservaEnum::EN_CURSO->value,
+                EstadoReservaEnum::CANCELADA->value,
+                EstadoReservaEnum::NO_ASISTIDA->value,
+            ],
+            EstadoReservaEnum::PAGADA->value => [
+                EstadoReservaEnum::CONFIRMADA->value,
+                EstadoReservaEnum::EN_CURSO->value,
+                EstadoReservaEnum::CANCELADA->value,
+                EstadoReservaEnum::NO_ASISTIDA->value,
+            ],
+            EstadoReservaEnum::EN_CURSO->value => [
+                EstadoReservaEnum::FINALIZADA->value,
+            ],
+            // Estados terminales
+            EstadoReservaEnum::FINALIZADA->value => [],
+            EstadoReservaEnum::CANCELADA->value => [],
+            EstadoReservaEnum::NO_ASISTIDA->value => [],
+        ];
+
+        return in_array($nuevoEstado->value, $transiciones[$estadoActual->value] ?? []);
+    }
+
+    /**
      * Cambiar el estado de una reserva.
      */
     public function cambiarEstado(Reserva $reserva, EstadoReservaEnum $nuevoEstado): Reserva
     {
         $estadoAnterior = $reserva->estado->value;
+
+        if (!$this->esTransicionValida($reserva->estado, $nuevoEstado)) {
+            throw new Exception("Transición de estado no válida de '{$reserva->estado->value}' a '{$nuevoEstado->value}'.");
+        }
         
         return DB::transaction(function () use ($reserva, $nuevoEstado, $estadoAnterior) {
             // Reembolsar sesión si pasa a cancelada y no estaba ya cancelada
