@@ -651,7 +651,7 @@
             color="warning"
             active-color="warning"
             hover
-            half-increments="false"
+            :half-increments="false"
             size="x-large"
             class="mb-4"
           ></v-rating>
@@ -1009,13 +1009,25 @@ const paquetesAplicables = computed(() => {
   }))
 })
 
-onMounted(() => {
-  cargarRegistros() // Cargar registros al inicio para poblar reservas pendientes de pago
+onMounted(async () => {
+  await cargarRegistros() // Cargar registros al inicio
   
   if (route.query.action === 'reservar' && isCliente.value) {
     currentView.value = 'reservar'
     if (route.query.servicio) {
       formData.value.id_servicio = parseInt(route.query.servicio)
+    }
+  }
+
+  // Auto-abrir modal de calificar si viene desde videollamada
+  const calificarId = route.query.calificar
+  if (calificarId && isCliente.value) {
+    const rsvId = parseInt(calificarId.toString())
+    // Buscar la reserva en historial o pendientes
+    const reserva = reservasHistorial.value.find(r => r.id === rsvId) || reservasActivas.value.find(r => r.id === rsvId)
+    if (reserva && puedeCalificar(reserva)) {
+      abrirCalificar(reserva)
+      router.replace({ query: { ...route.query, calificar: undefined } })
     }
   }
 })

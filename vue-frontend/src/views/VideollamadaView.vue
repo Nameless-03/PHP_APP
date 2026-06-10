@@ -2,10 +2,9 @@
   <DashboardLayout title="">
     <div class="videollamada-container h-100 d-flex flex-column pb-4">
       
-      <!-- Botón Volver -->
       <div class="mb-4">
-        <v-btn variant="text" prepend-icon="mdi-chevron-left" class="text-none font-weight-bold text-grey-darken-3 px-0" to="/videollamadas">
-          Volver a videollamadas
+        <v-btn variant="text" prepend-icon="mdi-chevron-left" class="text-none font-weight-bold text-grey-darken-3 px-0" to="/mis-reservas">
+          Volver a mis reservas
         </v-btn>
       </div>
 
@@ -498,7 +497,7 @@ function leaveRoom() {
     room.value.disconnect()
     room.value = null
     roomConnected.value = false
-    router.push('/videollamadas')
+    router.push(`/mis-reservas?calificar=${reservationId}`)
   }
 }
 

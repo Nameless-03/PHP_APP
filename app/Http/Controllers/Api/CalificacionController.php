@@ -23,7 +23,7 @@ class CalificacionController extends Controller
         $usuario = $request->user();
 
         // 1. Validar que el usuario sea el cliente de la reserva
-        if (!$usuario->esCliente() || $reserva->id_cliente !== $usuario->id_usuario) {
+        if (!$usuario->esCliente() || $reserva->id_cliente !== $usuario->id) {
             return response()->json(['message' => 'No tienes permiso para calificar esta reserva.'], 403);
         }
 
