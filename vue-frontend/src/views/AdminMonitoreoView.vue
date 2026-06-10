@@ -11,7 +11,21 @@
       </v-col>
     </v-row>
 
-    <!-- ── Top Action Bar ──────────────────────────────────────────── -->
+    <!-- Tabs selector -->
+    <v-tabs v-model="activeTab" bg-color="transparent" color="primary" class="mb-6 border-b" align-tabs="start">
+      <v-tab value="metricas" class="text-none font-weight-bold">
+        <v-icon start>mdi-chart-bar</v-icon>
+        Métricas Globales
+      </v-tab>
+      <v-tab value="logs" class="text-none font-weight-bold">
+        <v-icon start>mdi-format-list-bulleted-type</v-icon>
+        Logs de Actividad (NoSQL)
+      </v-tab>
+    </v-tabs>
+
+    <v-window v-model="activeTab">
+      <v-window-item value="metricas">
+        <!-- ── Top Action Bar ──────────────────────────────────────────── -->
     <div class="d-flex align-center justify-space-between mb-6">
       <div>
         <p class="text-body-2 text-medium-emphasis mb-0">
@@ -407,6 +421,177 @@
         </v-col>
       </v-row>
     </template>
+      </v-window-item>
+
+      <v-window-item value="logs">
+        <!-- ── Top Action Bar Logs ─────────────────────────────────────── -->
+        <v-card class="pa-6 rounded-xl elevation-1 mb-6 border-card bg-surface">
+          <v-row class="align-center">
+            <!-- Search bar -->
+            <v-col cols="12" md="6" lg="5">
+              <v-text-field
+                v-model="searchLog"
+                placeholder="Buscar por acción, IP, detalles..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+                color="primary"
+                bg-color="white"
+              ></v-text-field>
+            </v-col>
+            <!-- Severity Filter -->
+            <v-col cols="12" sm="6" md="3" lg="3">
+              <v-select
+                v-model="logsFilterType"
+                :items="[
+                  { title: 'Todos los niveles', value: 'todos' },
+                  { title: 'Info', value: 'info' },
+                  { title: 'Warning', value: 'warning' },
+                  { title: 'Error', value: 'error' },
+                  { title: 'Critical', value: 'critical' }
+                ]"
+                label="Nivel de severidad"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+                color="primary"
+                bg-color="white"
+              ></v-select>
+            </v-col>
+            <v-spacer class="d-none d-sm-flex"></v-spacer>
+            <!-- Action buttons -->
+            <v-col cols="auto">
+              <v-btn
+                :loading="loadingLogs"
+                color="primary"
+                variant="tonal"
+                prepend-icon="mdi-refresh"
+                @click="fetchLogs"
+                class="text-none font-weight-bold"
+              >
+                Actualizar logs
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-card>
+
+        <!-- Logs Data Table -->
+        <v-card class="rounded-xl elevation-1 border-card">
+          <v-card-title class="pa-6 pb-2 d-flex justify-space-between align-center">
+            <span class="text-h6 font-weight-bold">Registros de Actividad Recientes</span>
+            <v-chip color="primary" size="small" variant="tonal" v-if="filteredLogs.length > 0">
+              {{ filteredLogs.length }} encontrados
+            </v-chip>
+          </v-card-title>
+          <v-data-table
+            :headers="logHeaders"
+            :items="filteredLogs"
+            :loading="loadingLogs"
+            density="comfortable"
+            class="rounded-xl"
+            :items-per-page="10"
+            hover
+          >
+            <!-- Date/Time Formatting -->
+            <template v-slot:item.timestamp="{ item }">
+              <span class="text-body-2 font-weight-medium text-grey-darken-3">
+                {{ formatDateTime(item.timestamp) }}
+              </span>
+            </template>
+            <!-- Severity Type Chip -->
+            <template v-slot:item.tipo="{ item }">
+              <v-chip :color="getLogTypeColor(item.tipo)" size="small" variant="flat" class="font-weight-bold text-uppercase">
+                <v-icon start size="14">{{ getLogTypeIcon(item.tipo) }}</v-icon>
+                {{ item.tipo }}
+              </v-chip>
+            </template>
+            <!-- Action style -->
+            <template v-slot:item.accion="{ item }">
+              <span class="text-body-2 font-weight-bold text-grey-darken-4">{{ item.accion }}</span>
+            </template>
+            <!-- Action view details button -->
+            <template v-slot:item.actions="{ item }">
+              <v-btn
+                size="small"
+                variant="text"
+                color="primary"
+                prepend-icon="mdi-eye-outline"
+                class="text-none font-weight-bold"
+                @click="openLogDetails(item)"
+              >
+                Ver más
+              </v-btn>
+            </template>
+            <!-- Empty state -->
+            <template v-slot:no-data>
+              <div class="empty-state py-8 text-center">
+                <v-icon size="48" color="grey-lighten-1" class="mb-3">mdi-text-box-search-outline</v-icon>
+                <p class="text-body-2 text-medium-emphasis">No se encontraron logs de actividad</p>
+              </div>
+            </template>
+          </v-data-table>
+        </v-card>
+
+        <!-- Log Details Dialog -->
+        <v-dialog v-model="dialogLogDetails" max-width="600" scrollable>
+          <v-card class="rounded-xl border-card elevation-4">
+            <v-card-title class="pa-5 bg-grey-lighten-4 d-flex align-center justify-space-between">
+              <div class="d-flex align-center">
+                <v-icon color="primary" class="mr-2">mdi-clipboard-text-search-outline</v-icon>
+                <span class="text-h6 font-weight-bold">Detalles de Actividad</span>
+              </div>
+              <v-btn icon="mdi-close" variant="text" size="small" @click="dialogLogDetails = false"></v-btn>
+            </v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-5" style="max-height: 450px;">
+              <v-row v-if="selectedLog">
+                <v-col cols="12">
+                  <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1 mb-1">Acción</div>
+                  <div class="text-body-1 font-weight-bold text-grey-darken-4 mb-4">{{ selectedLog.accion }}</div>
+                  
+                  <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1 mb-1">Detalles Técnicos</div>
+                  <v-sheet border rounded class="pa-4 bg-grey-lighten-5 mb-4 text-mono text-body-2 overflow-x-auto" style="font-family: monospace;">
+                    <pre>{{ JSON.stringify(selectedLog.detalles, null, 2) }}</pre>
+                  </v-sheet>
+
+                  <v-row>
+                    <v-col cols="6">
+                      <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1 mb-1">Nivel / Severidad</div>
+                      <v-chip :color="getLogTypeColor(selectedLog.tipo)" size="small" variant="flat" class="font-weight-bold text-uppercase">
+                        {{ selectedLog.tipo }}
+                      </v-chip>
+                    </v-col>
+                    <v-col cols="6">
+                      <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1 mb-1">Fecha / Hora</div>
+                      <div class="text-body-2 text-grey-darken-3">{{ formatDateTime(selectedLog.timestamp) }}</div>
+                    </v-col>
+                    <v-col cols="6">
+                      <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1 mb-1">Usuario ID</div>
+                      <div class="text-body-2 text-grey-darken-3">{{ selectedLog.usuario_id || 'Invitado' }}</div>
+                    </v-col>
+                    <v-col cols="6">
+                      <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1 mb-1">Dirección IP</div>
+                      <div class="text-body-2 text-grey-darken-3">{{ selectedLog.ip }}</div>
+                    </v-col>
+                    <v-col cols="12">
+                      <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1 mb-1">Navegador (User Agent)</div>
+                      <div class="text-body-2 text-grey-darken-3 text-wrap">{{ selectedLog.user_agent }}</div>
+                    </v-col>
+                  </v-row>
+                </v-col>
+              </v-row>
+            </v-card-text>
+            <v-divider></v-divider>
+            <v-card-actions class="pa-4 bg-grey-lighten-4 justify-end">
+              <v-btn color="secondary" variant="flat" class="text-none font-weight-bold px-6 rounded-lg text-white" @click="dialogLogDetails = false">
+                Cerrar
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-window-item>
+    </v-window>
 
   </DashboardLayout>
 </template>
@@ -447,6 +632,90 @@ const loadChart = async () => {
 // ── State ─────────────────────────────────────────────────────────────────────
 const loading     = ref(true)
 const lastUpdated = ref('—')
+
+// Logs State
+const activeTab = ref('metricas')
+const loadingLogs = ref(false)
+const searchLog = ref('')
+const logsFilterType = ref('todos')
+const logs = ref([])
+const dialogLogDetails = ref(false)
+const selectedLog = ref(null)
+
+const logHeaders = [
+  { title: 'Fecha/Hora', key: 'timestamp', width: '180px' },
+  { title: 'Acción', key: 'accion' },
+  { title: 'Tipo', key: 'tipo', width: '110px' },
+  { title: 'Usuario ID', key: 'usuario_id', width: '110px' },
+  { title: 'IP', key: 'ip', width: '130px' },
+  { title: 'Detalles', key: 'actions', sortable: false, width: '100px' }
+]
+
+const fetchLogs = async () => {
+  loadingLogs.value = true
+  try {
+    const res = await fetch('/api/admin/logs', { headers: getAuthHeaders() })
+    if (res.ok) {
+      const json = await res.json()
+      logs.value = json.data || []
+    }
+  } catch (err) {
+    console.error('Error fetching logs:', err)
+  } finally {
+    loadingLogs.value = false
+  }
+}
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'logs' && logs.value.length === 0) {
+    fetchLogs()
+  }
+})
+
+const filteredLogs = computed(() => {
+  let list = logs.value
+  
+  if (logsFilterType.value !== 'todos') {
+    list = list.filter(l => l.tipo === logsFilterType.value)
+  }
+  
+  if (searchLog.value) {
+    const s = searchLog.value.toLowerCase()
+    list = list.filter(l => 
+      (l.accion || '').toLowerCase().includes(s) ||
+      (l.tipo || '').toLowerCase().includes(s) ||
+      (l.ip || '').toLowerCase().includes(s) ||
+      JSON.stringify(l.detalles || {}).toLowerCase().includes(s)
+    )
+  }
+  
+  return list
+})
+
+const openLogDetails = (item) => {
+  selectedLog.value = item
+  dialogLogDetails.value = true
+}
+
+const getLogTypeColor = (type) => {
+  const map = {
+    'info': 'success',
+    'warning': 'warning',
+    'error': 'error',
+    'critical': 'error'
+  }
+  return map[type] || 'primary'
+}
+
+const getLogTypeIcon = (type) => {
+  const map = {
+    'info': 'mdi-information-outline',
+    'warning': 'mdi-alert-outline',
+    'error': 'mdi-alert-octagon-outline',
+    'critical': 'mdi-fire'
+  }
+  return map[type] || 'mdi-text-box-outline'
+}
 
 const stats = ref({
   total_usuarios: 0,

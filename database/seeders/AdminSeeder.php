@@ -15,16 +15,19 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $admin = Usuario::firstOrCreate(
+        $admin = Usuario::updateOrCreate(
             ['email' => 'admin@example.com'],
             [
                 'nombre' => 'Administrador',
                 'password' => Hash::make('admin12345'),
                 'role' => RoleEnum::ADMIN,
-                'fecha_registro' => now(),
                 'activo' => true,
             ]
         );
+
+        if (!$admin->fecha_registro) {
+            $admin->update(['fecha_registro' => now()]);
+        }
 
         Admin::firstOrCreate(
             ['id_usuario' => $admin->id]
