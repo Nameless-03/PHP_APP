@@ -63,9 +63,10 @@ class AuthService
             $usuario = Usuario::create([
                 'nombre' => $data['nombre'],
                 'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                'password' => Hash::make($data['password'] ?? \Illuminate\Support\Str::random(16)),
                 'role' => RoleEnum::CLIENTE,
                 'fecha_registro' => now(),
+                'google_id' => $data['google_id'] ?? null,
             ]);
 
             Cliente::create([
@@ -97,9 +98,10 @@ class AuthService
             $usuario = Usuario::create([
                 'nombre' => $data['nombre'],
                 'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                'password' => Hash::make($data['password'] ?? \Illuminate\Support\Str::random(16)),
                 'role' => RoleEnum::PROFESIONAL,
                 'fecha_registro' => now(),
+                'google_id' => $data['google_id'] ?? null,
             ]);
 
             Profesional::create([
@@ -109,6 +111,7 @@ class AuthService
                 'ubicacion' => $data['ubicacion'] ?? null,
                 'modalidad_preferida' => $data['modalidad_preferida'] ?? 'presencial',
                 'reputacion' => 0.0,
+                'foto_perfil' => $data['foto_perfil'] ?? null,
             ]);
 
             return $usuario->load('profesional');

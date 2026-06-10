@@ -62,9 +62,11 @@
               color="primary"
               class="mb-2"
               bg-color="white"
+              :readonly="isGoogleRegistration"
+              :disabled="isGoogleRegistration"
             ></v-text-field>
 
-            <v-row>
+            <v-row v-if="!isGoogleRegistration">
               <v-col cols="12" sm="6" class="pb-0">
                 <v-text-field
                   v-model="formData.password"
@@ -140,10 +142,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const form = ref(null)
 
 const roleTab = ref('cliente')
@@ -157,6 +160,20 @@ const formData = ref({
   password: '',
   password_confirmation: '',
   modalidad_preferida: 'presencial',
+  google_id: '',
+  foto_perfil: '',
+})
+
+const isGoogleRegistration = computed(() => !!formData.value.google_id)
+
+onMounted(() => {
+  // Cargar parámetros de Google de la URL si existen
+  if (route.query.google_id) {
+    formData.value.google_id = route.query.google_id
+    formData.value.email = route.query.email || ''
+    formData.value.nombre = route.query.nombre || ''
+    formData.value.foto_perfil = route.query.picture || ''
+  }
 })
 
 const rules = {
@@ -184,8 +201,14 @@ const handleRegister = async () => {
     const payload = {
       nombre: formData.value.nombre,
       email: formData.value.email,
-      password: formData.value.password,
-      password_confirmation: formData.value.password_confirmation,
+    }
+
+    if (isGoogleRegistration.value) {
+      payload.google_id = formData.value.google_id
+      payload.foto_perfil = formData.value.foto_perfil
+    } else {
+      payload.password = formData.value.password
+      payload.password_confirmation = formData.value.password_confirmation
     }
 
     if (roleTab.value === 'profesional') {
@@ -213,7 +236,13 @@ const handleRegister = async () => {
     }
     
     console.log(`Usuario registrado con éxito:`, data)
-    router.push('/login')
+    
+    if (isGoogleRegistration.value) {
+      // Iniciar sesión con Google de inmediato ya que la cuenta ya existe ahora
+      window.location.href = '/api/auth/google/redirect'
+    } else {
+      router.push('/login')
+    }
   } catch (err) {
     error.value = err.message || 'Ocurrió un error al registrar. Intenta de nuevo.'
   } finally {

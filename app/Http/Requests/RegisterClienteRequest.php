@@ -24,9 +24,10 @@ class RegisterClienteRequest extends FormRequest
         return [
             'nombre' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:usuarios'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => [$this->has('google_id') ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
             'telefono' => ['nullable', 'string', 'max:20'],
-            'foto_perfil' => ['nullable', 'string', 'url'],
+            'foto_perfil' => ['nullable', 'string'],
+            'google_id' => ['nullable', 'string'],
         ];
     }
 }

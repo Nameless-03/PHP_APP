@@ -170,39 +170,32 @@ class AuthController extends Controller
         }
 
         try {
-            $usuario = DB::transaction(function () use ($googleUser) {
-                $user = Usuario::where('email', $googleUser['email'])->first();
+            $user = Usuario::where('email', $googleUser['email'])->first();
 
-                if (!$user) {
-                    // Create a new user with role "cliente" by default
-                    $user = Usuario::create([
-                        'nombre' => $googleUser['name'],
-                        'email' => $googleUser['email'],
-                        'password' => Hash::make(Str::random(16)),
-                        'role' => RoleEnum::CLIENTE,
-                        'fecha_registro' => now(),
-                        'google_id' => $googleUser['id'],
-                    ]);
+            if (!$user) {
+                // Si la cuenta de google es nueva, redirigimos al registro en el frontend
+                $redirectUrl = $frontendUrl . '/register?' . http_build_query([
+                    'google_id' => $googleUser['id'],
+                    'email' => $googleUser['email'],
+                    'nombre' => $googleUser['name'] ?? '',
+                    'picture' => $googleUser['picture'] ?? '',
+                ]);
+                return redirect($redirectUrl);
+            }
 
-                    // Create client record
-                    Cliente::create([
-                        'id_usuario' => $user->id,
-                        'telefono' => null,
-                        'foto_perfil' => $googleUser['picture'] ?? null,
-                    ]);
-                } else {
-                    // Update google_id if missing
-                    if (empty($user->google_id)) {
-                        $user->google_id = $googleUser['id'];
-                        $user->save();
-                    }
+            // Si la cuenta ya existe, iniciamos sesión normalmente
+            $usuario = DB::transaction(function () use ($user, $googleUser) {
+                // Update google_id if missing
+                if (empty($user->google_id)) {
+                    $user->google_id = $googleUser['id'];
+                    $user->save();
+                }
 
-                    // Update client picture if it exists and is empty
-                    if ($user->esCliente() && $user->cliente) {
-                        if (empty($user->cliente->foto_perfil) && !empty($googleUser['picture'])) {
-                            $user->cliente->foto_perfil = $googleUser['picture'];
-                            $user->cliente->save();
-                        }
+                // Update client picture if it exists and is empty
+                if ($user->esCliente() && $user->cliente) {
+                    if (empty($user->cliente->foto_perfil) && !empty($googleUser['picture'])) {
+                        $user->cliente->foto_perfil = $googleUser['picture'];
+                        $user->cliente->save();
                     }
                 }
 

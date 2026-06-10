@@ -26,11 +26,13 @@ class RegisterProfesionalRequest extends FormRequest
         return [
             'nombre' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:usuarios'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => [$this->has('google_id') ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
             'descripcion' => ['nullable', 'string'],
             'experiencia' => ['nullable', 'string'],
             'ubicacion' => ['nullable', 'string', 'max:255'],
             'modalidad_preferida' => ['nullable', Rule::enum(ModalidadEnum::class)],
+            'foto_perfil' => ['nullable', 'string'],
+            'google_id' => ['nullable', 'string'],
         ];
     }
 }
