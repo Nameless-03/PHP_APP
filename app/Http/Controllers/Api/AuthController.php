@@ -148,6 +148,7 @@ class AuthController extends Controller
                 ]);
 
                 if ($tokenResponse->failed()) {
+                    logger()->error('Google Token Exchange Failed. Status: ' . $tokenResponse->status() . ' Response: ' . $tokenResponse->body());
                     throw new \Exception('Failed to retrieve access token from Google');
                 }
 
