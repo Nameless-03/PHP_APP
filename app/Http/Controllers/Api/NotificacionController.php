@@ -13,7 +13,7 @@ class NotificacionController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $notificaciones = $request->user()->unreadNotifications;
+        $notificaciones = $request->user()->unreadNotifications()->latest()->get();
         return response()->json(['data' => $notificaciones]);
     }
 

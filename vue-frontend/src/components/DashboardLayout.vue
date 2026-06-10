@@ -424,6 +424,9 @@ watch(() => user.value?.id, (newId) => {
 onMounted(() => {
   cargarNotificaciones()
   
+  // Polling como fallback para actualizar notificaciones cada 30 segundos si websockets fallan
+  pollingInterval = setInterval(cargarNotificaciones, 30000)
+
   // PWA listeners
   window.addEventListener('online', actualizarEstadoConexion)
   window.addEventListener('offline', actualizarEstadoConexion)
@@ -432,6 +435,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   dejarCanalPrivado()
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+  }
   window.removeEventListener('online', actualizarEstadoConexion)
   window.removeEventListener('offline', actualizarEstadoConexion)
   window.removeEventListener('beforeinstallprompt', capturarPromptInstalacion)

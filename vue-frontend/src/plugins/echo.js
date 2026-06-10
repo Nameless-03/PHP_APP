@@ -4,10 +4,11 @@ import Pusher from 'pusher-js';
 window.Pusher = Pusher;
 
 // Obtener variables de entorno de Vite o usar valores predeterminados seguros
+const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
 const appKey = import.meta.env.VITE_REVERB_APP_KEY || 'profesionaleswebsocketkey';
 const host = import.meta.env.VITE_REVERB_HOST || window.location.hostname;
-const port = import.meta.env.VITE_REVERB_PORT || '8080';
-const scheme = import.meta.env.VITE_REVERB_SCHEME || 'http';
+const port = import.meta.env.VITE_REVERB_PORT || (isHttps ? '443' : '8080');
+const scheme = import.meta.env.VITE_REVERB_SCHEME || (isHttps ? 'https' : 'http');
 
 const echo = new Echo({
     broadcaster: 'reverb',
