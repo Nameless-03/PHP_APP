@@ -22,7 +22,7 @@ const echo = new Echo({
     authorizer: (channel, options) => {
         return {
             authorize: (socketId, callback) => {
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem('auth_token');
                 
                 fetch('/api/broadcasting/auth', {
                     method: 'POST',
