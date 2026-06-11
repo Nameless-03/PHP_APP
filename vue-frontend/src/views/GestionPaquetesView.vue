@@ -299,7 +299,7 @@ const loadData = async () => {
     }
 
     // 2. Cargar paquetes del profesional
-    const packagesResponse = await fetch('/api/paquetes', {
+    const packagesResponse = await fetch(`/api/paquetes?id_profesional=${user.value.id}`, {
       headers: getAuthHeaders()
     })
     if (packagesResponse.ok) {

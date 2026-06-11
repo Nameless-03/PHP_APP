@@ -18,10 +18,12 @@ class PaqueteController extends Controller
     {
         $query = Paquete::with('servicios');
 
+        $user = $request->user() ?? auth('sanctum')->user();
+
         if ($request->has('id_profesional')) {
             $query->where('id_profesional', $request->id_profesional);
-        } elseif ($request->user() && $request->user()->esProfesional()) {
-            $query->where('id_profesional', $request->user()->id);
+        } elseif ($user && $user->esProfesional()) {
+            $query->where('id_profesional', $user->id);
         }
 
         $paquetes = $query->latest()->get();
