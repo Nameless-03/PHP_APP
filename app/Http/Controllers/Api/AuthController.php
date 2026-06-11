@@ -210,7 +210,7 @@ class AuthController extends Controller
             // Create Sanctum token
             $token = $usuario->createToken('auth_token')->plainTextToken;
             $userJson = json_encode(new UsuarioResource($usuario));
-            $redirectUrl = $frontendUrl . '/login?token=' . urlencode($token) . '&user=' . urlencode($userJson);
+            $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token) . '&user=' . rawurlencode($userJson);
 
             return redirect($redirectUrl);
 

@@ -156,7 +156,14 @@ router.beforeEach((to, from, next) => {
     }
   } else if ((to.name === 'login' || to.name === 'register') && isAuthenticated) {
     // Si el usuario ya está autenticado e intenta ir a login o registro, redirigir a dashboard
-    next({ name: 'dashboard' })
+    // A menos que esté regresando de un flujo de OAuth (Google) con query params relevantes
+    if (to.name === 'login' && to.query.token) {
+      next()
+    } else if (to.name === 'register' && to.query.google_id) {
+      next()
+    } else {
+      next({ name: 'dashboard' })
+    }
   } else {
     next() // En cualquier otro caso, continuar navegación
   }

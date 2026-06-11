@@ -187,7 +187,13 @@ onMounted(() => {
     router.replace({ query: {} })
   } else if (token && userParam) {
     try {
-      const userData = JSON.parse(decodeURIComponent(userParam))
+      let decodedUser = userParam
+      try {
+        decodedUser = decodeURIComponent(userParam)
+      } catch (e) {
+        console.warn('Failed to decodeURIComponent userParam, using raw value:', e)
+      }
+      const userData = JSON.parse(decodedUser)
       localStorage.setItem('auth_token', token)
       localStorage.setItem('user', JSON.stringify(userData))
       
