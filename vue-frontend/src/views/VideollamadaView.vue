@@ -2,14 +2,14 @@
   <DashboardLayout title="">
     <div class="videollamada-container h-100 d-flex flex-column pb-4">
       
-      <div class="mb-4">
+      <div class="mb-1">
         <v-btn variant="text" prepend-icon="mdi-chevron-left" class="text-none font-weight-bold text-grey-darken-3 px-0" to="/mis-reservas">
           Volver a mis reservas
         </v-btn>
       </div>
 
       <!-- Header de Sesión -->
-      <v-card class="rounded-xl mb-4 elevation-1 border-card bg-surface">
+      <v-card class="rounded-xl mb-2 elevation-1 border-card bg-surface">
         <v-card-text class="pa-4 d-flex align-center justify-space-between flex-wrap gap-4">
           <div class="d-flex align-center">
             <v-avatar color="secondary" size="56" class="mr-4">
@@ -37,7 +37,7 @@
       </v-card>
 
       <!-- Main Layout -->
-      <v-row class="flex-grow-1 min-h-0" style="min-height: 0;">
+      <v-row class="flex-grow-1 min-h-0" style="height: calc(100vh - 230px); min-height: 0;">
         
         <!-- Área de Video Principal -->
         <v-col cols="12" :md="showChat ? 8 : 12" class="h-100 pb-0 transition-all">
@@ -47,13 +47,13 @@
             <div class="flex-grow-1 position-relative w-100" style="overflow: hidden; min-height: 0;">
               <video 
                 v-if="remoteParticipant"
-                :ref="el => setVideoRef(el, remoteParticipant.sid)" 
+                :ref="el => { if (el && remoteParticipant) setVideoRef(el, remoteParticipant.sid); }" 
                 autoplay 
                 playsinline 
                 class="w-100 h-100 video-cover" 
                 :class="{ 'd-none': remoteParticipant.isCameraMuted }"
               ></video>
-              <audio v-if="remoteParticipant" :ref="el => setAudioRef(el, remoteParticipant.sid)" autoplay></audio>
+              <audio v-if="remoteParticipant" :ref="el => { if (el && remoteParticipant) setAudioRef(el, remoteParticipant.sid); }" autoplay></audio>
               
               <!-- Placeholder remoto -->
               <div v-if="!remoteParticipant || remoteParticipant.isCameraMuted" class="d-flex flex-column align-center justify-center w-100 h-100 position-absolute top-0 left-0 bg-grey-darken-3" style="z-index: 1;">
@@ -76,24 +76,25 @@
                 </v-chip>
               </div>
 
-              <!-- Ventana Flotante Local (PiP) -->
-              <div class="pip-container elevation-6 rounded-lg overflow-hidden border" style="z-index: 20;">
-                <video 
-                  ref="localVideo" 
-                  autoplay 
-                  muted 
-                  playsinline 
-                  class="w-100 h-100 video-cover pip-video" 
-                  :class="{ 'd-none': localData.isCameraMuted }"
-                ></video>
-                <div v-if="localData.isCameraMuted" class="d-flex align-center justify-center w-100 h-100 position-absolute top-0 left-0 bg-primary-darken-1">
-                  <v-avatar color="primary" size="50">
-                    <span class="text-h5 text-secondary font-weight-bold">{{ getInitials(localData.name) }}</span>
-                  </v-avatar>
-                </div>
-                <div class="position-absolute bottom-0 left-0 pa-1 w-100" style="background: linear-gradient(transparent, rgba(0,0,0,0.7)); z-index: 21;">
-                  <span class="text-caption text-white font-weight-medium px-1">Tú</span>
-                </div>
+            </div>
+
+            <!-- Ventana Flotante Local (PiP) - Fuera del contenedor de video remoto -->
+            <div class="pip-container elevation-6 rounded-lg overflow-hidden border">
+              <video 
+                :ref="setLocalVideoRef" 
+                autoplay 
+                muted 
+                playsinline 
+                class="w-100 h-100 video-cover pip-video" 
+                :class="{ 'd-none': localData.isCameraMuted }"
+              ></video>
+              <div v-if="localData.isCameraMuted" class="d-flex align-center justify-center w-100 h-100 position-absolute top-0 left-0 bg-primary-darken-1">
+                <v-avatar color="primary" size="50">
+                  <span class="text-h5 text-secondary font-weight-bold">{{ getInitials(localData.name) }}</span>
+                </v-avatar>
+              </div>
+              <div class="position-absolute bottom-0 left-0 pa-1 w-100" style="background: linear-gradient(transparent, rgba(0,0,0,0.7)); z-index: 21;">
+                <span class="text-caption text-white font-weight-medium px-1">Tú</span>
               </div>
             </div>
 
@@ -126,20 +127,10 @@
                   <span class="text-caption text-white font-weight-medium opacity-80">Cámara</span>
                 </div>
                 
-                <!-- Compartir Pantalla -->
-                <div class="d-flex flex-column align-center mr-4">
-                  <v-btn 
-                    color="secondary" 
-                    icon="mdi-monitor-share" 
-                    size="large"
-                    variant="flat"
-                    class="mb-1 text-white"
-                  ></v-btn>
-                  <span class="text-caption text-white font-weight-medium opacity-80">Pantalla</span>
-                </div>
+                <!-- Compartir Pantalla removido -->
                 
                 <!-- Chat Toggle -->
-                <div class="d-flex flex-column align-center mr-4">
+                <div class="d-flex flex-column align-center mr-6">
                   <v-btn 
                     color="secondary" 
                     icon="mdi-message-text" 
@@ -154,18 +145,6 @@
                     <v-icon v-else>mdi-message-text</v-icon>
                   </v-btn>
                   <span class="text-caption text-white font-weight-medium opacity-80">Chat</span>
-                </div>
-                
-                <!-- Más opciones -->
-                <div class="d-flex flex-column align-center mr-6">
-                  <v-btn 
-                    color="secondary" 
-                    icon="mdi-dots-horizontal" 
-                    size="large"
-                    variant="flat"
-                    class="mb-1 text-white"
-                  ></v-btn>
-                  <span class="text-caption text-white font-weight-medium opacity-80">Más opciones</span>
                 </div>
                 
                 <!-- Finalizar -->
@@ -259,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, shallowRef, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Room, RoomEvent, createLocalTracks, RemoteParticipant, Track, DataPacket_Kind } from 'livekit-client'
 import DashboardLayout from '../components/DashboardLayout.vue'
@@ -270,7 +249,6 @@ interface RemoteParticipantData {
   name: string;
   isMicMuted: boolean;
   isCameraMuted: boolean;
-  participant: RemoteParticipant;
 }
 
 interface ChatMessage {
@@ -286,6 +264,7 @@ const router = useRouter()
 
 const reservationId = Number(route.params.id)
 const localVideo = ref<HTMLVideoElement | null>(null)
+const localVideoTrack = shallowRef<any | null>(null)
 const chatContainer = ref<HTMLElement | null>(null)
 
 // Datos UI
@@ -303,7 +282,7 @@ const localData = ref({
 })
 
 const remoteParticipants = ref<RemoteParticipantData[]>([])
-const room = ref<Room | null>(null)
+const room = shallowRef<Room | null>(null)
 const error = ref<string>('')
 const roomConnected = ref(false)
 
@@ -343,10 +322,42 @@ function getAvatarUrl() {
 }
 
 function setVideoRef(el: any, sid: string) {
-  if (el) videoRefs.value[sid] = el
+  if (el) {
+    videoRefs.value[sid] = el
+    let p = room.value?.remoteParticipants.get(sid)
+    if (!p) {
+      p = Array.from(room.value?.remoteParticipants.values() ?? []).find(x => x.sid === sid)
+    }
+    if (p) {
+      p.trackPublications.forEach(pub => {
+        if (pub.track && pub.track.kind === 'video') {
+          pub.track.attach(el)
+        }
+      })
+    }
+  }
 }
 function setAudioRef(el: any, sid: string) {
-  if (el) audioRefs.value[sid] = el
+  if (el) {
+    audioRefs.value[sid] = el
+    let p = room.value?.remoteParticipants.get(sid)
+    if (!p) {
+      p = Array.from(room.value?.remoteParticipants.values() ?? []).find(x => x.sid === sid)
+    }
+    if (p) {
+      p.trackPublications.forEach(pub => {
+        if (pub.track && pub.track.kind === 'audio') {
+          pub.track.attach(el)
+        }
+      })
+    }
+  }
+}
+function setLocalVideoRef(el: any) {
+  localVideo.value = el
+  if (el && localVideoTrack.value) {
+    localVideoTrack.value.attach(el)
+  }
 }
 
 function updateParticipantState(p: RemoteParticipant) {
@@ -357,7 +368,6 @@ function updateParticipantState(p: RemoteParticipant) {
     name: p.name || p.identity,
     isMicMuted: !p.isMicrophoneEnabled,
     isCameraMuted: !p.isCameraEnabled,
-    participant: p
   }
   if (index >= 0) {
     remoteParticipants.value[index] = data
@@ -481,6 +491,7 @@ async function initCall() {
     // Attach local video
     const videoTrack = tracks.find(t => t.kind === Track.Kind.Video)
     if (videoTrack) {
+      localVideoTrack.value = videoTrack
       await nextTick()
       if (localVideo.value) {
         videoTrack.attach(localVideo.value)
@@ -590,24 +601,25 @@ onBeforeUnmount(() => {
 .video-cover {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Fill the whole area for a better native look */
+  object-fit: contain; /* Mantiene la proporción del video para no recortar la parte inferior */
   background-color: #212121;
 }
 
 /* Picture in Picture styling */
 .pip-container {
   position: absolute;
-  bottom: 24px;
+  bottom: 116px; /* Ajustado por encima del toolbar para evitar solapamiento */
   right: 24px;
   width: 240px;
   height: 150px;
   background-color: #000;
-  z-index: 10;
+  z-index: 20;
   border-color: rgba(255,255,255,0.2) !important;
 }
 
 .pip-video {
   transform: scaleX(-1); /* Espejo para la cámara local */
+  object-fit: cover !important; /* La miniatura local siempre llena el recuadro */
 }
 
 /* Scrollbar para el chat */
