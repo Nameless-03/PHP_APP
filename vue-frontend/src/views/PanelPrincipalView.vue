@@ -157,19 +157,66 @@
           <p class="text-body-1 text-medium-emphasis mb-6">
             Usa el buscador para filtrar por especialidad, nombre o tipo de servicio que necesitas.
           </p>
-          <v-text-field
-            v-model="searchQuery"
-            variant="outlined"
-            prepend-inner-icon="mdi-magnify"
-            append-inner-icon="mdi-arrow-right"
-            label="Buscar servicios..."
-            color="primary"
-            bg-color="grey-lighten-4"
-            class="mb-2"
-            hide-details
-            @keyup.enter="handleSearch"
-            @click:append-inner="handleSearch"
-          ></v-text-field>
+          <v-form @submit.prevent="handleSearch">
+            <v-text-field
+              v-model="searchQuery"
+              variant="outlined"
+              prepend-inner-icon="mdi-magnify"
+              append-inner-icon="mdi-arrow-right"
+              label="Buscar servicios..."
+              color="primary"
+              bg-color="grey-lighten-4"
+              class="mb-2"
+              hide-details
+              @click:append-inner="handleSearch"
+            ></v-text-field>
+          </v-form>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Accesos Rápidos (Solo Clientes) -->
+    <v-row class="mt-6" v-if="!isProfesional && !isAdmin">
+      <v-col cols="12">
+        <h3 class="text-h5 font-weight-bold mb-2 text-grey-darken-4">Accesos Rápidos</h3>
+      </v-col>
+      
+      <!-- Profesionales -->
+      <v-col cols="12" sm="4">
+        <v-card class="pa-6 rounded-xl elevation-1 h-100 d-flex flex-column card-hover cursor-pointer" @click="router.push('/profesionales')">
+          <div class="d-flex align-center mb-4">
+            <v-avatar color="primary-lighten-4" size="48" class="mr-2">
+              <v-icon color="primary" size="24">mdi-account-search-outline</v-icon>
+            </v-avatar>
+            <h4 class="text-h6 font-weight-bold text-grey-darken-4 ml-2">Profesionales</h4>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-0 flex-grow-1">Encuentra y conoce a los profesionales disponibles.</p>
+        </v-card>
+      </v-col>
+
+      <!-- Videollamadas -->
+      <v-col cols="12" sm="4">
+        <v-card class="pa-6 rounded-xl elevation-1 h-100 d-flex flex-column card-hover cursor-pointer" @click="router.push('/videollamadas')">
+          <div class="d-flex align-center mb-4">
+            <v-avatar color="info-lighten-4" size="48" class="mr-2">
+              <v-icon color="info" size="24">mdi-video-outline</v-icon>
+            </v-avatar>
+            <h4 class="text-h6 font-weight-bold text-grey-darken-4 ml-2">Videollamadas</h4>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-0 flex-grow-1">Accede a tus reuniones y videollamadas agendadas.</p>
+        </v-card>
+      </v-col>
+
+      <!-- Mis Reservas -->
+      <v-col cols="12" sm="4">
+        <v-card class="pa-6 rounded-xl elevation-1 h-100 d-flex flex-column card-hover cursor-pointer" @click="router.push('/mis-reservas')">
+          <div class="d-flex align-center mb-4">
+            <v-avatar color="success-lighten-4" size="48" class="mr-2">
+              <v-icon color="success" size="24">mdi-calendar-check-outline</v-icon>
+            </v-avatar>
+            <h4 class="text-h6 font-weight-bold text-grey-darken-4 ml-2">Mis Reservas</h4>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-0 flex-grow-1">Revisa tus citas y gestiona tus turnos reservados.</p>
         </v-card>
       </v-col>
     </v-row>
