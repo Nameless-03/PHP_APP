@@ -23,6 +23,9 @@ class UsuarioResource extends JsonResource
             'fecha_registro' => $this->fecha_registro?->toIso8601String(),
             // Include related models dynamically if they are loaded
             'cliente' => $this->whenLoaded('cliente', function () {
+                if (!$this->cliente) {
+                    return null;
+                }
                 return [
                     'telefono' => $this->cliente->telefono,
                     'foto_perfil' => $this->cliente->foto_perfil,
@@ -34,6 +37,9 @@ class UsuarioResource extends JsonResource
                 ];
             }),
             'profesional' => $this->whenLoaded('profesional', function () {
+                if (!$this->profesional) {
+                    return null;
+                }
                 return [
                     'descripcion' => $this->profesional->descripcion,
                     'experiencia' => $this->profesional->experiencia,
