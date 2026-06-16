@@ -205,13 +205,10 @@
               <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-3">1. Método de Pago</h4>
               <v-radio-group v-model="paymentMethod" inline class="mb-4">
                 <v-row>
-                  <v-col cols="12" sm="4" class="py-1">
+                  <v-col cols="12" sm="6" class="py-1">
                     <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
-                  <v-col cols="12" sm="4" class="py-1">
-                    <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
-                  </v-col>
-                  <v-col cols="12" sm="4" class="py-1">
+                  <v-col cols="12" sm="6" class="py-1">
                     <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
                 </v-row>
@@ -466,8 +463,14 @@ const processPurchase = async () => {
     await new Promise(resolve => setTimeout(resolve, 1500))
 
     const pagoResult = data.data
-    if (pagoResult.estado === 'completado') {
-      snackbar.value = { show: true, text: '¡Pago completado con éxito! El paquete ha sido habilitado.', color: 'success' }
+    if (pagoResult.estado === 'completado' || (pagoResult.estado === 'pendiente' && paymentMethod.value === 'efectivo')) {
+      snackbar.value = {
+        show: true,
+        text: paymentMethod.value === 'efectivo'
+          ? '¡Solicitud de pago en efectivo registrada! El paquete ha sido habilitado.'
+          : '¡Pago completado con éxito! El paquete ha sido habilitado.',
+        color: 'success'
+      }
       purchaseDialog.value = false
       selectedPurchase.value = null
       loadPurchases()

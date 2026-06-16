@@ -25,16 +25,17 @@ class CompraPaqueteController extends Controller
         }
 
         $request->validate([
-            'metodo' => 'required|in:paypal,efectivo,transferencia,otro',
+            'metodo' => 'required|in:paypal,efectivo',
             'simular_error' => 'nullable|boolean',
         ]);
 
         $compra = DB::transaction(function () use ($request, $paquete) {
-            // Create pending package purchase initially with 0 sessions
+            $esEfectivo = $request->metodo === 'efectivo';
+            // Create package purchase
             $compra = CompraPaquete::create([
-                'sesiones_disponibles' => 0,
+                'sesiones_disponibles' => $esEfectivo ? $paquete->cantidad_sesiones : 0,
                 'fecha_compra' => now(),
-                'estado' => 'pendiente',
+                'estado' => $esEfectivo ? 'activo' : 'pendiente',
                 'id_cliente' => $request->user()->id,
                 'id_paquete' => $paquete->id,
             ]);

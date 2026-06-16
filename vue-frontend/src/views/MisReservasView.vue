@@ -465,6 +465,17 @@
                             >
                               Confirmar turno
                             </v-btn>
+                            <v-btn
+                              color="error"
+                              size="small"
+                              variant="outlined"
+                              class="text-none font-weight-bold rounded-pill px-4"
+                              prepend-icon="mdi-close-circle"
+                              @click="cambiarEstadoReserva(reserva.id, 'cancelada')"
+                              :loading="isLoading"
+                            >
+                              Cancelar Turno
+                            </v-btn>
                           </div>
                         </v-card-text>
                       </v-card>
@@ -743,13 +754,7 @@
                       <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
                     </v-col>
                     <v-col cols="12" sm="6" class="py-1">
-                      <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
-                    </v-col>
-                    <v-col cols="12" sm="6" class="py-1">
                       <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
-                    </v-col>
-                    <v-col cols="12" sm="6" class="py-1">
-                      <v-radio label="Otro" value="otro" color="primary" class="font-weight-medium"></v-radio>
                     </v-col>
                   </v-row>
                 </v-radio-group>

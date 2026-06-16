@@ -54,10 +54,11 @@ class ReservaService
             }
 
             $estadoReserva = EstadoReservaEnum::PENDIENTE;
+            $crearPagoEfectivo = false;
 
             // Si se pasa id_compra_paquete, validar y procesar consumo de sesión
             if (!empty($data['id_compra_paquete'])) {
-                $compra = \App\Models\CompraPaquete::with('paquete.servicios')->findOrFail($data['id_compra_paquete']);
+                $compra = \App\Models\CompraPaquete::with(['paquete.servicios', 'pagos'])->findOrFail($data['id_compra_paquete']);
                 
                 // Validar que pertenezca al cliente
                 if ($compra->id_cliente !== $data['id_cliente']) {
@@ -83,7 +84,15 @@ class ReservaService
                     $compra->update(['estado' => 'agotado']);
                 }
 
-                $estadoReserva = EstadoReservaEnum::PAGADA;
+                // Check if the package was paid in cash
+                $pagoPaqueteEfectivo = $compra->pagos()->where('metodo', 'efectivo')->exists();
+
+                if ($pagoPaqueteEfectivo) {
+                    $estadoReserva = EstadoReservaEnum::PENDIENTE;
+                    $crearPagoEfectivo = true;
+                } else {
+                    $estadoReserva = EstadoReservaEnum::PAGADA;
+                }
             }
 
             $reserva = Reserva::create([
@@ -95,6 +104,15 @@ class ReservaService
                 'id_servicio' => $servicio->id,
                 'id_compra_paquete' => $data['id_compra_paquete'] ?? null,
             ]);
+
+            if ($crearPagoEfectivo) {
+                \App\Models\Pago::create([
+                    'monto' => 0.00,
+                    'metodo' => 'efectivo',
+                    'estado' => \App\Enums\EstadoPagoEnum::PENDIENTE,
+                    'id_reserva' => $reserva->id,
+                ]);
+            }
 
             // Generar videollamada automáticamente si es remota o híbrida
             if ($servicio->modalidad === 'remota' || $servicio->modalidad === 'hibrida') {
@@ -239,6 +257,10 @@ class ReservaService
             ]);
 
             ReservaEstadoCambiado::dispatch($reserva->fresh(), $estadoAnterior);
+
+            if ($nuevoEstado === EstadoReservaEnum::CANCELADA) {
+                $reserva->delete();
+            }
 
             // Log NoSQL activity
             $this->logger->log("Cambio de estado de reserva", 'info', [

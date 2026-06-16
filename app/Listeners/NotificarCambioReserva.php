@@ -39,11 +39,26 @@ class NotificarCambioReserva implements ShouldQueue
         }
 
         if ($event instanceof ReservaEstadoCambiado) {
-            $nuevoEstado = $event->reserva->estado->value;
-            $mensaje = "El estado de tu reserva ha cambiado a: {$nuevoEstado}.";
+            $reserva = $event->reserva;
+            $nuevoEstado = $reserva->estado->value;
 
-            $event->reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
-                $event->reserva,
+            if ($nuevoEstado === 'cancelada') {
+                if ($reserva->id_compra_paquete) {
+                    $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por el profesional. Se ha devuelto la sesión a tu paquete.";
+                } else {
+                    $pagoMetodo = $reserva->pago ? ($reserva->pago->metodo->value ?? $reserva->pago->metodo) : '';
+                    if ($pagoMetodo === 'paypal') {
+                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por el profesional. Su pago será devuelto.";
+                    } else {
+                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por el profesional.";
+                    }
+                }
+            } else {
+                $mensaje = "El estado de tu reserva ha cambiado a: {$nuevoEstado}.";
+            }
+
+            $reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
+                $reserva,
                 "Actualización de Reserva",
                 $mensaje
             ));
@@ -52,7 +67,7 @@ class NotificarCambioReserva implements ShouldQueue
                 'titulo' => 'Actualización de Reserva',
                 'mensaje' => $mensaje,
                 'tipo' => TipoNotificacionEnum::MODIFICACION,
-                'id_usuario' => $event->reserva->cliente->id_usuario,
+                'id_usuario' => $reserva->cliente->id_usuario,
             ]);
         }
     }

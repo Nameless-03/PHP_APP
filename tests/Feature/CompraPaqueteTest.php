@@ -126,7 +126,7 @@ class CompraPaqueteTest extends TestCase
     public function test_cliente_no_puede_comprar_si_se_simula_error(): void
     {
         $payload = [
-            'metodo' => 'transferencia',
+            'metodo' => 'paypal',
             'simular_error' => true,
         ];
 
