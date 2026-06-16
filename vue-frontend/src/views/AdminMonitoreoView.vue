@@ -156,14 +156,14 @@
           <v-card class="pa-6 rounded-xl elevation-1 h-100">
             <div class="d-flex align-center justify-space-between mb-4">
               <div>
-                <h3 class="text-h6 font-weight-bold text-grey-darken-4">Reservas por Mes</h3>
-                <p class="text-caption text-medium-emphasis mb-0">Últimos 6 meses</p>
+                <h3 class="text-h6 font-weight-bold text-grey-darken-4">Reservas por Día</h3>
+                <p class="text-caption text-medium-emphasis mb-0">Últimos 2 días</p>
               </div>
               <v-icon color="primary">mdi-chart-bar</v-icon>
             </div>
-            <div v-if="!reservasPorMesLabels.length" class="empty-state">
+            <div v-if="!reservasPorDiaLabels.length" class="empty-state">
               <v-icon size="48" color="grey-lighten-2" class="mb-3">mdi-chart-bar</v-icon>
-              <p class="text-body-2 text-medium-emphasis">No hay datos de reservas mensuales todavía</p>
+              <p class="text-body-2 text-medium-emphasis">No hay datos de reservas diarias todavía</p>
             </div>
             <canvas v-else ref="barChartRef" height="120"></canvas>
           </v-card>
@@ -598,6 +598,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import Chart from 'chart.js/auto'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import BannerHeader from '../components/BannerHeader.vue'
 import { useAuth } from '../composables/useAuth'
@@ -608,26 +609,7 @@ const { getAuthHeaders } = useAuth()
 const { formatDateTime } = useDateFormatter()
 const { getEstadoColor, getEstadoIcon } = useReservationStatus()
 
-// ── Chart.js (load lazily from CDN) ───────────────────────────────────────────
-let Chart = null
-const loadChart = async () => {
-  if (Chart) return
-  // Try to import chart.js if installed, otherwise fall back to CDN
-  try {
-    const mod = await import('chart.js/auto')
-    Chart = mod.default ?? mod.Chart
-  } catch {
-    await new Promise((resolve, reject) => {
-      if (document.getElementById('chartjs-cdn')) return resolve()
-      const s = document.createElement('script')
-      s.id = 'chartjs-cdn'
-      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js'
-      s.onload = () => { Chart = window.Chart; resolve() }
-      s.onerror = reject
-      document.head.appendChild(s)
-    })
-  }
-}
+// Chart.js statically imported at the top
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const loading     = ref(true)
@@ -728,7 +710,7 @@ const stats = ref({
   reservas_finalizadas: 0,
   reservas_canceladas: 0,
   reservas_por_estado: {},
-  reservas_por_mes: [],
+  reservas_por_dia: [],
   ingresos_totales: 0,
   ingresos_por_metodo: {},
   promedio_calificacion: null,
@@ -751,11 +733,15 @@ const totalCalificaciones = computed(() => stats.value.total_calificaciones || 0
 const maxTopService       = computed(() =>
   Math.max(...(stats.value.top_servicios || []).map(s => s.total_reservas), 1)
 )
-const reservasPorMesLabels = computed(() => (stats.value.reservas_por_mes || []).map(r => {
-  const [year, month] = r.mes.split('-')
-  return new Date(year, month - 1).toLocaleDateString('es-PE', { month: 'short', year: '2-digit' })
+const reservasPorDiaLabels = computed(() => (stats.value.reservas_por_dia || []).map(r => {
+  const parts = r.dia.split('-')
+  if (parts.length === 3) {
+    const [year, month, day] = parts
+    return `${day}/${month}`
+  }
+  return r.dia
 }))
-const reservasPorMesData = computed(() => (stats.value.reservas_por_mes || []).map(r => r.total))
+const reservasPorDiaData = computed(() => (stats.value.reservas_por_dia || []).map(r => r.total))
 
 // ── Table headers ─────────────────────────────────────────────────────────────
 const reservaHeaders = [
@@ -800,10 +786,10 @@ const renderBarChart = () => {
   barChartInstance = new Chart(barChartRef.value, {
     type: 'bar',
     data: {
-      labels: reservasPorMesLabels.value,
+      labels: reservasPorDiaLabels.value,
       datasets: [{
         label: 'Reservas',
-        data: reservasPorMesData.value,
+        data: reservasPorDiaData.value,
         backgroundColor: 'rgba(99, 102, 241, 0.7)',
         borderColor: 'rgba(99, 102, 241, 1)',
         borderWidth: 1.5,
@@ -824,7 +810,7 @@ const renderBarChart = () => {
 const renderDoughnutChart = () => {
   if (!doughnutChartRef.value || !Chart) return
   const roles  = Object.keys(stats.value.usuarios_por_rol || {})
-  const counts = Object.values(stats.value.usuarios_por_rol || {})
+  const counts = Object.values(stats.value.usuarios_por_rol || {}).map(Number)
   doughnutChartInstance?.destroy()
   doughnutChartInstance = new Chart(doughnutChartRef.value, {
     type: 'doughnut',
@@ -855,9 +841,10 @@ const fetchStats = async () => {
       stats.value = await res.json()
       lastUpdated.value = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
       await nextTick()
-      await loadChart()
-      renderBarChart()
-      renderDoughnutChart()
+      setTimeout(() => {
+        renderBarChart()
+        renderDoughnutChart()
+      }, 100)
     }
   } catch (err) {
     console.error('Error fetching stats:', err)

@@ -154,16 +154,21 @@ class UsuarioController extends Controller
             ->orderBy('puntuacion', 'desc')
             ->pluck('total', 'puntuacion');
 
-        // ── Reservas por mes (últimos 6 meses) ────────────────────────────────
-        $reservasPorMes = Reserva::select(
-                DB::raw("TO_CHAR(created_at, 'YYYY-MM') as mes"),
+        // ── Reservas por día (últimos 2 días) ─────────────────────────────────
+        $driver = DB::connection()->getDriverName();
+        $dateExpression = $driver === 'pgsql' 
+            ? "TO_CHAR(created_at, 'YYYY-MM-DD')" 
+            : "DATE_FORMAT(created_at, '%Y-%m-%d')";
+
+        $reservasPorDia = Reserva::select(
+                DB::raw("$dateExpression as dia"),
                 DB::raw('count(*) as total')
             )
-            ->where('created_at', '>=', now()->subMonths(6)->startOfMonth())
-            ->groupBy('mes')
-            ->orderBy('mes')
+            ->where('created_at', '>=', now()->subDays(2)->startOfDay())
+            ->groupBy('dia')
+            ->orderBy('dia')
             ->get()
-            ->map(fn($r) => ['mes' => $r->mes, 'total' => (int)$r->total]);
+            ->map(fn($r) => ['dia' => $r->dia, 'total' => (int)$r->total]);
 
         // ── Top 5 servicios más reservados ────────────────────────────────────
         $topServicios = Reserva::select('id_servicio', DB::raw('count(*) as total_reservas'))
@@ -220,7 +225,7 @@ class UsuarioController extends Controller
             'reservas_finalizadas'   => $reservasFinalizadas,
             'reservas_canceladas'    => $reservasCanceladas,
             'reservas_por_estado'    => $reservasByEstado,
-            'reservas_por_mes'       => $reservasPorMes,
+            'reservas_por_dia'       => $reservasPorDia,
             // Ingresos
             'ingresos_totales'   => (float)$ingresosTotales,
             'ingresos_por_metodo' => $ingresosPorMetodo,
