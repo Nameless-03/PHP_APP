@@ -294,4 +294,58 @@ class AutenticacionTest extends TestCase
         $this->assertEquals('mock_google@example.com', $userData['email']);
         $this->assertEquals('cliente', $userData['role']);
     }
+
+    /**
+     * Test register cliente with google_id returns token immediately.
+     */
+    public function test_registro_de_cliente_con_google_retorna_token_de_inmediato(): void
+    {
+        $data = [
+            'nombre' => 'Juan Google',
+            'email' => 'juan_google@example.com',
+            'google_id' => 'google_mock_112233',
+            'telefono' => '099112233',
+            'foto_perfil' => 'https://example.com/avatar.jpg'
+        ];
+
+        $response = $this->postJson('/api/auth/register/cliente', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'message',
+                'user' => ['id', 'nombre', 'email', 'role'],
+                'token'
+            ])
+            ->assertJsonPath('user.email', 'juan_google@example.com');
+
+        $this->assertNotEmpty($response->json('token'));
+    }
+
+    /**
+     * Test register profesional with google_id returns token immediately.
+     */
+    public function test_registro_de_profesional_con_google_retorna_token_de_inmediato(): void
+    {
+        $data = [
+            'nombre' => 'House Google',
+            'email' => 'house_google@example.com',
+            'google_id' => 'google_mock_445566',
+            'descripcion' => 'Especialista',
+            'experiencia' => '10 anos',
+            'ubicacion' => 'Uruguay',
+            'modalidad_preferida' => 'presencial'
+        ];
+
+        $response = $this->postJson('/api/auth/register/profesional', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'message',
+                'user' => ['id', 'nombre', 'email', 'role'],
+                'token'
+            ])
+            ->assertJsonPath('user.email', 'house_google@example.com');
+
+        $this->assertNotEmpty($response->json('token'));
+    }
 }

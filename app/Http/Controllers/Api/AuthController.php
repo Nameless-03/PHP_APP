@@ -45,10 +45,16 @@ class AuthController extends Controller
     {
         $usuario = $this->authService->registerCliente($request->validated());
 
-        return response()->json([
+        $response = [
             'message' => 'Cliente registered successfully',
             'user' => new UsuarioResource($usuario),
-        ], 201);
+        ];
+
+        if ($request->has('google_id')) {
+            $response['token'] = $usuario->createToken('auth_token')->plainTextToken;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**
@@ -58,10 +64,16 @@ class AuthController extends Controller
     {
         $usuario = $this->authService->registerProfesional($request->validated());
 
-        return response()->json([
+        $response = [
             'message' => 'Profesional registered successfully',
             'user' => new UsuarioResource($usuario),
-        ], 201);
+        ];
+
+        if ($request->has('google_id')) {
+            $response['token'] = $usuario->createToken('auth_token')->plainTextToken;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**

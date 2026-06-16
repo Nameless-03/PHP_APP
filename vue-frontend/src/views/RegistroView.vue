@@ -237,8 +237,17 @@ const handleRegister = async () => {
     
     console.log(`Usuario registrado con éxito:`, data)
     
-    if (isGoogleRegistration.value) {
-      // Iniciar sesión con Google de inmediato ya que la cuenta ya existe ahora
+    if (data.token) {
+      // Iniciar sesión con Google de inmediato si se provee el token (flujo Google)
+      localStorage.setItem('auth_token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      
+      // Despachar evento para notificar cambio de sesión
+      window.dispatchEvent(new Event('user-updated'))
+      
+      router.push('/dashboard')
+    } else if (isGoogleRegistration.value) {
+      // Fallback por si acaso
       window.location.href = '/api/auth/google/redirect'
     } else {
       router.push('/login')
