@@ -45,6 +45,7 @@ Route::prefix('auth')->group(function () {
 
         // Notificaciones
         Route::get('/notificaciones', [NotificacionController::class, 'index']);
+        Route::patch('/notificaciones/marcar-todas-leidas', [NotificacionController::class, 'marcarTodasLeidas']);
         Route::patch('/notificaciones/{id}/marcar-leida', [NotificacionController::class, 'marcarLeida']);
     });
 });

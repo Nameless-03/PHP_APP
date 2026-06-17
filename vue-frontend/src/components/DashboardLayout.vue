@@ -103,8 +103,22 @@
 
           <v-card class="rounded-lg elevation-4 border-card">
             <v-card-title class="d-flex justify-space-between align-center pa-4 bg-grey-lighten-4">
-              <span class="text-subtitle-1 font-weight-bold">Notificaciones</span>
-              <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
+              <div class="d-flex align-center">
+                <span class="text-subtitle-1 font-weight-bold mr-2">Notificaciones</span>
+                <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
+              </div>
+              <v-btn
+                v-if="notificaciones.length > 0"
+                variant="text"
+                color="secondary"
+                size="small"
+                class="text-none font-weight-bold px-1"
+                density="compact"
+                prepend-icon="mdi-check-all"
+                @click="marcarTodasComoLeidas"
+              >
+                Limpiar todas
+              </v-btn>
             </v-card-title>
             <v-divider></v-divider>
             
@@ -352,6 +366,19 @@ const marcarComoLeida = async (id) => {
     }
   } catch (err) {
     console.error('Error al marcar leída', err)
+  }
+}
+
+const marcarTodasComoLeidas = async () => {
+  try {
+    await fetch('/api/auth/notificaciones/marcar-todas-leidas', {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    })
+    notificaciones.value = []
+    menuNotificaciones.value = false
+  } catch (err) {
+    console.error('Error al marcar todas como leídas', err)
   }
 }
 

@@ -773,7 +773,6 @@
                 <div class="text-body-2 mb-2">{{ pagoError }}</div>
                 <div class="d-flex gap-2">
                   <v-btn size="small" color="error" variant="elevated" @click="pagoError = ''" class="text-none">Reintentar</v-btn>
-                  <v-btn size="small" color="error" variant="outlined" @click="cancelarReservaDesdePago" :loading="isLoading" class="text-none">Cancelar Reserva</v-btn>
                 </div>
               </v-alert>
 
@@ -968,16 +967,6 @@
             </v-card-text>
 
             <v-card-actions class="pa-6 pt-0 d-flex justify-end" v-if="!cargandoPago">
-              <v-btn
-                variant="elevated"
-                color="error"
-                class="mr-3 px-6 text-none font-weight-bold"
-                prepend-icon="mdi-close-circle-outline"
-                :loading="isLoading"
-                @click="cancelarReservaDesdePago"
-              >
-                Cancelar Reserva
-              </v-btn>
               <v-btn variant="outlined" color="grey-darken-1" class="mr-3 px-6 text-none font-weight-bold" :disabled="cargandoPago" @click="dialogPagarReserva = false">
                 Volver
               </v-btn>
@@ -1453,6 +1442,7 @@ const ejecutarCancelacion = async () => {
   if (!reservaACancelarId.value) return
   await cambiarEstadoReserva(reservaACancelarId.value, 'cancelada')
   reservaACancelarId.value = null
+  dialogConfirmarCancelacion.value = false
 }
 
 const cambiarEstadoReserva = async (id, estado) => {

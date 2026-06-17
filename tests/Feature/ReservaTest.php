@@ -737,5 +737,35 @@ class ReservaTest extends TestCase
         // 6. Verificar que el flag de la caché fue limpiado
         $this->assertFalse(\Illuminate\Support\Facades\Cache::has("reprogramada_por_cliente_{$reserva->id}"));
     }
+
+    /**
+     * Test de que se pueden marcar todas las notificaciones como leídas.
+     */
+    public function test_usuario_puede_marcar_todas_las_notificaciones_como_leidas(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $this->clienteUser->notify(new \App\Notifications\ReservaEstadoNotificacion(
+            $reserva, "Titulo 1", "Mensaje 1"
+        ));
+        $this->clienteUser->notify(new \App\Notifications\ReservaEstadoNotificacion(
+            $reserva, "Titulo 2", "Mensaje 2"
+        ));
+
+        $this->assertEquals(2, $this->clienteUser->unreadNotifications()->count());
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson('/api/auth/notificaciones/marcar-todas-leidas');
+
+        $response->assertStatus(200);
+        $this->assertEquals(0, $this->clienteUser->unreadNotifications()->count());
+    }
 }
 
