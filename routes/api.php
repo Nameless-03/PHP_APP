@@ -30,7 +30,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register/cliente', [AuthController::class, 'registerCliente']);
     Route::post('/register/profesional', [AuthController::class, 'registerProfesional']);
-    
+    // Rutas para restablecimiento de contraseña
+    Route::post('/forgot-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'sendResetLinkEmail']);
+    Route::post('/reset-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'reset']);
+
     // Google OAuth
     Route::get('/google/redirect', [AuthController::class, 'redirectToGoogle']);
     Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback']);

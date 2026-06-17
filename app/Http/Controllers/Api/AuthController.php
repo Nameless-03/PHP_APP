@@ -45,10 +45,16 @@ class AuthController extends Controller
     {
         $usuario = $this->authService->registerCliente($request->validated());
 
-        return response()->json([
+        $response = [
             'message' => 'Cliente registered successfully',
             'user' => new UsuarioResource($usuario),
-        ], 201);
+        ];
+
+        if ($request->has('google_id')) {
+            $response['token'] = $usuario->createToken('auth_token')->plainTextToken;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**
@@ -58,10 +64,16 @@ class AuthController extends Controller
     {
         $usuario = $this->authService->registerProfesional($request->validated());
 
-        return response()->json([
+        $response = [
             'message' => 'Profesional registered successfully',
             'user' => new UsuarioResource($usuario),
-        ], 201);
+        ];
+
+        if ($request->has('google_id')) {
+            $response['token'] = $usuario->createToken('auth_token')->plainTextToken;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**
@@ -209,7 +221,7 @@ class AuthController extends Controller
 
             // Create Sanctum token
             $token = $usuario->createToken('auth_token')->plainTextToken;
-            $userJson = json_encode(new UsuarioResource($usuario));
+            $userJson = json_encode((new UsuarioResource($usuario))->resolve());
             $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token) . '&user=' . rawurlencode($userJson);
 
             return redirect($redirectUrl);

@@ -188,13 +188,10 @@
               <h4 class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-3">1. Método de Pago</h4>
               <v-radio-group v-model="paymentMethod" inline class="mb-4">
                 <v-row>
-                  <v-col cols="12" sm="4" class="py-1">
+                  <v-col cols="12" sm="6" class="py-1">
                     <v-radio label="PayPal" value="paypal" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
-                  <v-col cols="12" sm="4" class="py-1">
-                    <v-radio label="Transferencia" value="transferencia" color="primary" class="font-weight-medium"></v-radio>
-                  </v-col>
-                  <v-col cols="12" sm="4" class="py-1">
+                  <v-col cols="12" sm="6" class="py-1">
                     <v-radio label="Efectivo" value="efectivo" color="primary" class="font-weight-medium"></v-radio>
                   </v-col>
                 </v-row>
@@ -500,18 +497,24 @@ const processPurchase = async () => {
       let finalEstado = pagoResult.estado
 
       if (pagoResult.estado === 'pendiente') {
-        const pollResult = await pollPaymentStatus(pagoResult.id)
-        if (pollResult.success) {
+        if (paymentMethod.value === 'efectivo') {
           finalEstado = 'completado'
         } else {
-          throw new Error(pollResult.error)
+          const pollResult = await pollPaymentStatus(pagoResult.id)
+          if (pollResult.success) {
+            finalEstado = 'completado'
+          } else {
+            throw new Error(pollResult.error)
+          }
         }
       }
 
       if (finalEstado === 'completado') {
         snackbar.value = {
           show: true,
-          text: '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
+          text: paymentMethod.value === 'efectivo'
+            ? '¡Compra en efectivo registrada! Las sesiones han sido habilitadas.'
+            : '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
           color: 'success'
         }
         purchaseDialog.value = false
@@ -547,19 +550,25 @@ const processPurchase = async () => {
       let finalEstado = pago?.estado
 
       if (pago && pago.estado === 'pendiente') {
-        const pollResult = await pollPaymentStatus(pago.id)
-        if (pollResult.success) {
+        if (paymentMethod.value === 'efectivo') {
           finalEstado = 'completado'
         } else {
-          compraCreada.value = compra
-          throw new Error(pollResult.error)
+          const pollResult = await pollPaymentStatus(pago.id)
+          if (pollResult.success) {
+            finalEstado = 'completado'
+          } else {
+            compraCreada.value = compra
+            throw new Error(pollResult.error)
+          }
         }
       }
 
       if (finalEstado === 'completado') {
         snackbar.value = {
           show: true,
-          text: '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
+          text: paymentMethod.value === 'efectivo'
+            ? '¡Compra en efectivo registrada! Las sesiones han sido habilitadas.'
+            : '¡Compra completada con éxito! Las sesiones han sido habilitadas.',
           color: 'success'
         }
         purchaseDialog.value = false

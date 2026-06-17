@@ -121,4 +121,15 @@ class Usuario extends Authenticatable
     {
         return $this->role === RoleEnum::ADMIN;
     }
+
+    /**
+     * Enviar la notificación de restablecimiento de contraseña.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
 }

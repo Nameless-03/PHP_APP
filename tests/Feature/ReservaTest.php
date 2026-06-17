@@ -166,6 +166,71 @@ class ReservaTest extends TestCase
     }
 
     /**
+     * Test de creación de reserva consumiendo una sesión de paquete comprado en efectivo.
+     */
+    public function test_cliente_puede_reservar_consumiendo_sesion_de_paquete_en_efectivo(): void
+    {
+        $mañana = Carbon::tomorrow()->setHour(10)->setMinute(0)->toDateTimeString();
+
+        $paquete = \App\Models\Paquete::create([
+            'nombre' => 'Paquete Test Efectivo',
+            'descripcion' => 'Un paquete de prueba en efectivo',
+            'cantidad_sesiones' => 5,
+            'precio' => 150.00,
+            'vencimiento' => 30,
+            'id_profesional' => $this->profesionalUser->id
+        ]);
+        
+        $paquete->servicios()->attach($this->servicio->id);
+
+        $compra = \App\Models\CompraPaquete::create([
+            'sesiones_disponibles' => 5,
+            'estado' => 'activo',
+            'id_cliente' => $this->clienteUser->id,
+            'id_paquete' => $paquete->id
+        ]);
+
+        // Crear pago asociado en efectivo
+        \App\Models\Pago::create([
+            'monto' => 150.00,
+            'metodo' => 'efectivo',
+            'estado' => \App\Enums\EstadoPagoEnum::PENDIENTE,
+            'id_compra' => $compra->id
+        ]);
+
+        $data = [
+            'id_servicio' => $this->servicio->id,
+            'fecha_hora_inicio' => $mañana,
+            'id_compra_paquete' => $compra->id,
+            'observaciones' => 'Reserva con paquete en efectivo'
+        ];
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->postJson('/api/reservas', $data);
+
+        $response->assertStatus(201);
+
+        $compra->refresh();
+        $this->assertEquals(4, $compra->sesiones_disponibles);
+
+        // Validar que la reserva se creó como pendiente y tiene un pago asociado
+        $this->assertDatabaseHas('reservas', [
+            'id_servicio' => $this->servicio->id,
+            'id_cliente' => $this->clienteUser->id,
+            'id_compra_paquete' => $compra->id,
+            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE->value,
+        ]);
+
+        $reserva = \App\Models\Reserva::where('id_compra_paquete', $compra->id)->first();
+
+        $this->assertDatabaseHas('pagos', [
+            'id_reserva' => $reserva->id,
+            'metodo' => 'efectivo',
+            'estado' => \App\Enums\EstadoPagoEnum::PENDIENTE->value,
+        ]);
+    }
+
+    /**
      * Test de validación cuando el paquete está agotado.
      */
     public function test_no_se_puede_reservar_con_paquete_agotado(): void
@@ -342,7 +407,7 @@ class ReservaTest extends TestCase
 
         // Debería tener éxito
         $response->assertStatus(200);
-        $this->assertEquals(\App\Enums\EstadoReservaEnum::CANCELADA->value, $reserva->fresh()->estado->value);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CANCELADA->value, \App\Models\Reserva::withTrashed()->find($reserva->id)->estado->value);
     }
 
     /**

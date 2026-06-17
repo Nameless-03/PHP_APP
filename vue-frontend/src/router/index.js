@@ -10,6 +10,8 @@ import ComprarPaquetesView from '../views/ComprarPaquetesView.vue'
 import MisPaquetesView from '../views/MisPaquetesView.vue'
 import VideollamadaView from '../views/VideollamadaView.vue'
 import ListaVideollamadasView from '../views/ListaVideollamadasView.vue'
+import OlvidoContrasenaView from '../views/OlvidoContrasenaView.vue'
+import RestablecerContrasenaView from '../views/RestablecerContrasenaView.vue'
 
 import MisHorariosView from '../views/MisHorariosView.vue'
 import MisReservasView from '../views/MisReservasView.vue'
@@ -35,6 +37,16 @@ const router = createRouter({
       path: '/register',
       name: 'register',
       component: RegistroView
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: OlvidoContrasenaView
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: RestablecerContrasenaView
     },
     {
       path: '/dashboard',
@@ -154,8 +166,8 @@ router.beforeEach((to, from, next) => {
     } else {
       next() // Permitir la navegación
     }
-  } else if ((to.name === 'login' || to.name === 'register') && isAuthenticated) {
-    // Si el usuario ya está autenticado e intenta ir a login o registro, redirigir a dashboard
+  } else if ((to.name === 'login' || to.name === 'register' || to.name === 'forgot-password' || to.name === 'reset-password') && isAuthenticated) {
+    // Si el usuario ya está autenticado e intenta ir a auth, redirigir a dashboard
     // A menos que esté regresando de un flujo de OAuth (Google) con query params relevantes
     if (to.name === 'login' && to.query.token) {
       next()

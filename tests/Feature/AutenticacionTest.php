@@ -249,4 +249,103 @@ class AutenticacionTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    /**
+     * Test google callback redirection when user already exists.
+     */
+    public function test_google_callback_redirecciona_correctamente_cuando_el_usuario_existe(): void
+    {
+        // Creamos el usuario simulado con el email de mock_google
+        $usuario = Usuario::create([
+            'nombre' => 'Usuario Google Mock',
+            'email' => 'mock_google@example.com',
+            'password' => Hash::make('password123'),
+            'role' => RoleEnum::CLIENTE,
+            'google_id' => 'google_mock_123456',
+        ]);
+
+        // Mock del cliente asociado
+        \App\Models\Cliente::create([
+            'id_usuario' => $usuario->id,
+            'telefono' => '099000000',
+        ]);
+
+        // Hacemos el GET al callback con el code mock
+        $response = $this->get('/api/auth/google/callback?code=mock_code');
+
+        // Debería redirigir al login del frontend
+        $response->assertStatus(302);
+        
+        $location = $response->headers->get('Location');
+        $this->assertStringContainsString('/login', $location);
+        $this->assertStringContainsString('token=', $location);
+        $this->assertStringContainsString('user=', $location);
+
+        // Extraemos y parseamos el user query parameter para verificar que no tenga la envoltura 'data'
+        $parsedUrl = parse_url($location);
+        parse_str($parsedUrl['query'], $queryParams);
+        
+        $userParam = $queryParams['user'];
+        $userData = json_decode($userParam, true);
+
+        // Validamos la estructura plana
+        $this->assertArrayHasKey('id', $userData);
+        $this->assertArrayNotHasKey('data', $userData);
+        $this->assertEquals('mock_google@example.com', $userData['email']);
+        $this->assertEquals('cliente', $userData['role']);
+    }
+
+    /**
+     * Test register cliente with google_id returns token immediately.
+     */
+    public function test_registro_de_cliente_con_google_retorna_token_de_inmediato(): void
+    {
+        $data = [
+            'nombre' => 'Juan Google',
+            'email' => 'juan_google@example.com',
+            'google_id' => 'google_mock_112233',
+            'telefono' => '099112233',
+            'foto_perfil' => 'https://example.com/avatar.jpg'
+        ];
+
+        $response = $this->postJson('/api/auth/register/cliente', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'message',
+                'user' => ['id', 'nombre', 'email', 'role'],
+                'token'
+            ])
+            ->assertJsonPath('user.email', 'juan_google@example.com');
+
+        $this->assertNotEmpty($response->json('token'));
+    }
+
+    /**
+     * Test register profesional with google_id returns token immediately.
+     */
+    public function test_registro_de_profesional_con_google_retorna_token_de_inmediato(): void
+    {
+        $data = [
+            'nombre' => 'House Google',
+            'email' => 'house_google@example.com',
+            'google_id' => 'google_mock_445566',
+            'descripcion' => 'Especialista',
+            'experiencia' => '10 anos',
+            'ubicacion' => 'Uruguay',
+            'modalidad_preferida' => 'presencial'
+        ];
+
+        $response = $this->postJson('/api/auth/register/profesional', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'message',
+                'user' => ['id', 'nombre', 'email', 'role'],
+                'token'
+            ])
+            ->assertJsonPath('user.email', 'house_google@example.com');
+
+        $this->assertNotEmpty($response->json('token'));
+    }
 }
