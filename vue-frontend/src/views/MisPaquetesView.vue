@@ -302,20 +302,6 @@
                 </div>
               </v-expand-transition>
 
-              <!-- Error simulation switch -->
-              <v-divider class="my-4"></v-divider>
-              <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
-                <div>
-                  <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
-                  <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
-                </div>
-                <v-switch
-                  v-model="simulateError"
-                  color="error"
-                  hide-details
-                  density="compact"
-                ></v-switch>
-              </div>
             </div>
           </v-card-text>
 

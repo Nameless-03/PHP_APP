@@ -270,37 +270,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import { useAuth } from '../composables/useAuth.js'
 
 const router = useRouter()
+const { isCliente, isProfesional, isAdmin, user, getAuthHeaders } = useAuth()
 
-const getInitialName = () => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      if (user.nombre) return user.nombre.split(' ')[0]
-    } catch(e) {}
+const userName = computed(() => {
+  if (user.value && user.value.nombre) {
+    return user.value.nombre.split(' ')[0]
   }
   return ''
-}
+})
 
-const getUserRole = () => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      return user.role || ''
-    } catch(e) {}
-  }
-  return ''
-}
-
-const userName = ref(getInitialName())
-const isProfesional = ref(getUserRole() === 'profesional')
-const isAdmin = ref(getUserRole() === 'admin')
 const activeServicesCount = ref(0)
 const avgRating = ref('0.0')
 const searchQuery = ref('')
@@ -326,13 +310,8 @@ const handleSearch = () => {
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) return
-
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/json'
-  }
+  const headers = getAuthHeaders()
+  if (!headers.Authorization) return
 
   try {
     // Fetch user info
@@ -340,11 +319,7 @@ onMounted(async () => {
 
     if (authResponse.ok) {
       const data = await authResponse.json()
-      if (data.user && data.user.nombre) {
-        userName.value = data.user.nombre.split(' ')[0]
-        isProfesional.value = data.user.role === 'profesional'
-        isAdmin.value = data.user.role === 'admin'
-        
+      if (data.user) {
         if (isProfesional.value && data.user.profesional) {
           avgRating.value = Number(data.user.profesional.reputacion).toFixed(1)
         }
@@ -365,16 +340,12 @@ onMounted(async () => {
 
     // Profesional: fetch services count
     if (isProfesional.value && !isAdmin.value) {
-      const userStr = localStorage.getItem('user')
-      if (userStr) {
+      if (user.value && user.value.id) {
         try {
-          const user = JSON.parse(userStr)
-          if (user.id) {
-            const servResponse = await fetch(`/api/servicios?id_profesional=${user.id}`, { headers })
-            if (servResponse.ok) {
-              const servData = await servResponse.json()
-              activeServicesCount.value = servData.data ? servData.data.length : 0
-            }
+          const servResponse = await fetch(`/api/servicios?id_profesional=${user.value.id}`, { headers })
+          if (servResponse.ok) {
+            const servData = await servResponse.json()
+            activeServicesCount.value = servData.data ? servData.data.length : 0
           }
         } catch (e) {}
       }

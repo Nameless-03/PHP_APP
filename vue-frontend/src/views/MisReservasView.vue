@@ -106,15 +106,26 @@
                             Total: ${{ reserva.servicio?.precio }} USD
                           </div>
                         </div>
-                        <v-btn
-                          color="success"
-                          class="text-white font-weight-bold text-none rounded-lg px-6"
-                          prepend-icon="mdi-credit-card"
-                          @click="abrirPagarReserva(reserva)"
-                          elevation="2"
-                        >
-                          Pagar
-                        </v-btn>
+                        <div class="d-flex flex-column align-end">
+                          <v-btn
+                            color="success"
+                            class="text-white font-weight-bold text-none rounded-lg px-6"
+                            prepend-icon="mdi-credit-card"
+                            @click="abrirPagarReserva(reserva)"
+                            elevation="2"
+                          >
+                            Pagar
+                          </v-btn>
+                          <v-btn
+                            color="error"
+                            variant="outlined"
+                            class="text-none font-weight-bold rounded-lg px-6 mt-2"
+                            prepend-icon="mdi-close-circle-outline"
+                            @click="cancelarReserva(reserva.id)"
+                          >
+                            Cancelar
+                          </v-btn>
+                        </div>
                       </v-card>
                     </v-col>
                   </v-row>
