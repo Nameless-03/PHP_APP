@@ -103,22 +103,8 @@
 
           <v-card class="rounded-lg elevation-4 border-card">
             <v-card-title class="d-flex justify-space-between align-center pa-4 bg-grey-lighten-4">
-              <div class="d-flex align-center">
-                <span class="text-subtitle-1 font-weight-bold mr-2">Notificaciones</span>
-                <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
-              </div>
-              <v-btn
-                v-if="notificaciones.length > 0"
-                variant="text"
-                color="secondary"
-                size="small"
-                class="text-none font-weight-bold px-1"
-                density="compact"
-                prepend-icon="mdi-check-all"
-                @click="marcarTodasComoLeidas"
-              >
-                Limpiar todas
-              </v-btn>
+              <span class="text-subtitle-1 font-weight-bold">Notificaciones</span>
+              <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
             </v-card-title>
             <v-divider></v-divider>
             
@@ -126,8 +112,7 @@
               variant="accordion"
               class="pa-0 elevation-0"
               v-if="notificaciones.length > 0"
-              max-height="400"
-              style="overflow-y: auto;"
+              style="max-height: 290px; overflow-y: auto;"
             >
               <v-expansion-panel
                 v-for="notif in notificaciones"
@@ -179,6 +164,22 @@
               <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-bell-sleep</v-icon>
               <p class="mb-0 text-body-2">No tienes notificaciones nuevas</p>
             </div>
+
+            <template v-if="notificaciones.length > 0">
+              <v-divider></v-divider>
+              <v-card-actions class="pa-2 bg-grey-lighten-4 d-flex justify-center">
+                <v-btn
+                  variant="text"
+                  color="secondary"
+                  size="small"
+                  class="text-none font-weight-bold"
+                  prepend-icon="mdi-check-all"
+                  @click="marcarTodasComoLeidas"
+                >
+                  Limpiar notificaciones
+                </v-btn>
+              </v-card-actions>
+            </template>
           </v-card>
         </v-menu>
         <v-avatar
