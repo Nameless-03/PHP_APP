@@ -21,83 +21,170 @@ class NotificarCambioReserva implements ShouldQueue
     {
         if ($event instanceof ReservaCreada) {
             $mensaje = "Tu reserva para '{$event->reserva->servicio->nombre}' ha sido recibida y está pendiente de confirmación.";
-            
-            // 1. Enviar Notificación por Email (Laravel Notification) al cliente
+
+            // Notificar al Cliente
             $event->reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
                 $event->reserva,
                 "Nueva Reserva Recibida",
                 $mensaje
             ));
-
-            // 2. Guardar en Base de Datos (Custom Table) para el cliente
             Notificacion::create([
-                'titulo' => 'Nueva Reserva',
-                'mensaje' => $mensaje,
-                'tipo' => TipoNotificacionEnum::CONFIRMACION,
+                'titulo'     => 'Nueva Reserva',
+                'mensaje'    => $mensaje,
+                'tipo'       => TipoNotificacionEnum::CONFIRMACION,
                 'id_usuario' => $event->reserva->cliente->id_usuario,
             ]);
 
-            // 3. Notificar al Profesional
+            // Notificar al Profesional
             $profesional = $event->reserva->servicio->profesional;
             if ($profesional && $profesional->usuario) {
-                $mensajeProfesional = "Tienes una nueva solicitud de reserva para '{$event->reserva->servicio->nombre}' del cliente '{$event->reserva->cliente->usuario->nombre}'.";
-                
+                $mensajeProf = "Tienes una nueva solicitud de reserva para '{$event->reserva->servicio->nombre}' del cliente '{$event->reserva->cliente->usuario->nombre}'.";
                 $profesional->usuario->notify(new ReservaEstadoNotificacion(
                     $event->reserva,
                     "Nueva Solicitud de Reserva",
-                    $mensajeProfesional
+                    $mensajeProf
                 ));
-
                 Notificacion::create([
-                    'titulo' => 'Nueva Solicitud de Reserva',
-                    'mensaje' => $mensajeProfesional,
-                    'tipo' => TipoNotificacionEnum::CONFIRMACION,
+                    'titulo'     => 'Nueva Solicitud de Reserva',
+                    'mensaje'    => $mensajeProf,
+                    'tipo'       => TipoNotificacionEnum::CONFIRMACION,
                     'id_usuario' => $profesional->id_usuario,
                 ]);
             }
         }
 
         if ($event instanceof ReservaEstadoCambiado) {
-            $reserva = $event->reserva;
+            $reserva    = $event->reserva;
             $nuevoEstado = $reserva->estado->value;
+            $estadoAnterior = $event->estadoAnterior;
 
+            // Determinar quién realizó la acción
+            $porQuien = "el sistema";
+            if (auth()->check()) {
+                $authUser = auth()->user();
+                if ($authUser->id === $reserva->cliente->id_usuario) {
+                    $porQuien = "ti";
+                } elseif ($authUser->id === $reserva->servicio->profesional->id_usuario) {
+                    $porQuien = "el profesional";
+                } elseif ($authUser->esAdmin()) {
+                    $porQuien = "el administrador";
+                }
+            }
+
+            // === CANCELACIÓN ===
             if ($nuevoEstado === 'cancelada') {
-                // Determinar quién canceló la reserva para ajustar el mensaje
-                $porQuien = "por el profesional";
-                if (auth()->check()) {
-                    if (auth()->user()->id === $reserva->id_cliente) {
-                        $porQuien = "por ti";
-                    } elseif (auth()->user()->esAdmin()) {
-                        $porQuien = "por el administrador";
-                    }
-                }
-
+                // Construir mensaje para el cliente
+                $mensajeCliente = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por {$porQuien}.";
                 if ($reserva->id_compra_paquete) {
-                    $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada {$porQuien}. Se ha devuelto la sesión a tu paquete.";
-                } else {
-                    $pagoMetodo = $reserva->pago ? ($reserva->pago->metodo->value ?? $reserva->pago->metodo) : '';
-                    if ($pagoMetodo === 'paypal') {
-                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada {$porQuien}. Su pago será devuelto.";
-                    } else {
-                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada {$porQuien}.";
+                    $mensajeCliente .= " Se ha devuelto la sesión a tu paquete.";
+                } elseif ($reserva->pago) {
+                    $pagoEstado = is_string($reserva->pago->estado)
+                        ? $reserva->pago->estado
+                        : ($reserva->pago->estado->value ?? '');
+                    if ($pagoEstado === 'reembolsado') {
+                        $mensajeCliente .= " Se procederá a la devolución del importe pagado a tu método de pago original.";
                     }
                 }
-            } else {
-                $mensaje = "El estado de tu reserva ha cambiado a: {$nuevoEstado}.";
-            }
 
-            if ($nuevoEstado !== 'confirmada') {
+                // Notificar al cliente
                 $reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
-                    $reserva,
-                    "Actualización de Reserva",
-                    $mensaje
+                    $reserva, "Reserva Cancelada", $mensajeCliente
                 ));
+                Notificacion::create([
+                    'titulo'     => 'Reserva Cancelada',
+                    'mensaje'    => $mensajeCliente,
+                    'tipo'       => TipoNotificacionEnum::CANCELACION,
+                    'id_usuario' => $reserva->cliente->id_usuario,
+                ]);
+
+                // Notificar al profesional si quien canceló no fue él
+                if ($porQuien !== 'el profesional') {
+                    $profesional = $reserva->servicio->profesional;
+                    if ($profesional && $profesional->usuario) {
+                        if ($porQuien === 'el sistema') {
+                            $mensajeProf = "La reserva de '{$reserva->cliente->usuario->nombre}' para '{$reserva->servicio->nombre}' ha sido cancelada por el sistema debido a que no fue confirmada antes del límite permitido.";
+                            $tituloProf = "Reserva Cancelada por el Sistema";
+                        } else {
+                            $mensajeProf = "El cliente '{$reserva->cliente->usuario->nombre}' ha cancelado su reserva para '{$reserva->servicio->nombre}'.";
+                            $tituloProf = "Reserva Cancelada por el Cliente";
+                        }
+                        $profesional->usuario->notify(new ReservaEstadoNotificacion(
+                            $reserva, $tituloProf, $mensajeProf
+                        ));
+                        Notificacion::create([
+                            'titulo'     => $tituloProf,
+                            'mensaje'    => $mensajeProf,
+                            'tipo'       => TipoNotificacionEnum::CANCELACION,
+                            'id_usuario' => $profesional->id_usuario,
+                        ]);
+                    }
+                }
+
+                return;
             }
 
+            // === CONFIRMACIÓN (profesional confirma reserva o nueva fecha) ===
+            if ($nuevoEstado === 'confirmada') {
+                // Si venía de pagada, es una confirmación de fecha reprogramada
+                $mensajeCliente = in_array($estadoAnterior, ['pagada'])
+                    ? "El profesional ha confirmado la nueva fecha para tu reserva de '{$reserva->servicio->nombre}'. ¡Tu cita está agendada!"
+                    : "Tu reserva para '{$reserva->servicio->nombre}' ha sido confirmada por el profesional. ¡Te esperamos!";
+
+                $reserva->cliente->usuario->notify(new \App\Notifications\ReservaConfirmadaNotification(
+                    $reserva
+                ));
+                Notificacion::create([
+                    'titulo'     => 'Reserva Confirmada',
+                    'mensaje'    => $mensajeCliente,
+                    'tipo'       => TipoNotificacionEnum::CONFIRMACION,
+                    'id_usuario' => $reserva->cliente->id_usuario,
+                ]);
+
+                return;
+            }
+
+            // === REPROGRAMACIÓN ===
+            if (in_array($estadoAnterior, ['pagada', 'confirmada']) && in_array($nuevoEstado, ['pagada', 'confirmada'])) {
+                $mensajeCliente = "Tu reserva para '{$reserva->servicio->nombre}' ha sido reprogramada por {$porQuien}. Revisa la nueva fecha y hora.";
+                $reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
+                    $reserva, "Reserva Reprogramada", $mensajeCliente
+                ));
+                Notificacion::create([
+                    'titulo'     => 'Reserva Reprogramada',
+                    'mensaje'    => $mensajeCliente,
+                    'tipo'       => TipoNotificacionEnum::MODIFICACION,
+                    'id_usuario' => $reserva->cliente->id_usuario,
+                ]);
+
+                // Si reprogramó el cliente, notificar al profesional para que confirme la nueva fecha
+                if ($porQuien === 'ti' && $nuevoEstado === 'pagada') {
+                    $profesional = $reserva->servicio->profesional;
+                    if ($profesional && $profesional->usuario) {
+                        $mensajeProf = "El cliente '{$reserva->cliente->usuario->nombre}' ha reprogramado su reserva de '{$reserva->servicio->nombre}'. Por favor confirma la nueva fecha.";
+                        $profesional->usuario->notify(new ReservaEstadoNotificacion(
+                            $reserva, "Fecha de Reserva Reprogramada – Confirmación Requerida", $mensajeProf
+                        ));
+                        Notificacion::create([
+                            'titulo'     => 'Fecha Reprogramada – Confirmar',
+                            'mensaje'    => $mensajeProf,
+                            'tipo'       => TipoNotificacionEnum::MODIFICACION,
+                            'id_usuario' => $profesional->id_usuario,
+                        ]);
+                    }
+                }
+
+                return;
+            }
+
+            // === OTROS CAMBIOS DE ESTADO ===
+            $mensaje = "El estado de tu reserva para '{$reserva->servicio->nombre}' ha cambiado a: {$nuevoEstado}.";
+            $reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
+                $reserva, "Actualización de Reserva", $mensaje
+            ));
             Notificacion::create([
-                'titulo' => 'Actualización de Reserva',
-                'mensaje' => $mensaje,
-                'tipo' => TipoNotificacionEnum::MODIFICACION,
+                'titulo'     => 'Actualización de Reserva',
+                'mensaje'    => $mensaje,
+                'tipo'       => TipoNotificacionEnum::MODIFICACION,
                 'id_usuario' => $reserva->cliente->id_usuario,
             ]);
         }

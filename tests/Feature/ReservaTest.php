@@ -704,5 +704,38 @@ class ReservaTest extends TestCase
         $pago->refresh();
         $this->assertEquals('reembolsado', $pago->estado);
     }
+
+    /**
+     * Test de que el comando de cancelación automática cancela las reservas reprogramadas no confirmadas a tiempo.
+     */
+    public function test_comando_cancela_automaticamente_reservas_reprogramadas_no_confirmadas_a_tiempo(): void
+    {
+        // 1. Configurar servicio con 10 horas de limite de cancelación
+        $this->servicio->update(['limite_cancelacion_horas' => 10]);
+
+        // 2. Crear una reserva pagada que comienza en 9 horas (ya pasó el límite de 10 horas antes del inicio)
+        $inicio = Carbon::now()->addHours(9);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 3. Simular que fue reprogramada por el cliente guardándolo en la caché
+        \Illuminate\Support\Facades\Cache::put("reprogramada_por_cliente_{$reserva->id}", true, now()->addDays(1));
+
+        // 4. Ejecutar el comando
+        $this->artisan('turnos:cancelar-no-confirmados')
+            ->expectsOutput("Cancelando automáticamente reserva #{$reserva->id} reprogramada y no confirmada a tiempo.")
+            ->assertExitCode(0);
+
+        // 5. Verificar que la reserva fue cancelada en la base de datos (eliminada lógicamente)
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CANCELADA->value, \App\Models\Reserva::withTrashed()->find($reserva->id)->estado->value);
+        
+        // 6. Verificar que el flag de la caché fue limpiado
+        $this->assertFalse(\Illuminate\Support\Facades\Cache::has("reprogramada_por_cliente_{$reserva->id}"));
+    }
 }
 

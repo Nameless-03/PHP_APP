@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('turnos:recordatorios')->hourly();
+Schedule::command('videollamada:recordatorios')->everyMinute();
+Schedule::command('turnos:cancelar-no-confirmados')->everyMinute();

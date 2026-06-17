@@ -424,6 +424,59 @@
               <div v-if="cargandoRegistros" class="text-center py-8"><v-progress-circular indeterminate color="primary"></v-progress-circular></div>
 
               <template v-else>
+                <!-- SECCIÓN 0: Confirmar nueva fecha (reprogramadas por el cliente) -->
+                <div class="mb-6" v-if="reservasReprogramadasPorCliente.length > 0">
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="info" size="20" class="mr-2">mdi-calendar-sync</v-icon>
+                    <h3 class="text-subtitle-1 font-weight-bold text-grey-darken-3">Confirmar nueva fecha (reprogramadas)</h3>
+                    <v-chip size="x-small" color="info" variant="flat" class="ml-2 font-weight-bold">{{ reservasReprogramadasPorCliente.length }}</v-chip>
+                  </div>
+                  <v-row>
+                    <v-col cols="12" v-for="reserva in reservasReprogramadasPorCliente" :key="reserva.id">
+                      <v-card class="rounded-lg" elevation="1" style="border: 1px solid rgba(3,169,244,0.3); background: rgba(3,169,244,0.04);">
+                        <v-card-text class="d-flex align-center flex-wrap">
+                          <v-avatar color="info" variant="tonal" size="48" class="mr-4"><v-icon>mdi-calendar-clock</v-icon></v-avatar>
+                          <div class="flex-grow-1 mr-4">
+                            <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
+                            <p class="text-body-2 mb-0">
+                              {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} — {{ reserva.servicio?.nombre }}
+                            </p>
+                            <v-chip size="x-small" color="info" variant="tonal" class="mt-1 font-weight-bold">
+                              <v-icon start size="12">mdi-calendar-sync</v-icon>
+                              Cliente reprogramó — confirma la nueva fecha
+                            </v-chip>
+                          </div>
+                          <div class="d-flex gap-2 mt-2 mt-sm-0">
+                            <v-btn
+                              color="info"
+                              size="small"
+                              variant="elevated"
+                              class="text-none font-weight-bold rounded-pill px-4 text-white"
+                              prepend-icon="mdi-check"
+                              @click="cambiarEstadoReserva(reserva.id, 'confirmada')"
+                              :loading="isLoading"
+                            >
+                              Confirmar fecha
+                            </v-btn>
+                            <v-btn
+                              color="error"
+                              size="small"
+                              variant="outlined"
+                              class="text-none font-weight-bold rounded-pill px-4"
+                              prepend-icon="mdi-close-circle"
+                              @click="cancelarReserva(reserva.id)"
+                              :loading="isLoading"
+                            >
+                              No acepto
+                            </v-btn>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                  <v-divider class="mt-6 mb-6"></v-divider>
+                </div>
+
                 <!-- SECCIÓN 1: Listas para confirmar (pagadas) -->
                 <div class="mb-6">
                   <div class="d-flex align-center mb-3">
@@ -471,7 +524,7 @@
                               variant="outlined"
                               class="text-none font-weight-bold rounded-pill px-4"
                               prepend-icon="mdi-close-circle"
-                              @click="cambiarEstadoReserva(reserva.id, 'cancelada')"
+                              @click="cancelarReserva(reserva.id)"
                               :loading="isLoading"
                             >
                               Cancelar Turno
@@ -544,7 +597,7 @@
                               variant="outlined"
                               class="text-none font-weight-bold rounded-pill px-4"
                               prepend-icon="mdi-close-circle"
-                              @click="cambiarEstadoReserva(reserva.id, 'cancelada')"
+                              @click="cancelarReserva(reserva.id)"
                               :loading="isLoading"
                             >
                               Cancelar Turno
@@ -900,26 +953,22 @@
                   </div>
                 </v-expand-transition>
 
-                <!-- Error simulation switch -->
-                <v-divider class="my-4"></v-divider>
-                <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
-                  <div>
-                    <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
-                    <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
-                  </div>
-                  <v-switch
-                    v-model="simularError"
-                    color="error"
-                    hide-details
-                    density="compact"
-                  ></v-switch>
-                </div>
               </div>
             </v-card-text>
 
             <v-card-actions class="pa-6 pt-0 d-flex justify-end" v-if="!cargandoPago">
+              <v-btn
+                variant="elevated"
+                color="error"
+                class="mr-3 px-6 text-none font-weight-bold"
+                prepend-icon="mdi-close-circle-outline"
+                :loading="isLoading"
+                @click="cancelarReservaDesdePago"
+              >
+                Cancelar Reserva
+              </v-btn>
               <v-btn variant="outlined" color="grey-darken-1" class="mr-3 px-6 text-none font-weight-bold" :disabled="cargandoPago" @click="dialogPagarReserva = false">
-                Cerrar
+                Volver
               </v-btn>
               <v-btn v-if="!pagoError && (metodoPago !== 'paypal' || !paypalClientId)" type="submit" color="secondary" class="px-8 text-none font-weight-bold elevation-2 text-white" :loading="cargandoPago">
                 Confirmar Pago
@@ -934,6 +983,17 @@
       {{ snackbarText }}
       <template v-slot:actions><v-btn variant="text" @click="snackbarShow = false">Cerrar</v-btn></template>
     </v-snackbar>
+
+    <!-- DIALOG CONFIRMAR CANCELACIÓN -->
+    <ConfirmationDialog
+      v-model="dialogConfirmarCancelacion"
+      title="Cancelar Turno"
+      :message="`¿Estás seguro de que deseas cancelar este turno? Esta acción no se puede deshacer.${ reservaACancelarId && getReservaCancelInfo() }`"
+      confirm-text="Sí, cancelar turno"
+      confirm-color="error"
+      icon="mdi-calendar-remove"
+      @confirm="ejecutarCancelacion"
+    />
   </DashboardLayout>
 </template>
 
@@ -941,6 +1001,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import ConfirmationDialog from '../components/ConfirmationDialog.vue'
 import { useAuth } from '../composables/useAuth.js'
 import { useSnackbar } from '../composables/useSnackbar.js'
 import { useDateFormatter } from '../composables/useDateFormatter.js'
@@ -969,6 +1030,10 @@ const simularError = ref(false)
 const cargandoPago = ref(false)
 const pagoError = ref('')
 const formPagoRef = ref(null)
+
+// Dialog Cancelar Turno
+const dialogConfirmarCancelacion = ref(false)
+const reservaACancelarId = ref(null)
 const datosPago = ref({
   paypal_email: '',
   paypal_password: '',
@@ -1056,14 +1121,27 @@ const abrirVista = (vista) => {
 const reservasActivas = computed(() => {
   return reservasRegistros.value.filter(r => ['pendiente', 'pagada', 'confirmada'].includes(r.estado))
 })
-// Reservas pagadas: el cliente ya pagó, el profesional puede confirmar
-const reservasParaConfirmar = computed(() => {
-  return reservasRegistros.value.filter(r => r.estado === 'pagada')
+
+// Reservas reprogramadas por el cliente (estado pagada + flag metadata)
+// El backend marca reprogramacion_por = 'cliente' en los metadatos / en el historial de la reserva
+const reservasReprogramadasPorCliente = computed(() => {
+  return reservasRegistros.value.filter(r =>
+    r.estado === 'pagada' &&
+    (r.reprogramacion_por === 'cliente' || r.metadata?.reprogramacion_por === 'cliente')
+  )
 })
+
+// Reservas pagadas normalmente (sin reprogramación pendiente de confirmar)
+const reservasParaConfirmar = computed(() => {
+  const reprogramadasIds = new Set(reservasReprogramadasPorCliente.value.map(r => r.id))
+  return reservasRegistros.value.filter(r => r.estado === 'pagada' && !reprogramadasIds.has(r.id))
+})
+
 // Reservas pendientes de pago: aún no pagadas por el cliente (informativo para el profesional)
 const reservasSinPago = computed(() => {
   return reservasRegistros.value.filter(r => r.estado === 'pendiente')
 })
+
 // Alias para que la sección de pendientes muestre algo si hay cualquiera de los dos grupos
 const reservasPendientes = computed(() => {
   return reservasRegistros.value.filter(r => r.estado === 'pendiente' || r.estado === 'pagada')
@@ -1324,9 +1402,18 @@ const confirmarReprogramacion = async () => {
       body: JSON.stringify({ fecha_hora_inicio: dateTime })
     })
 
-    if (!res.ok) throw new Error((await res.json()).message || 'Error al reprogramar')
+    const responseData = await res.json()
+    if (!res.ok) throw new Error(responseData.message || 'Error al reprogramar')
 
-    showSnackbar('Reserva reprogramada y devuelta a pendiente', 'info')
+    // Mostrar mensaje según el nuevo estado de la reserva
+    const nuevoEstado = responseData?.data?.estado || 'pendiente'
+    let msg = 'Reserva reprogramada correctamente'
+    if (nuevoEstado === 'pagada') {
+      msg = 'Fecha reprogramada. El profesional deberá confirmar la nueva fecha.'
+    } else if (nuevoEstado === 'confirmada') {
+      msg = '¡Turno reprogramado y confirmado!'
+    }
+    showSnackbar(msg, nuevoEstado === 'confirmada' ? 'success' : 'info')
     reservaSeleccionada.value = null
     formData.value = { id_servicio: null, fecha: '', hora: '' }
     cargarRegistros()
@@ -1338,9 +1425,23 @@ const confirmarReprogramacion = async () => {
 }
 
 // === LOGICA: ESTADOS / CANCELAR ===
-const cancelarReserva = async (id) => {
-  if (!confirm('¿Estás seguro de que deseas cancelar este turno?')) return
-  await cambiarEstadoReserva(id, 'cancelada')
+const cancelarReserva = (id) => {
+  reservaACancelarId.value = id
+  dialogConfirmarCancelacion.value = true
+}
+
+const getReservaCancelInfo = () => {
+  if (!reservaACancelarId.value) return ''
+  const reserva = reservasRegistros.value.find(r => r.id === reservaACancelarId.value)
+  if (!reserva) return ''
+  const horas = reserva.servicio?.limite_cancelacion_horas ?? 10
+  return `\n\nTen en cuenta la política de cancelación: mínimo ${horas}h de anticipación.`
+}
+
+const ejecutarCancelacion = async () => {
+  if (!reservaACancelarId.value) return
+  await cambiarEstadoReserva(reservaACancelarId.value, 'cancelada')
+  reservaACancelarId.value = null
 }
 
 const cambiarEstadoReserva = async (id, estado) => {

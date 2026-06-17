@@ -125,15 +125,22 @@ class ReservaController extends Controller
         ]);
 
         try {
+            $usuario = $request->user();
             $reservaActualizada = $this->reservaService->reprogramar(
                 $reserva, 
                 $request->fecha_hora_inicio, 
-                $request->user()
+                $usuario
             );
+
+            // Indicar quién reprogramó (para que el frontend lo distinga)
+            $reprogramacionPor = $usuario->esCliente() ? 'cliente' : 'profesional';
 
             return response()->json([
                 'message' => 'Reserva reprogramada exitosamente',
-                'data' => new ReservaResource($reservaActualizada),
+                'data' => array_merge(
+                    (new ReservaResource($reservaActualizada))->resolve(),
+                    ['reprogramacion_por' => $reprogramacionPor]
+                ),
             ]);
         } catch (Exception $e) {
             return response()->json([

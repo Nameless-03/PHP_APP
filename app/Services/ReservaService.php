@@ -268,6 +268,8 @@ class ReservaService
                 'estado' => $nuevoEstado
             ]);
 
+            \Illuminate\Support\Facades\Cache::forget("reprogramada_por_cliente_{$reserva->id}");
+
             ReservaEstadoCambiado::dispatch($reserva->fresh(), $estadoAnterior);
 
             if ($nuevoEstado === EstadoReservaEnum::CANCELADA) {
@@ -359,23 +361,33 @@ class ReservaService
 
             $reserva->update([
                 'fecha_hora_inicio' => $nuevoInicio,
-                'fecha_hora_fin' => $nuevoFin,
-                'estado' => $nuevoEstado
+                'fecha_hora_fin'    => $nuevoFin,
+                'estado'            => $nuevoEstado
             ]);
 
             $reservaRenovada = $reserva->fresh();
-            
-            // Notificar a ambas partes sobre la reprogramación
-            $clienteUser = $reservaRenovada->cliente->usuario;
-            $profesionalUser = $reservaRenovada->servicio->profesional->usuario;
-            
-            $clienteUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
-            $profesionalUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
+
+            // Si el cliente reprogramó y la reserva queda pagada (esperando confirmación del profesional),
+            // guardar en caché para que el frontend lo distinga de una reserva simplemente pagada.
+            if ($usuario->esCliente() && $nuevoEstado === EstadoReservaEnum::PAGADA) {
+                \Illuminate\Support\Facades\Cache::put(
+                    "reprogramada_por_cliente_{$reserva->id}",
+                    true,
+                    now()->addDays(7) // expira si el profesional confirma antes
+                );
+            } else {
+                // Si reprogramó el profesional o cambió el estado, limpiar el flag
+                \Illuminate\Support\Facades\Cache::forget("reprogramada_por_cliente_{$reserva->id}");
+            }
+
+            // Disparar evento — el listener NotificarCambioReserva se encarga de notificar a ambas partes
+            ReservaEstadoCambiado::dispatch($reservaRenovada, $estadoAnterior);
 
             // Log NoSQL activity
             $this->logger->log("Reprogramación de reserva", 'info', [
-                'reserva_id' => $reserva->id,
-                'nueva_fecha' => $nuevoInicio->toIso8601String()
+                'reserva_id'  => $reserva->id,
+                'nueva_fecha' => $nuevoInicio->toIso8601String(),
+                'por'         => $usuario->role
             ], $usuario->id);
 
             return $reservaRenovada;

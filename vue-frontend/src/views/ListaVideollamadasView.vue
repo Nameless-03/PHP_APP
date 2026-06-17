@@ -188,9 +188,6 @@
                         Completada
                       </v-chip>
                     </div>
-                    <div class="d-flex align-center ml-2">
-                      <v-btn variant="text" size="small" color="primary" class="text-none">Ver resumen</v-btn>
-                    </div>
                   </div>
                   <v-divider v-if="i < historialReciente.length - 1"></v-divider>
                 </div>
