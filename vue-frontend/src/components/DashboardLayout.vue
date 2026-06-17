@@ -195,8 +195,6 @@
       @confirm="logout"
     />
 
-    <!-- Registro de Service Worker PWA -->
-    <RegisterSW />
   </v-layout>
 </template>
 
@@ -205,7 +203,6 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import ConfirmationDialog from './ConfirmationDialog.vue'
-import RegisterSW from './RegisterSW.vue'
 import echo from '../plugins/echo'
 
 const props = defineProps({

@@ -1,10 +1,12 @@
 <template>
   <v-app>
     <router-view />
+    <RegisterSW />
   </v-app>
 </template>
 
 <script setup>
+import RegisterSW from './components/RegisterSW.vue'
 </script>
 
 <style>

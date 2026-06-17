@@ -51,7 +51,7 @@
 
             <div class="d-flex align-center justify-space-between mb-6">
               <v-checkbox v-model="remember" label="Recordarme" color="primary" hide-details></v-checkbox>
-              <a href="#" class="text-decoration-none text-primary font-weight-medium">¿Olvidaste tu contraseña?</a>
+              <router-link to="/forgot-password" class="text-decoration-none text-primary font-weight-medium">¿Olvidaste tu contraseña?</router-link>
             </div>
 
             <v-alert v-if="error" type="error" variant="tonal" class="mb-6 rounded-lg">

@@ -2,6 +2,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -9,7 +13,7 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'vite.svg'],
       manifest: {
         name: 'Plataforma de Profesionales',
@@ -79,6 +83,12 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
+  },
+  build: {
+    // Compila directamente al directorio public/ de Laravel
+    // para que los assets estáticos sean servidos correctamente en producción
+    outDir: path.resolve(__dirname, '../public'),
+    emptyOutDir: false, // No borrar index.php ni .htaccess
   },
   server: {
     proxy: {
