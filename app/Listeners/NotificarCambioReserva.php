@@ -62,14 +62,24 @@ class NotificarCambioReserva implements ShouldQueue
             $nuevoEstado = $reserva->estado->value;
 
             if ($nuevoEstado === 'cancelada') {
+                // Determinar quién canceló la reserva para ajustar el mensaje
+                $porQuien = "por el profesional";
+                if (auth()->check()) {
+                    if (auth()->user()->id === $reserva->id_cliente) {
+                        $porQuien = "por ti";
+                    } elseif (auth()->user()->esAdmin()) {
+                        $porQuien = "por el administrador";
+                    }
+                }
+
                 if ($reserva->id_compra_paquete) {
-                    $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por el profesional. Se ha devuelto la sesión a tu paquete.";
+                    $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada {$porQuien}. Se ha devuelto la sesión a tu paquete.";
                 } else {
                     $pagoMetodo = $reserva->pago ? ($reserva->pago->metodo->value ?? $reserva->pago->metodo) : '';
                     if ($pagoMetodo === 'paypal') {
-                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por el profesional. Su pago será devuelto.";
+                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada {$porQuien}. Su pago será devuelto.";
                     } else {
-                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por el profesional.";
+                        $mensaje = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada {$porQuien}.";
                     }
                 }
             } else {

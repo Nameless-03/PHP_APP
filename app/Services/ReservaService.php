@@ -250,11 +250,18 @@ class ReservaService
                 ]);
             }
 
-            // Si la reserva se cancela y tiene un pago pendiente, lo marcamos como fallido
-            if ($nuevoEstado === EstadoReservaEnum::CANCELADA && $reserva->pago && $reserva->pago->estado === 'pendiente') {
-                $reserva->pago->update([
-                    'estado' => 'fallido',
-                ]);
+            // Si la reserva se cancela y tiene un pago pendiente, lo marcamos como fallido.
+            // Si el pago ya estaba completado, lo marcamos como reembolsado para descontarlo de la administración.
+            if ($nuevoEstado === EstadoReservaEnum::CANCELADA && $reserva->pago) {
+                if ($reserva->pago->estado === 'pendiente') {
+                    $reserva->pago->update([
+                        'estado' => 'fallido',
+                    ]);
+                } elseif ($reserva->pago->estado === 'completado') {
+                    $reserva->pago->update([
+                        'estado' => 'reembolsado',
+                    ]);
+                }
             }
 
             $reserva->update([
@@ -333,12 +340,27 @@ class ReservaService
                 throw new Exception("El horario seleccionado ya no está disponible.");
             }
 
-            // Actualizar horas y volver a pendiente
+            // Determinar el nuevo estado al reprogramar:
+            // Si ya estaba pagada o confirmada, debe conservar su carácter de pagada.
+            // Si la reprogramó el profesional, se marca directamente como CONFIRMADA.
+            // Si la reprogramó el cliente, queda en PAGADA esperando la confirmación del profesional.
+            // Si no estaba pagada, vuelve a PENDIENTE.
             $estadoAnterior = $reserva->estado->value;
+            $nuevoEstado = EstadoReservaEnum::PENDIENTE;
+            $fuePagada = in_array($estadoAnterior, [EstadoReservaEnum::PAGADA->value, EstadoReservaEnum::CONFIRMADA->value]);
+
+            if ($fuePagada) {
+                if ($usuario->esProfesional()) {
+                    $nuevoEstado = EstadoReservaEnum::CONFIRMADA;
+                } else {
+                    $nuevoEstado = EstadoReservaEnum::PAGADA;
+                }
+            }
+
             $reserva->update([
                 'fecha_hora_inicio' => $nuevoInicio,
                 'fecha_hora_fin' => $nuevoFin,
-                'estado' => EstadoReservaEnum::PENDIENTE
+                'estado' => $nuevoEstado
             ]);
 
             $reservaRenovada = $reserva->fresh();

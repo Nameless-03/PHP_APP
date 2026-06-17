@@ -619,5 +619,90 @@ class ReservaTest extends TestCase
         // El horario '12:00' no debería figurar en los turnos disponibles
         $this->assertNotContains('12:00', $turnos);
     }
+
+    /**
+     * Test de que al reprogramar una reserva pagada desde el cliente se mantiene en estado PAGADA.
+     */
+    public function test_reprogramar_reserva_pagada_desde_cliente_mantiene_estado_pagada(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $nuevaFecha = Carbon::tomorrow()->setHour(14)->setMinute(0)->toDateTimeString();
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/reprogramar", [
+                'fecha_hora_inicio' => $nuevaFecha
+            ]);
+
+        $response->assertStatus(200);
+        $reservaFresh = $reserva->fresh();
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::PAGADA->value, $reservaFresh->estado->value);
+        $this->assertEquals($nuevaFecha, $reservaFresh->fecha_hora_inicio->toDateTimeString());
+    }
+
+    /**
+     * Test de que al reprogramar una reserva pagada desde el profesional se actualiza a CONFIRMADA.
+     */
+    public function test_reprogramar_reserva_pagada_desde_profesional_actualiza_a_confirmada(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $nuevaFecha = Carbon::tomorrow()->setHour(15)->setMinute(0)->toDateTimeString();
+
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/reprogramar", [
+                'fecha_hora_inicio' => $nuevaFecha
+            ]);
+
+        $response->assertStatus(200);
+        $reservaFresh = $reserva->fresh();
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CONFIRMADA->value, $reservaFresh->estado->value);
+        $this->assertEquals($nuevaFecha, $reservaFresh->fecha_hora_inicio->toDateTimeString());
+    }
+
+    /**
+     * Test de que al cancelar una reserva pagada se marca su pago como reembolsado.
+     */
+    public function test_cancelar_reserva_pagada_marca_pago_como_reembolsado(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $pago = \App\Models\Pago::create([
+            'monto' => 50.00,
+            'metodo' => 'paypal',
+            'estado' => 'completado',
+            'id_reserva' => $reserva->id
+        ]);
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'cancelada'
+            ]);
+
+        $response->assertStatus(200);
+        $pago->refresh();
+        $this->assertEquals('reembolsado', $pago->estado);
+    }
 }
 
