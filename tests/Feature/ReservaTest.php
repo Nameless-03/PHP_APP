@@ -434,5 +434,125 @@ class ReservaTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals(\App\Enums\EstadoReservaEnum::CONFIRMADA->value, $reserva->fresh()->estado->value);
     }
+
+    /**
+     * Test de que al crear una reserva se notifica al cliente y al profesional.
+     */
+    public function test_creacion_de_reserva_notifica_a_cliente_y_profesional(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $mañana = Carbon::tomorrow()->setHour(10)->setMinute(0)->toDateTimeString();
+
+        $data = [
+            'id_servicio' => $this->servicio->id,
+            'fecha_hora_inicio' => $mañana,
+            'observaciones' => 'Nota de prueba'
+        ];
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->postJson('/api/reservas', $data);
+
+        $response->assertStatus(201);
+
+        // Verificar que el cliente recibió ReservaEstadoNotificacion
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $this->clienteUser,
+            \App\Notifications\ReservaEstadoNotificacion::class
+        );
+
+        // Verificar que el profesional recibió ReservaEstadoNotificacion
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $this->profesionalUser,
+            \App\Notifications\ReservaEstadoNotificacion::class
+        );
+    }
+
+    /**
+     * Test de que al confirmar una reserva no se duplican las notificaciones al cliente.
+     */
+    public function test_confirmacion_de_reserva_no_duplica_notificaciones_al_cliente(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'confirmada'
+            ]);
+
+        $response->assertStatus(200);
+
+        // Debe recibir ReservaConfirmadaNotification
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $this->clienteUser,
+            \App\Notifications\ReservaConfirmadaNotification::class
+        );
+
+        // NO debe recibir la genérica ReservaEstadoNotificacion
+        \Illuminate\Support\Facades\Notification::assertNotSentTo(
+            $this->clienteUser,
+            \App\Notifications\ReservaEstadoNotificacion::class
+        );
+    }
+
+    /**
+     * Test de que una reserva en estado en_curso bloquea la disponibilidad y previene solapamientos.
+     */
+    public function test_reserva_en_curso_bloquea_disponibilidad_y_previene_solapamiento(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(12)->setMinute(0);
+        $fin = (clone $inicio)->addMinutes(60);
+
+        // Crear una reserva en curso
+        Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => $fin,
+            'estado' => \App\Enums\EstadoReservaEnum::EN_CURSO,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // Intentar reservar el mismo horario
+        $data = [
+            'id_servicio' => $this->servicio->id,
+            'fecha_hora_inicio' => $inicio->toDateTimeString()
+        ];
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->postJson('/api/reservas', $data);
+
+        $response->assertStatus(422); // Debería fallar por solapamiento
+
+        // Verificar además mediante el calculador de turnos
+        $calculador = app(\App\Services\CalculadorTurnosService::class);
+        
+        // Crear disponibilidad base para el profesional (mañana)
+        $nombresDias = [
+            0 => 'domingo', 1 => 'lunes', 2 => 'martes', 3 => 'miercoles',
+            4 => 'jueves', 5 => 'viernes', 6 => 'sabado'
+        ];
+        $diaSemana = $nombresDias[Carbon::tomorrow()->dayOfWeek];
+        
+        \App\Models\Disponibilidad::create([
+            'dia_semana' => $diaSemana,
+            'hora_inicio' => '08:00',
+            'hora_fin' => '17:00',
+            'id_profesional' => $this->profesionalUser->id
+        ]);
+
+        $turnos = $calculador->obtenerTurnosDisponibles($this->servicio, Carbon::tomorrow()->toDateString());
+        
+        // El horario '12:00' no debería figurar en los turnos disponibles
+        $this->assertNotContains('12:00', $turnos);
+    }
 }
 

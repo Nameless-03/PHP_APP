@@ -703,7 +703,7 @@
               </v-alert>
 
               <!-- Loading overlay inside card -->
-              <div v-if="cargandoPago && !pagoError" class="text-center py-8">
+              <div v-show="cargandoPago && !pagoError" class="text-center py-8">
                 <v-progress-circular indeterminate color="primary" size="64" width="6" class="mb-4"></v-progress-circular>
                 <h4 class="text-h6 font-weight-bold text-grey-darken-3 mb-2">Procesando Pago</h4>
                 <p class="text-body-2 text-medium-emphasis">
@@ -711,7 +711,7 @@
                 </p>
               </div>
 
-              <div v-if="!cargandoPago && !pagoError">
+              <div v-show="!cargandoPago && !pagoError">
                 <!-- Detalles del Turno -->
                 <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6" v-if="reservaAPagar">
                   <div class="d-flex justify-space-between align-center mb-2">
@@ -934,13 +934,14 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import { useAuth } from '../composables/useAuth.js'
 import { useSnackbar } from '../composables/useSnackbar.js'
 import { useDateFormatter } from '../composables/useDateFormatter.js'
 
 const route = useRoute()
+const router = useRouter()
 const { getAuthHeaders, isCliente } = useAuth()
 const { show: snackbarShow, text: snackbarText, color: snackbarColor, showSnackbar } = useSnackbar()
 const { formatDateObj, formatDateShort } = useDateFormatter()
@@ -993,7 +994,7 @@ const cargandoTurnos = ref(false)
 const reservasRegistros = ref([])
 const cargandoRegistros = ref(false)
 
-const minDate = new Date().toISOString().split('T')[0]
+const minDate = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]
 
 // Computada de Paquetes Aplicables
 const paquetesAplicables = computed(() => {
@@ -1009,9 +1010,7 @@ const paquetesAplicables = computed(() => {
   }))
 })
 
-onMounted(async () => {
-  await cargarRegistros() // Cargar registros al inicio
-  
+const procesarQueryParameters = () => {
   if (route.query.action === 'reservar' && isCliente.value) {
     currentView.value = 'reservar'
     if (route.query.servicio) {
@@ -1023,14 +1022,24 @@ onMounted(async () => {
   const calificarId = route.query.calificar
   if (calificarId && isCliente.value) {
     const rsvId = parseInt(calificarId.toString())
-    // Buscar la reserva en historial o pendientes
-    const reserva = reservasHistorial.value.find(r => r.id === rsvId) || reservasActivas.value.find(r => r.id === rsvId)
-    if (reserva && puedeCalificar(reserva)) {
+    // Buscar la reserva en el listado general
+    const reserva = reservasRegistros.value.find(r => r.id === rsvId)
+    if (reserva) {
       abrirCalificar(reserva)
       router.replace({ query: { ...route.query, calificar: undefined } })
     }
   }
+}
+
+onMounted(async () => {
+  await cargarRegistros() // Cargar registros al inicio
+  procesarQueryParameters()
 })
+
+// Watch route query to process changes reactively on the same component instance
+watch(() => route.query, () => {
+  procesarQueryParameters()
+}, { deep: true })
 
 // === FLUJOS DE VISTA ===
 const abrirVista = (vista) => {
@@ -1352,9 +1361,7 @@ const cambiarEstadoReserva = async (id, estado) => {
 // === LOGICA: CALIFICAR ===
 const puedeCalificar = (reserva) => {
   if (calificacionesEnviadas.value.has(reserva.id)) return false
-  const esFechaPasada = new Date(reserva.fecha_hora_fin || reserva.fecha_hora_inicio) < new Date()
-  const estadoValido = ['finalizada', 'pagada', 'confirmada'].includes(reserva.estado)
-  return estadoValido && esFechaPasada
+  return reserva.estado === 'finalizada'
 }
 
 const abrirCalificar = (reserva) => {

@@ -149,6 +149,10 @@ class Reserva extends Model
      */
     public function scopePorFecha($query, $fecha)
     {
-        return $query->whereDate('fecha_hora_inicio', $fecha);
+        $carbonFecha = \Carbon\Carbon::parse($fecha);
+        return $query->whereBetween('fecha_hora_inicio', [
+            $carbonFecha->copy()->startOfDay(),
+            $carbonFecha->copy()->endOfDay()
+        ]);
     }
 }

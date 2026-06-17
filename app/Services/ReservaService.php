@@ -37,7 +37,12 @@ class ReservaService
 
             // Validar solapamiento (Concurrency check usando un lock pesimista o simplemente validando)
             $solapamiento = Reserva::where('id_servicio', $servicio->id)
-                ->whereIn('estado', [EstadoReservaEnum::PENDIENTE->value, EstadoReservaEnum::CONFIRMADA->value, EstadoReservaEnum::PAGADA->value])
+                ->whereIn('estado', [
+                    EstadoReservaEnum::PENDIENTE->value, 
+                    EstadoReservaEnum::CONFIRMADA->value, 
+                    EstadoReservaEnum::PAGADA->value,
+                    EstadoReservaEnum::EN_CURSO->value
+                ])
                 ->where(function ($query) use ($inicio, $fin) {
                     $query->whereBetween('fecha_hora_inicio', [$inicio, $fin])
                           ->orWhereBetween('fecha_hora_fin', [$inicio, $fin])
@@ -285,7 +290,12 @@ class ReservaService
             // Validar que el nuevo horario esté disponible (ignorando esta misma reserva)
             $solapamiento = Reserva::where('id_servicio', $reserva->id_servicio)
                 ->where('id', '!=', $reserva->id) // Ignorar la reserva actual
-                ->whereIn('estado', [EstadoReservaEnum::PENDIENTE->value, EstadoReservaEnum::CONFIRMADA->value, EstadoReservaEnum::PAGADA->value])
+                ->whereIn('estado', [
+                    EstadoReservaEnum::PENDIENTE->value, 
+                    EstadoReservaEnum::CONFIRMADA->value, 
+                    EstadoReservaEnum::PAGADA->value,
+                    EstadoReservaEnum::EN_CURSO->value
+                ])
                 ->where(function ($query) use ($nuevoInicio, $nuevoFin) {
                     $query->whereBetween('fecha_hora_inicio', [$nuevoInicio, $nuevoFin])
                           ->orWhereBetween('fecha_hora_fin', [$nuevoInicio, $nuevoFin])

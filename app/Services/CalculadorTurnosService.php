@@ -83,15 +83,19 @@ class CalculadorTurnosService
         }
 
         // 4. Filtrar los turnos que se solapan con reservas existentes
-        // Traer reservas del profesional en esa fecha (que estén pendientes, confirmadas o pagadas)
+        // Traer reservas del profesional en esa fecha (que estén pendientes, confirmadas, pagadas o en curso)
         $reservasExistentes = Reserva::whereHas('servicio', function ($q) use ($idProfesional) {
                 $q->where('id_profesional', $idProfesional);
             })
-            ->whereDate('fecha_hora_inicio', $fecha)
+            ->whereBetween('fecha_hora_inicio', [
+                $fecha->copy()->startOfDay(),
+                $fecha->copy()->endOfDay()
+            ])
             ->whereIn('estado', [
                 EstadoReservaEnum::PENDIENTE->value, 
                 EstadoReservaEnum::CONFIRMADA->value, 
-                EstadoReservaEnum::PAGADA->value
+                EstadoReservaEnum::PAGADA->value,
+                EstadoReservaEnum::EN_CURSO->value
             ])
             ->get();
 

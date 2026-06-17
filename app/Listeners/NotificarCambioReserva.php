@@ -22,31 +22,55 @@ class NotificarCambioReserva implements ShouldQueue
         if ($event instanceof ReservaCreada) {
             $mensaje = "Tu reserva para '{$event->reserva->servicio->nombre}' ha sido recibida y está pendiente de confirmación.";
             
-            // 1. Enviar Notificación por Email (Laravel Notification)
+            // 1. Enviar Notificación por Email (Laravel Notification) al cliente
             $event->reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
                 $event->reserva,
                 "Nueva Reserva Recibida",
                 $mensaje
             ));
 
-            // 2. Guardar en Base de Datos (Custom Table)
+            // 2. Guardar en Base de Datos (Custom Table) para el cliente
             Notificacion::create([
                 'titulo' => 'Nueva Reserva',
                 'mensaje' => $mensaje,
                 'tipo' => TipoNotificacionEnum::CONFIRMACION,
                 'id_usuario' => $event->reserva->cliente->id_usuario,
             ]);
+
+            // 3. Notificar al Profesional
+            $profesional = $event->reserva->servicio->profesional;
+            if ($profesional && $profesional->usuario) {
+                $mensajeProfesional = "Tienes una nueva solicitud de reserva para '{$event->reserva->servicio->nombre}' del cliente '{$event->reserva->cliente->usuario->nombre}'.";
+                
+                $profesional->usuario->notify(new ReservaEstadoNotificacion(
+                    $event->reserva,
+                    "Nueva Solicitud de Reserva",
+                    $mensajeProfesional
+                ));
+
+                Notificacion::create([
+                    'titulo' => 'Nueva Solicitud de Reserva',
+                    'mensaje' => $mensajeProfesional,
+                    'tipo' => TipoNotificacionEnum::CONFIRMACION,
+                    'id_usuario' => $profesional->id_usuario,
+                ]);
+            }
         }
 
         if ($event instanceof ReservaEstadoCambiado) {
             $nuevoEstado = $event->reserva->estado->value;
             $mensaje = "El estado de tu reserva ha cambiado a: {$nuevoEstado}.";
 
-            $event->reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
-                $event->reserva,
-                "Actualización de Reserva",
-                $mensaje
-            ));
+            // Si el estado es confirmada o cancelada, no enviar la notificación genérica
+            // para evitar duplicidad de avisos al cliente, ya que NotificarCambioEstadoReserva
+            // envía notificaciones específicas.
+            if ($nuevoEstado !== 'confirmada' && $nuevoEstado !== 'cancelada') {
+                $event->reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
+                    $event->reserva,
+                    "Actualización de Reserva",
+                    $mensaje
+                ));
+            }
 
             Notificacion::create([
                 'titulo' => 'Actualización de Reserva',

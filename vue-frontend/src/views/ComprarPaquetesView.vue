@@ -158,7 +158,7 @@
             </v-alert>
 
             <!-- Loading overlay inside card -->
-            <div v-if="isSubmitting && !dialogError" class="text-center py-8">
+            <div v-show="isSubmitting && !dialogError" class="text-center py-8">
               <v-progress-circular indeterminate color="primary" size="64" width="6" class="mb-4"></v-progress-circular>
               <h4 class="text-h6 font-weight-bold text-grey-darken-3 mb-2">Procesando Pago</h4>
               <p class="text-body-2 text-medium-emphasis">
@@ -166,7 +166,7 @@
               </p>
             </div>
 
-            <div v-if="!isSubmitting && !dialogError">
+            <div v-show="!isSubmitting && !dialogError">
               <!-- Summary info -->
               <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6">
                 <div class="d-flex justify-space-between align-center mb-2">

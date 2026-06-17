@@ -1,6 +1,6 @@
 <template>
-  <v-container fluid class="fill-height pa-0">
-    <v-row no-gutters class="fill-height">
+  <v-container fluid class="pa-0" style="min-height: 100vh;">
+    <v-row no-gutters style="min-height: 100vh;">
       
       <!-- Left Panel -->
       <v-col cols="12" md="5" class="brand-sidebar d-none d-md-flex flex-column align-center justify-center text-center pa-10">

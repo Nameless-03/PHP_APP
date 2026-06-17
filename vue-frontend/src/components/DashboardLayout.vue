@@ -11,7 +11,7 @@
       :rail="rail && $vuetify.display.mdAndUp"
       :permanent="$vuetify.display.mdAndUp"
       @click="rail = false"
-      class="bg-primary-darken-1 fixed-sidebar"
+      class="bg-primary-darken-1"
       theme="dark"
     >
       <v-list-item
@@ -203,6 +203,7 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { useAuth } from '../composables/useAuth'
 import ConfirmationDialog from './ConfirmationDialog.vue'
 import RegisterSW from './RegisterSW.vue'
@@ -216,7 +217,12 @@ const props = defineProps({
 })
 
 const router = useRouter()
-const drawer = ref(true)
+const { mdAndUp } = useDisplay()
+const drawer = ref(mdAndUp.value)
+
+watch(mdAndUp, (val) => {
+  drawer.value = val
+})
 const rail = ref(false)
 
 const { 
@@ -450,10 +456,7 @@ const logout = async () => {
 </script>
 
 <style scoped>
-.fixed-sidebar {
-  position: fixed !important;
-  height: 100vh !important;
-}
+
 .bg-primary-darken-1 {
   background-color: #8C6D46 !important;
 }
