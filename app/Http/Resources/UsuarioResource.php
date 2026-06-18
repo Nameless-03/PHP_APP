@@ -44,6 +44,7 @@ class UsuarioResource extends JsonResource
                     'descripcion' => $this->profesional->descripcion,
                     'experiencia' => $this->profesional->experiencia,
                     'ubicacion' => $this->profesional->ubicacion,
+                    'telefono' => $this->profesional->telefono,
                     'modalidad_preferida' => $this->profesional->modalidad_preferida,
                     'reputacion' => $this->profesional->reputacion,
                     'foto_perfil' => $this->profesional->foto_perfil,

@@ -166,7 +166,7 @@ class ReservaService
      */
     public function listarPorCliente(int $idCliente): Collection
     {
-        return Reserva::with(['servicio', 'compraPaquete.paquete', 'pago'])->where('id_cliente', $idCliente)->get();
+        return Reserva::with(['servicio.profesional.usuario', 'compraPaquete.paquete', 'pago'])->where('id_cliente', $idCliente)->get();
     }
 
     /**

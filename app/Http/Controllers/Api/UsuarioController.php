@@ -68,6 +68,7 @@ class UsuarioController extends Controller
             'descripcion' => 'sometimes|nullable|string',
             'experiencia' => 'sometimes|nullable|string',
             'ubicacion' => 'sometimes|nullable|string',
+            'telefono' => 'sometimes|nullable|string',
             'modalidad_preferida' => 'sometimes|string|in:presencial,remota,hibrida',
             'activo' => 'sometimes|boolean',
             'foto_perfil' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',

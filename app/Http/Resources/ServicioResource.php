@@ -34,6 +34,7 @@ class ServicioResource extends JsonResource
                 return [
                     'id_usuario' => $this->profesional->id_usuario,
                     'reputacion' => (float) $this->profesional->reputacion,
+                    'telefono' => $this->profesional->telefono,
                     // If we load nested 'usuario', we can expose the name
                     'nombre' => $this->profesional->usuario ? $this->profesional->usuario->nombre : null,
                 ];

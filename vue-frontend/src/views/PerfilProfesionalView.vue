@@ -91,10 +91,10 @@
               <v-col cols="12" class="mt-4">
                 <h3 class="text-subtitle-1 font-weight-bold text-primary mb-4">
                   <v-icon start color="primary">mdi-map-marker-radius</v-icon>
-                  Ubicación y Preferencias
+                  Ubicación y Contacto
                 </h3>
               </v-col>
-              <v-col cols="12" md="6">
+              <v-col cols="12" md="4">
                 <v-text-field
                   v-model="profile.location"
                   :rules="[rules.required]"
@@ -104,7 +104,16 @@
                   color="primary"
                 ></v-text-field>
               </v-col>
-              <v-col cols="12" md="6">
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="profile.telefono"
+                  label="Teléfono / WhatsApp (ej. +5491122334455)"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-whatsapp"
+                  color="primary"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="4">
                 <v-select
                   v-model="profile.modalidad"
                   :items="['presencial', 'remota', 'hibrida']"
@@ -203,6 +212,7 @@ const profile = ref({
   experiencia: '',
   description: '',
   location: '',
+  telefono: '',
   modalidad: 'presencial'
 })
 
@@ -268,6 +278,7 @@ onMounted(async () => {
         profile.value.experiencia = data.user.profesional?.experiencia || ''
         profile.value.description = data.user.profesional?.descripcion || ''
         profile.value.location = data.user.profesional?.ubicacion || ''
+        profile.value.telefono = data.user.profesional?.telefono || ''
         profile.value.modalidad = data.user.profesional?.modalidad_preferida || 'presencial'
         fotoPerfilUrl.value = data.user.profesional?.foto_perfil_url || null
         if (data.user.nombre) {
@@ -302,6 +313,7 @@ const saveProfile = async () => {
     formData.append('experiencia', profile.value.experiencia)
     formData.append('descripcion', profile.value.description)
     formData.append('ubicacion', profile.value.location)
+    formData.append('telefono', profile.value.telefono || '')
     formData.append('modalidad_preferida', profile.value.modalidad)
     if (selectedFile.value) {
       formData.append('foto_perfil', selectedFile.value)

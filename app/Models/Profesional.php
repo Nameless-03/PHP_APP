@@ -40,6 +40,7 @@ class Profesional extends Model
         'descripcion',
         'experiencia',
         'ubicacion',
+        'telefono',
         'modalidad_preferida',
         'reputacion',
         'foto_perfil',

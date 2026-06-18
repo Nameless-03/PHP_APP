@@ -59,6 +59,7 @@ class PublicProfesionalController extends Controller
                 'descripcion' => $profesional->descripcion,
                 'experiencia' => $profesional->experiencia,
                 'ubicacion' => $profesional->ubicacion,
+                'telefono' => $profesional->telefono,
                 'modalidad_preferida' => $profesional->modalidad_preferida,
                 'reputacion' => (float) $profesional->reputacion,
                 'foto_perfil' => $profesional->foto_perfil,
