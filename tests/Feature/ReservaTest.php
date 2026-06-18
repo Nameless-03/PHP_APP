@@ -767,5 +767,118 @@ class ReservaTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals(0, $this->clienteUser->unreadNotifications()->count());
     }
+
+    /**
+     * Test de obtener la reserva actual para cliente (solo videollamadas).
+     */
+    public function test_obtener_reserva_actual_cliente_retorna_solo_videollamada(): void
+    {
+        // 1. Crear reserva remota activa ahora
+        $inicio = Carbon::now()->subMinutes(10);
+        $fin = Carbon::now()->addMinutes(50);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => $fin,
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson('/api/reservas/actual');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.id', $reserva->id);
+
+        // 2. Modificar modalidad a presencial y verificar que no la retorna para el cliente
+        $this->servicio->update(['modalidad' => 'presencial']);
+        
+        $response2 = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson('/api/reservas/actual');
+            
+        $response2->assertStatus(200);
+        $response2->assertJsonPath('data', null);
+    }
+
+    /**
+     * Test de obtener la reserva actual para el profesional (incluye presencial).
+     */
+    public function test_obtener_reserva_actual_profesional_retorna_cualquier_modalidad(): void
+    {
+        $this->servicio->update(['modalidad' => 'presencial']);
+        $inicio = Carbon::now()->subMinutes(10);
+        $fin = Carbon::now()->addMinutes(50);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => $fin,
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->getJson('/api/reservas/actual');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.id', $reserva->id);
+    }
+
+    /**
+     * Test de que el cliente puede iniciar la reserva (transición a en_curso).
+     */
+    public function test_cliente_puede_iniciar_reserva_en_curso(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'en_curso'
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::EN_CURSO->value, $reserva->fresh()->estado->value);
+    }
+
+    /**
+     * Test del comando de auto-finalización con margen de 5 minutos.
+     */
+    public function test_comando_finaliza_reservas_expiradas_con_margen_de_5_minutos(): void
+    {
+        // 1. Reserva expirada hace 6 minutos (debe finalizar)
+        $inicio1 = Carbon::now()->subMinutes(66);
+        $fin1 = Carbon::now()->subMinutes(6);
+        $reserva1 = Reserva::create([
+            'fecha_hora_inicio' => $inicio1,
+            'fecha_hora_fin' => $fin1,
+            'estado' => \App\Enums\EstadoReservaEnum::EN_CURSO,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 2. Reserva expirada hace 3 minutos (no debe finalizar por el margen de 5 min)
+        $inicio2 = Carbon::now()->subMinutes(63);
+        $fin2 = Carbon::now()->subMinutes(3);
+        $reserva2 = Reserva::create([
+            'fecha_hora_inicio' => $inicio2,
+            'fecha_hora_fin' => $fin2,
+            'estado' => \App\Enums\EstadoReservaEnum::EN_CURSO,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $this->artisan('turnos:finalizar-expirados')
+            ->expectsOutput("Finalizando automáticamente reserva #{$reserva1->id} por expiración de tiempo (con margen de 5 min).")
+            ->assertExitCode(0);
+
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::FINALIZADA->value, $reserva1->fresh()->estado->value);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::EN_CURSO->value, $reserva2->fresh()->estado->value);
+    }
 }
 

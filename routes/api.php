@@ -110,6 +110,7 @@ Route::prefix('excepciones-agenda')->group(function () {
 
 // Reservas
 Route::prefix('reservas')->middleware('auth:sanctum')->group(function () {
+    Route::get('/actual', [ReservaController::class, 'actual']);
     Route::get('/', [ReservaController::class, 'index']);
     Route::get('/{reserva}', [ReservaController::class, 'show']);
     

@@ -210,6 +210,90 @@
       @confirm="logout"
     />
 
+    <!-- Diálogo Emergente de Sesión Activa -->
+    <v-dialog v-model="dialogSesionActiva" max-width="500" persistent>
+      <v-card class="rounded-xl pa-2" elevation="10">
+        <v-card-title class="d-flex align-center pa-4 bg-primary-darken-1 text-white rounded-t-lg">
+          <v-icon start class="mr-2">mdi-clock-fast</v-icon>
+          <span class="font-weight-bold">¡Tu sesión ha comenzado!</span>
+        </v-card-title>
+        
+        <v-card-text class="pa-6 text-body-1 text-grey-darken-3">
+          <p class="mb-4">
+            Tu cita para <strong>{{ activeSession?.servicio?.nombre }}</strong> está programada para ahora.
+          </p>
+          <p class="mb-2" v-if="isProfesional">
+            Cliente: <strong>{{ activeSession?.cliente?.nombre }}</strong>
+          </p>
+          <p class="mb-2" v-else>
+            Profesional: <strong>{{ activeSession?.servicio?.profesional?.usuario?.nombre }}</strong>
+          </p>
+          <p class="mb-0">
+            Modalidad: <v-chip size="small" :color="activeSession?.servicio?.modalidad === 'presencial' ? 'orange' : 'primary'" class="font-weight-bold">{{ activeSession?.servicio?.modalidad === 'presencial' ? 'Presencial' : 'Remota/Híbrida' }}</v-chip>
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 d-flex flex-wrap justify-end gap-2">
+          <!-- Opciones para Profesional -->
+          <template v-if="isProfesional">
+            <v-btn
+              v-if="activeSession?.servicio?.modalidad !== 'presencial'"
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-video"
+              class="text-none font-weight-bold rounded-pill px-4"
+              @click="ingresarVideollamada"
+            >
+              Ingresar a Videollamada
+            </v-btn>
+            <v-btn
+              v-else
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-play"
+              class="text-none font-weight-bold rounded-pill px-4"
+              :loading="loadingStartSession"
+              @click="comenzarSesionPresencial"
+            >
+              Comenzar Sesión
+            </v-btn>
+            <v-btn
+              color="error"
+              variant="outlined"
+              prepend-icon="mdi-account-off-outline"
+              class="text-none font-weight-bold rounded-pill px-4"
+              :loading="loadingNoAttendance"
+              @click="marcarComoNoAsistida"
+            >
+              No Asistió
+            </v-btn>
+          </template>
+
+          <!-- Opciones para Cliente -->
+          <template v-else>
+            <v-btn
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-video"
+              class="text-none font-weight-bold rounded-pill px-4"
+              @click="ingresarVideollamada"
+            >
+              Ingresar a Videollamada
+            </v-btn>
+          </template>
+
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            class="text-none font-weight-bold rounded-pill px-4"
+            @click="descartarEmergente"
+          >
+            Cerrar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-layout>
 </template>
 
@@ -251,6 +335,97 @@ const userAvatar = computed(() => user.value?.profesional?.foto_perfil_url || nu
 const dialogLogout = ref(false)
 const confirmarLogout = () => {
   dialogLogout.value = true
+}
+
+// Dialogo y variables de Sesión Activa
+const dialogSesionActiva = ref(false)
+const activeSession = ref(null)
+const loadingStartSession = ref(false)
+const loadingNoAttendance = ref(false)
+let sessionCheckInterval = null
+
+const chequearSesionActiva = async () => {
+  if (!user.value || dialogSesionActiva.value) return
+  
+  try {
+    const res = await fetch('/api/reservas/actual', { headers: getAuthHeaders() })
+    if (res.ok) {
+      const data = await res.json()
+      const reserva = data.data
+      if (reserva) {
+        if (!sessionStorage.getItem('reserva_descartada_' + reserva.id)) {
+          activeSession.value = reserva
+          dialogSesionActiva.value = true
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error al chequear sesión activa:', err)
+  }
+}
+
+const ingresarVideollamada = () => {
+  if (!activeSession.value) return
+  const id = activeSession.value.id
+  dialogSesionActiva.value = false
+  router.push(`/videollamada/${id}`)
+}
+
+const comenzarSesionPresencial = async () => {
+  if (!activeSession.value) return
+  loadingStartSession.value = true
+  try {
+    const res = await fetch(`/api/reservas/${activeSession.value.id}/estado`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ estado: 'en_curso' })
+    })
+    if (res.ok) {
+      dialogSesionActiva.value = false
+    } else {
+      const err = await res.json()
+      alert(err.message || 'Error al iniciar sesión')
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingStartSession.value = false
+  }
+}
+
+const marcarComoNoAsistida = async () => {
+  if (!activeSession.value) return
+  loadingNoAttendance.value = true
+  try {
+    const res = await fetch(`/api/reservas/${activeSession.value.id}/estado`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ estado: 'no_asistida' })
+    })
+    if (res.ok) {
+      dialogSesionActiva.value = false
+    } else {
+      const err = await res.json()
+      alert(err.message || 'Error al marcar inasistencia')
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingNoAttendance.value = false
+  }
+}
+
+const descartarEmergente = () => {
+  if (activeSession.value) {
+    sessionStorage.setItem('reserva_descartada_' + activeSession.value.id, 'true')
+  }
+  dialogSesionActiva.value = false
 }
 
 const bubbleHidden = ref(false)
@@ -454,9 +629,13 @@ watch(() => user.value?.id, (newId) => {
 
 onMounted(() => {
   cargarNotificaciones()
+  chequearSesionActiva()
   
   // Polling como fallback para actualizar notificaciones cada 30 segundos si websockets fallan
   pollingInterval = setInterval(cargarNotificaciones, 30000)
+  
+  // Chequear sesiones activas cada 30 segundos
+  sessionCheckInterval = setInterval(chequearSesionActiva, 30000)
 
   // PWA listeners
   window.addEventListener('online', actualizarEstadoConexion)
@@ -468,6 +647,9 @@ onUnmounted(() => {
   dejarCanalPrivado()
   if (pollingInterval) {
     clearInterval(pollingInterval)
+  }
+  if (sessionCheckInterval) {
+    clearInterval(sessionCheckInterval)
   }
   window.removeEventListener('online', actualizarEstadoConexion)
   window.removeEventListener('offline', actualizarEstadoConexion)

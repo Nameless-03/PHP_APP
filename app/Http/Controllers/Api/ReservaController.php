@@ -81,6 +81,47 @@ class ReservaController extends Controller
     }
 
     /**
+     * Obtener la reserva actual o en curso para el usuario autenticado
+     */
+    public function actual(Request $request): JsonResponse
+    {
+        $usuario = $request->user();
+        $now = \Carbon\Carbon::now();
+
+        $query = Reserva::with(['servicio.profesional.usuario', 'cliente.usuario'])
+            ->where('fecha_hora_inicio', '<=', $now)
+            ->where('fecha_hora_fin', '>=', $now)
+            ->whereIn('estado', [
+                EstadoReservaEnum::PAGADA->value,
+                EstadoReservaEnum::CONFIRMADA->value,
+                EstadoReservaEnum::EN_CURSO->value
+            ]);
+
+        if ($usuario->esCliente()) {
+            $query->where('id_cliente', $usuario->id)
+                ->whereHas('servicio', function ($q) {
+                    $q->whereIn('modalidad', ['remota', 'hibrida']);
+                });
+        } elseif ($usuario->esProfesional()) {
+            $query->whereHas('servicio', function ($q) use ($usuario) {
+                $q->where('id_profesional', $usuario->id);
+            });
+        } else {
+            return response()->json(['data' => null]);
+        }
+
+        $reserva = $query->first();
+
+        if (!$reserva) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json([
+            'data' => new ReservaResource($reserva)
+        ]);
+    }
+
+    /**
      * Update the state of the reservation.
      */
     public function updateEstado(UpdateEstadoReservaRequest $request, Reserva $reserva): JsonResponse
@@ -90,9 +131,9 @@ class ReservaController extends Controller
         $nuevoEstado = EstadoReservaEnum::from($request->validated()['estado']);
         $usuario = $request->user();
         
-        // El cliente solo puede cancelar
-        if ($usuario->esCliente() && $nuevoEstado !== EstadoReservaEnum::CANCELADA) {
-            return response()->json(['message' => 'Los clientes solo pueden cancelar reservas.'], 403);
+        // El cliente solo puede cancelar o iniciar su reserva
+        if ($usuario->esCliente() && !in_array($nuevoEstado, [EstadoReservaEnum::CANCELADA, EstadoReservaEnum::EN_CURSO])) {
+            return response()->json(['message' => 'Los clientes solo pueden cancelar o iniciar reservas.'], 403);
         }
 
         try {
