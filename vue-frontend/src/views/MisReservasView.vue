@@ -762,7 +762,7 @@
           </div>
         </v-card-text>
           <v-form ref="formPagoRef" @submit.prevent="procesarPagoReserva">
-            <v-card-text class="pa-6" style="max-height: 65vh; overflow-y: auto;">
+            <v-card-text class="pa-6" style="max-height: calc(90vh - 200px); overflow-y: auto;">
               <!-- Aviso de Pre-reserva Temporal -->
               <v-alert type="info" variant="tonal" class="mb-4 rounded-lg text-body-2" density="comfortable" color="info" icon="mdi-information-outline" v-if="!cargandoPago">
                 <strong>Pre-reserva Temporal:</strong> Tu turno ha sido pre-reservado. Completa el pago a continuación para activarlo definitivamente. Si sales del pago, se liberará el turno.
@@ -966,11 +966,11 @@
               </div>
             </v-card-text>
 
-            <v-card-actions class="pa-6 pt-0 d-flex justify-end" v-if="!cargandoPago">
-              <v-btn variant="outlined" color="grey-darken-1" class="mr-3 px-6 text-none font-weight-bold" :disabled="cargandoPago" @click="dialogPagarReserva = false">
+            <v-card-actions class="pa-6 pt-0 d-flex flex-column-reverse flex-sm-row justify-end" v-if="!cargandoPago" style="gap: 8px;">
+              <v-btn variant="outlined" color="grey-darken-1" class="px-6 text-none font-weight-bold w-100 w-sm-auto" :disabled="cargandoPago" @click="dialogPagarReserva = false">
                 Volver
               </v-btn>
-              <v-btn v-if="!pagoError && (metodoPago !== 'paypal' || !paypalClientId)" type="submit" color="secondary" class="px-8 text-none font-weight-bold elevation-2 text-white" :loading="cargandoPago">
+              <v-btn v-if="!pagoError && (metodoPago !== 'paypal' || !paypalClientId)" type="submit" color="secondary" class="px-8 text-none font-weight-bold elevation-2 text-white w-100 w-sm-auto" :loading="cargandoPago">
                 Confirmar Pago
                 <v-icon end>mdi-check-circle-outline</v-icon>
               </v-btn>

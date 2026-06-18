@@ -119,8 +119,7 @@
                               </v-avatar>
                               <div>
                                 <p class="mb-0 text-body-2 font-weight-medium">
-                                  {{ isCliente ? reserva.servicio?.profesional?.usuario?.nombre : reserva.cliente?.usuario?.nombre }}
-                                  {{ isCliente ? '' : reserva.cliente?.usuario?.apellido }}
+                                  {{ isCliente ? (reserva.servicio?.profesional?.nombre || reserva.servicio?.profesional?.usuario?.nombre) : (reserva.cliente?.nombre || reserva.cliente?.usuario?.nombre) }}
                                 </p>
                                 <p class="mb-0 text-caption text-medium-emphasis">
                                   {{ isCliente ? 'Profesional' : 'Cliente' }}
@@ -143,13 +142,12 @@
 
                               <!-- Botón de WhatsApp para contactar al Profesional -->
                               <v-btn
-                                v-if="isCliente && reserva.servicio?.profesional?.telefono"
+                                v-if="isCliente"
                                 color="success"
                                 class="text-none font-weight-bold rounded-pill px-4"
                                 prepend-icon="mdi-whatsapp"
                                 elevation="1"
-                                :href="`https://wa.me/${reserva.servicio.profesional.telefono.replace(/\D/g, '')}`"
-                                target="_blank"
+                                @click="contactarWhatsApp(reserva)"
                               >
                                 WhatsApp
                               </v-btn>
@@ -453,6 +451,20 @@ const closeMap = () => {
 }
 const joinCall = (id) => {
   router.push({ name: 'videollamada', params: { id } })
+}
+
+const contactarWhatsApp = (reserva) => {
+  const profesional = reserva.servicio?.profesional
+  const nombre = profesional?.nombre || 'el profesional'
+  const telefono = profesional?.telefono
+
+  if (!telefono) {
+    showSnackbar(`El profesional ${nombre} no tiene un número de teléfono registrado`, 'warning')
+    return
+  }
+
+  const formattedPhone = telefono.replace(/\D/g, '')
+  window.open(`https://wa.me/${formattedPhone}`, '_blank')
 }
 
 // --- UTILS ---

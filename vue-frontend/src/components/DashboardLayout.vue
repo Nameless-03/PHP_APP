@@ -687,3 +687,11 @@ const logout = async () => {
   color: #ffffff !important;
 }
 </style>
+
+<style>
+/* Forzar que la barra lateral permanezca fija en pantalla y no se desplace con el scroll general */
+.v-navigation-drawer {
+  position: fixed !important;
+  height: 100vh !important;
+}
+</style>
