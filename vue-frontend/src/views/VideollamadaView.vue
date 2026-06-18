@@ -407,6 +407,18 @@ async function initCall() {
           const c = reserva.cliente?.usuario
           otherPersonName.value = c ? `${c.nombre || ''} ${c.apellido || ''}`.trim() : 'Cliente'
         }
+
+        // Si el estado no es 'en_curso', lo actualizamos en el backend
+        if (reserva.estado !== 'en_curso') {
+          await fetch(`/api/reservas/${reservationId}/estado`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify({ estado: 'en_curso' })
+          }).catch(err => console.error('Error al transicionar a en_curso:', err))
+        }
       }
     }
 

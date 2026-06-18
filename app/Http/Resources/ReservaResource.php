@@ -24,9 +24,8 @@ class ReservaResource extends JsonResource
             'id_servicio' => $this->id_servicio,
             'id_compra_paquete' => $this->id_compra_paquete,
             'created_at' => $this->created_at?->toIso8601String(),
-            // Flag de caché: indica si la reserva fue reprogramada por el cliente
-            // (requiere confirmación del profesional de la nueva fecha, no del pago)
             'reprogramacion_por' => \Illuminate\Support\Facades\Cache::has("reprogramada_por_cliente_{$this->id}") ? 'cliente' : null,
+            'calificada' => $this->calificacion()->exists(),
             
             // Relaciones opcionales
             'cliente' => $this->whenLoaded('cliente', function () {

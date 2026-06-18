@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 Schedule::command('turnos:recordatorios')->hourly();
 Schedule::command('videollamada:recordatorios')->everyMinute();
 Schedule::command('turnos:cancelar-no-confirmados')->everyMinute();
+Schedule::command('turnos:finalizar-expirados')->everyMinute();

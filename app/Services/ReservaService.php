@@ -200,15 +200,18 @@ class ReservaService
                 EstadoReservaEnum::EN_CURSO->value,
                 EstadoReservaEnum::CANCELADA->value,
                 EstadoReservaEnum::NO_ASISTIDA->value,
+                EstadoReservaEnum::FINALIZADA->value,
             ],
             EstadoReservaEnum::PAGADA->value => [
                 EstadoReservaEnum::CONFIRMADA->value,
                 EstadoReservaEnum::EN_CURSO->value,
                 EstadoReservaEnum::CANCELADA->value,
                 EstadoReservaEnum::NO_ASISTIDA->value,
+                EstadoReservaEnum::FINALIZADA->value,
             ],
             EstadoReservaEnum::EN_CURSO->value => [
                 EstadoReservaEnum::FINALIZADA->value,
+                EstadoReservaEnum::NO_ASISTIDA->value,
             ],
             // Estados terminales
             EstadoReservaEnum::FINALIZADA->value => [],
