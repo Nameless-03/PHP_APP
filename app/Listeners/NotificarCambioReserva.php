@@ -59,17 +59,7 @@ class NotificarCambioReserva implements ShouldQueue
             $estadoAnterior = $event->estadoAnterior;
 
             // Determinar quién realizó la acción
-            $porQuien = "el sistema";
-            if (auth()->check()) {
-                $authUser = auth()->user();
-                if ($authUser->id === $reserva->cliente->id_usuario) {
-                    $porQuien = "ti";
-                } elseif ($authUser->id === $reserva->servicio->profesional->id_usuario) {
-                    $porQuien = "el profesional";
-                } elseif ($authUser->esAdmin()) {
-                    $porQuien = "el administrador";
-                }
-            }
+            $porQuien = $event->porQuien ?? "el sistema";
 
             // === CANCELACIÓN ===
             if ($nuevoEstado === 'cancelada') {
