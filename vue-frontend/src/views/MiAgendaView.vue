@@ -141,6 +141,19 @@
                                 Unirse a videollamada
                               </v-btn>
 
+                              <!-- Botón de WhatsApp para contactar al Profesional -->
+                              <v-btn
+                                v-if="isCliente && reserva.servicio?.profesional?.telefono"
+                                color="success"
+                                class="text-none font-weight-bold rounded-pill px-4"
+                                prepend-icon="mdi-whatsapp"
+                                elevation="1"
+                                :href="`https://wa.me/${reserva.servicio.profesional.telefono.replace(/\D/g, '')}`"
+                                target="_blank"
+                              >
+                                WhatsApp
+                              </v-btn>
+
                               <!-- Acciones de Estado (Solo Profesional/Admin) -->
                               <template v-if="!isCliente">
                                 <v-btn
