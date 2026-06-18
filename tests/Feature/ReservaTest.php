@@ -880,5 +880,39 @@ class ReservaTest extends TestCase
         $this->assertEquals(\App\Enums\EstadoReservaEnum::FINALIZADA->value, $reserva1->fresh()->estado->value);
         $this->assertEquals(\App\Enums\EstadoReservaEnum::EN_CURSO->value, $reserva2->fresh()->estado->value);
     }
+
+    /**
+     * Test de que ReservaResource incluye el flag calificada correctamente.
+     */
+    public function test_reserva_resource_incluye_flag_calificada(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::FINALIZADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 1. Verificar calificada = false
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson("/api/reservas/{$reserva->id}");
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.calificada', false);
+
+        // 2. Crear calificacion
+        \App\Models\Calificacion::create([
+            'puntuacion' => 5,
+            'comentario' => 'Excelente servicio',
+            'id_reserva' => $reserva->id
+        ]);
+
+        // 3. Verificar calificada = true
+        $response2 = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson("/api/reservas/{$reserva->id}");
+        $response2->assertStatus(200);
+        $response2->assertJsonPath('data.calificada', true);
+    }
 }
 

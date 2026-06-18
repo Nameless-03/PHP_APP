@@ -1095,7 +1095,9 @@ const procesarQueryParameters = () => {
     // Buscar la reserva en el listado general
     const reserva = reservasRegistros.value.find(r => r.id === rsvId)
     if (reserva) {
-      abrirCalificar(reserva)
+      if (puedeCalificar(reserva)) {
+        abrirCalificar(reserva)
+      }
       router.replace({ query: { ...route.query, calificar: undefined } })
     }
   }
@@ -1468,6 +1470,7 @@ const cambiarEstadoReserva = async (id, estado) => {
 // === LOGICA: CALIFICAR ===
 const puedeCalificar = (reserva) => {
   if (calificacionesEnviadas.value.has(reserva.id)) return false
+  if (reserva.calificada) return false
   return reserva.estado === 'finalizada'
 }
 
