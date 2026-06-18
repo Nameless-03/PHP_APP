@@ -144,11 +144,12 @@ const router = createRouter({
 
 // Guardia de navegación global (Navigation Guard) para proteger rutas
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('auth_token')
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+  const isAuthenticated = !!token
 
   // Obtener rol del usuario
   let userRole = null
-  const userStr = localStorage.getItem('user')
+  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user')
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
