@@ -21,7 +21,7 @@ class EnviarRecordatoriosVideollamada extends Command
      *
      * @var string
      */
-    protected $description = 'Envía recordatorios de videollamada 10 minutos antes del turno';
+    protected $description = 'Envía recordatorios de turnos inminentes 10 minutos antes del inicio';
 
     /**
      * Execute the console command.
@@ -34,9 +34,6 @@ class EnviarRecordatoriosVideollamada extends Command
 
         $reservas = Reserva::with(['servicio.profesional.usuario', 'cliente.usuario'])
             ->whereIn('estado', ['confirmada', 'pagada'])
-            ->whereHas('servicio', function ($q) {
-                $q->whereIn('modalidad', ['remota', 'hibrida']);
-            })
             ->whereBetween('fecha_hora_inicio', [$desde, $hasta])
             ->get()
             ->filter(function ($reserva) {
@@ -46,12 +43,17 @@ class EnviarRecordatoriosVideollamada extends Command
 
         foreach ($reservas as $reserva) {
             try {
-                // Notificar al cliente
-                if ($reserva->cliente?->usuario) {
-                    $reserva->cliente->usuario->notify(new RecordatorioTurnoNotification($reserva));
+                $modalidad = $reserva->servicio->modalidad ?? 'presencial';
+
+                // Si es remota o híbrida, notificar también al cliente.
+                // Si es presencial, NO le enviamos recordatorio 10 minutos antes al cliente (sólo al profesional).
+                if ($modalidad !== 'presencial') {
+                    if ($reserva->cliente?->usuario) {
+                        $reserva->cliente->usuario->notify(new RecordatorioTurnoNotification($reserva));
+                    }
                 }
 
-                // Notificar al profesional
+                // Notificar al profesional (aplica para presencial y online)
                 if ($reserva->servicio?->profesional?->usuario) {
                     $reserva->servicio->profesional->usuario->notify(new RecordatorioTurnoNotification($reserva));
                 }
@@ -70,6 +72,6 @@ class EnviarRecordatoriosVideollamada extends Command
             }
         }
 
-        $this->info("Total recordatorios enviados: {$reservas->count()}");
+        $this->info("Total recordatorios procesados: {$reservas->count()}");
     }
 }
