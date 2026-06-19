@@ -319,9 +319,19 @@ const turnosDelDia = computed(() => {
   const offset = fechaSeleccionada.value.getTimezoneOffset()
   const fechaStr = new Date(fechaSeleccionada.value.getTime() - (offset*60*1000)).toISOString().split('T')[0]
   
+  const ahora = new Date()
+  
   return reservas.value.filter(r => {
-    // ignorar las canceladas o rechazadas para que la agenda se vea limpia, o mostrarlas pero grises.
-    if(r.estado === 'cancelada' || r.estado === 'rechazada') return false;
+    // Ignorar las canceladas, rechazadas, finalizadas o no asistidas
+    if (['cancelada', 'rechazada', 'finalizada', 'no_asistida'].includes(r.estado)) {
+      return false;
+    }
+    
+    // Si la fecha y hora de fin ya pasó, se considera expirada y no se muestra en la agenda activa
+    const fin = new Date(r.fecha_hora_fin)
+    if (fin <= ahora) {
+      return false;
+    }
     
     return r.fecha_hora_inicio.startsWith(fechaStr)
   }).sort((a,b) => new Date(a.fecha_hora_inicio) - new Date(b.fecha_hora_inicio))
