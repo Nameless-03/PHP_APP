@@ -16,7 +16,7 @@ class PaqueteController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Paquete::with('servicios');
+        $query = Paquete::with(['servicios', 'profesional.usuario']);
 
         $user = $request->user() ?? auth('sanctum')->user();
 
@@ -50,7 +50,7 @@ class PaqueteController extends Controller
 
         return response()->json([
             'message' => 'Paquete creado exitosamente',
-            'data' => new PaqueteResource($paquete->load('servicios')),
+            'data' => new PaqueteResource($paquete->load(['servicios', 'profesional.usuario'])),
         ], 201);
     }
 

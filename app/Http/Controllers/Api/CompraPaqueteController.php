@@ -82,7 +82,7 @@ class CompraPaqueteController extends Controller
         }
 
         $compras = CompraPaquete::where('id_cliente', $request->user()->id)
-            ->with(['paquete.servicios', 'pagos'])
+            ->with(['paquete.servicios', 'paquete.profesional.usuario', 'pagos'])
             ->latest()
             ->get();
 

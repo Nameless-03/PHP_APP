@@ -86,11 +86,17 @@
               <!-- Professional details -->
               <div class="d-flex align-center mb-4" v-if="item.id_profesional">
                 <v-avatar size="36" color="primary-lighten-1" class="mr-3 text-white font-weight-bold text-caption">
-                  {{ item.id_profesional ? 'PR' : 'PR' }}
+                  {{ item.profesional_nombre ? item.profesional_nombre.substring(0, 2).toUpperCase() : 'PR' }}
                 </v-avatar>
                 <div>
                   <div class="text-subtitle-2 font-weight-medium text-grey-darken-3">
-                    Ofrecido por Profesional
+                    Ofrecido por 
+                    <span 
+                      class="text-primary font-weight-bold cursor-pointer hover-underline" 
+                      @click="verPerfilProfesional(item.id_profesional)"
+                    >
+                      {{ item.profesional_nombre || 'Profesional' }}
+                    </span>
                   </div>
                   <div class="d-flex align-center text-caption text-warning font-weight-bold">
                     <v-icon size="small" class="mr-1">mdi-star</v-icon>
@@ -375,6 +381,10 @@ const loadPackages = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const verPerfilProfesional = (id) => {
+  router.push({ name: 'profesionales', query: { id } })
 }
 
 onMounted(async () => {
@@ -832,5 +842,8 @@ watch([paymentMethod, purchaseDialog], async ([nuevoMetodo, estaAbierto]) => {
 .payment-box-efectivo {
   background-color: rgba(76, 175, 80, 0.04) !important;
   border: 1px solid rgba(76, 175, 80, 0.15) !important;
+}
+.hover-underline:hover {
+  text-decoration: underline !important;
 }
 </style>
