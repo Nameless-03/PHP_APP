@@ -299,7 +299,7 @@
 
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuth } from '../composables/useAuth'
 import ConfirmationDialog from './ConfirmationDialog.vue'
@@ -313,6 +313,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 const { mdAndUp } = useDisplay()
 const drawer = ref(mdAndUp.value)
 
@@ -346,6 +347,7 @@ let sessionCheckInterval = null
 
 const chequearSesionActiva = async () => {
   if (!user.value || dialogSesionActiva.value) return
+  if (route.path.includes('/videollamada') || route.path.includes('/videollamadas')) return
   
   try {
     const res = await fetch('/api/reservas/actual', { headers: getAuthHeaders() })

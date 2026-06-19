@@ -64,20 +64,19 @@ class NotificarCambioReserva implements ShouldQueue
             // === CANCELACIÓN ===
             if ($nuevoEstado === 'cancelada') {
                 // Construir mensaje para el cliente
-                if ($porQuien === 'ti') {
-                    $mensajeCliente = "Has cancelado tu reserva al servicio '{$reserva->servicio->nombre}'.";
-                } else {
-                    $mensajeCliente = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada por {$porQuien}.";
-                }
                 if ($reserva->id_compra_paquete) {
-                    $mensajeCliente .= " Se ha devuelto la sesión a tu paquete.";
+                    $mensajeCliente = "Se ha devuelto la sesión a tu paquete.";
                 } elseif ($reserva->pago) {
                     $pagoEstado = is_string($reserva->pago->estado)
                         ? $reserva->pago->estado
                         : ($reserva->pago->estado->value ?? '');
                     if ($pagoEstado === 'reembolsado') {
-                        $mensajeCliente .= " Se procederá a la devolución del importe pagado a tu método de pago original.";
+                        $mensajeCliente = "Su pago será devuelto.";
+                    } else {
+                        $mensajeCliente = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada.";
                     }
+                } else {
+                    $mensajeCliente = "Tu reserva para '{$reserva->servicio->nombre}' ha sido cancelada.";
                 }
                 $mensajeCliente .= " Se te a devuelto el dinero";
 

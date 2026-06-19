@@ -988,7 +988,7 @@
     <ConfirmationDialog
       v-model="dialogConfirmarCancelacion"
       title="Cancelar Turno"
-      :message="`¿Estás seguro de que deseas cancelar este turno? Esta acción no se puede deshacer.${ reservaACancelarId && getReservaCancelInfo() }`"
+      :message="getReservaCancelInfo()"
       confirm-text="Sí, cancelar turno"
       confirm-color="error"
       icon="mdi-calendar-remove"
@@ -1433,11 +1433,24 @@ const cancelarReserva = (id) => {
 }
 
 const getReservaCancelInfo = () => {
-  if (!reservaACancelarId.value) return ''
+  if (!reservaACancelarId.value) return '¿Estás seguro de que deseas cancelar este turno?'
   const reserva = reservasRegistros.value.find(r => r.id === reservaACancelarId.value)
-  if (!reserva) return ''
+  if (!reserva) return '¿Estás seguro de que deseas cancelar este turno?'
+  
+  let msg = '¿Estás seguro de que deseas cancelar este turno? '
+  
+  if (reserva.compra_paquete) {
+    msg += 'Se te devolverá la sesión que se te había descontado. '
+  } else if (reserva.pago && (reserva.pago.metodo === 'paypal' || reserva.pago.metodo === 'online')) {
+    msg += 'Su pago será devuelto. '
+  }
+  
+  msg += 'Esta acción no se puede deshacer.'
+  
   const horas = reserva.servicio?.limite_cancelacion_horas ?? 10
-  return `\n\nTen en cuenta la política de cancelación: mínimo ${horas}h de anticipación.`
+  msg += `\n\nTen en cuenta la política de cancelación: mínimo ${horas}h de anticipación.`
+  
+  return msg
 }
 
 const ejecutarCancelacion = async () => {

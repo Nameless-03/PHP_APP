@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Event;
 use App\Events\ReservaCreada;
 use App\Events\ReservaEstadoCambiado;
 use App\Listeners\NotificarCambioReserva;
-use App\Listeners\NotificarCambioEstadoReserva;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,10 +31,6 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(
             ReservaEstadoCambiado::class,
             NotificarCambioReserva::class
-        );
-        Event::listen(
-            ReservaEstadoCambiado::class,
-            NotificarCambioEstadoReserva::class
         );
     }
 }
