@@ -79,6 +79,7 @@ class NotificarCambioReserva implements ShouldQueue
                         $mensajeCliente .= " Se procederá a la devolución del importe pagado a tu método de pago original.";
                     }
                 }
+                $mensajeCliente .= " Se te a devuelto el dinero";
 
                 // Notificar al cliente
                 $reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(

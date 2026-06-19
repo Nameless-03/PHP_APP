@@ -31,13 +31,13 @@ class CancelarReprogramacionesNoConfirmadas extends Command
      */
     public function handle(ReservaService $reservaService): void
     {
-        $reservas = Reserva::with(['servicio', 'cliente.usuario'])
+        // 1. Cancelar reservas reprogramadas por el cliente no confirmadas a tiempo
+        $reservasPagadas = Reserva::with(['servicio', 'cliente.usuario'])
             ->where('estado', EstadoReservaEnum::PAGADA->value)
             ->get();
 
-        $count = 0;
-
-        foreach ($reservas as $reserva) {
+        $countReprog = 0;
+        foreach ($reservasPagadas as $reserva) {
             if (Cache::has("reprogramada_por_cliente_{$reserva->id}")) {
                 $limiteCancelacionHoras = $reserva->servicio->limite_cancelacion_horas ?? 10;
                 $limiteConfirmacion = Carbon::parse($reserva->fecha_hora_inicio)->subHours($limiteCancelacionHoras);
@@ -45,11 +45,8 @@ class CancelarReprogramacionesNoConfirmadas extends Command
                 if (Carbon::now()->greaterThanOrEqualTo($limiteConfirmacion)) {
                     try {
                         $this->info("Cancelando automáticamente reserva #{$reserva->id} reprogramada y no confirmada a tiempo.");
-                        
-                        // Cancelar la reserva cambiando su estado a CANCELADA
                         $reservaService->cambiarEstado($reserva, EstadoReservaEnum::CANCELADA);
-                        
-                        $count++;
+                        $countReprog++;
                     } catch (\Exception $e) {
                         $this->error("Error cancelando reserva #{$reserva->id}: " . $e->getMessage());
                         Log::error("Error cancelando reserva reprogramada #{$reserva->id} automáticamente: " . $e->getMessage());
@@ -58,6 +55,28 @@ class CancelarReprogramacionesNoConfirmadas extends Command
             }
         }
 
-        $this->info("Se cancelaron automáticamente {$count} reservas reprogramadas no confirmadas a tiempo.");
+        // 2. Cancelar reservas pendientes de pago que alcanzaron el tiempo límite de cancelación sin confirmarse
+        $reservasPendientes = Reserva::with(['servicio', 'cliente.usuario'])
+            ->where('estado', EstadoReservaEnum::PENDIENTE->value)
+            ->get();
+
+        $countPendientes = 0;
+        foreach ($reservasPendientes as $reserva) {
+            $limiteCancelacionHoras = $reserva->servicio->limite_cancelacion_horas ?? 10;
+            $limiteConfirmacion = Carbon::parse($reserva->fecha_hora_inicio)->subHours($limiteCancelacionHoras);
+
+            if (Carbon::now()->greaterThanOrEqualTo($limiteConfirmacion)) {
+                try {
+                    $this->info("Cancelando automáticamente reserva pendiente #{$reserva->id} no pagada/confirmada a tiempo.");
+                    $reservaService->cambiarEstado($reserva, EstadoReservaEnum::CANCELADA);
+                    $countPendientes++;
+                } catch (\Exception $e) {
+                    $this->error("Error cancelando reserva pendiente #{$reserva->id}: " . $e->getMessage());
+                    Log::error("Error cancelando reserva pendiente #{$reserva->id} automáticamente: " . $e->getMessage());
+                }
+            }
+        }
+
+        $this->info("Se cancelaron automáticamente {$countReprog} reservas reprogramadas y {$countPendientes} reservas pendientes no confirmadas a tiempo.");
     }
 }
