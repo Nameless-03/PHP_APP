@@ -172,17 +172,21 @@
                     </div>
                   </v-col>
                   <v-col cols="12" sm="6">
-                    <div 
-                      v-if="profesionalDetalle.ubicacion"
-                      class="d-flex align-center bg-grey-lighten-5 pa-4 rounded-lg border cursor-pointer hover-location-box"
-                      @click="openMap(profesionalDetalle)"
-                    >
-                      <v-avatar color="error" variant="tonal" class="mr-3"><v-icon>mdi-map-marker-radius</v-icon></v-avatar>
-                      <div>
-                        <div class="text-caption text-medium-emphasis">Ubicación</div>
-                        <strong class="text-body-1 text-primary text-decoration-underline">{{ profesionalDetalle.ubicacion }}</strong>
-                      </div>
-                    </div>
+                    <v-tooltip v-if="profesionalDetalle.ubicacion" text="Ver en el mapa" location="top">
+                      <template v-slot:activator="{ props }">
+                        <div 
+                          v-bind="props"
+                          class="d-flex align-center bg-grey-lighten-5 pa-4 rounded-lg border cursor-pointer hover-location-box"
+                          @click="openMap(profesionalDetalle)"
+                        >
+                          <v-avatar color="error" variant="tonal" class="mr-3"><v-icon>mdi-map-marker-radius</v-icon></v-avatar>
+                          <div>
+                            <div class="text-caption text-medium-emphasis">Ubicación</div>
+                            <strong class="text-body-1 text-primary text-decoration-underline">{{ profesionalDetalle.ubicacion }}</strong>
+                          </div>
+                        </div>
+                      </template>
+                    </v-tooltip>
                     <div 
                       v-else
                       class="d-flex align-center bg-grey-lighten-5 pa-4 rounded-lg border"
@@ -474,6 +478,7 @@ const mapLoading = ref(false)
 const mapError = ref(false)
 const selectedProfessional = ref(null)
 const mapCoords = ref(null)
+const mapBoundingBox = ref(null)
 let mapInstance = null
 
 const openMap = async (prof) => {
@@ -482,6 +487,7 @@ const openMap = async (prof) => {
   mapLoading.value = true
   mapError.value = false
   mapCoords.value = null
+  mapBoundingBox.value = null
 
   try {
     const address = encodeURIComponent(prof.ubicacion)
@@ -497,17 +503,21 @@ const openMap = async (prof) => {
     }
 
     const firstResult = results[0]
-    const { lat, lon, place_rank } = firstResult
+    const { lat, lon, place_rank, boundingbox } = firstResult
     mapCoords.value = { lat: parseFloat(lat), lng: parseFloat(lon) }
+    mapBoundingBox.value = boundingbox
     
-    // Determinar nivel de zoom de forma inteligente:
+    // Determinar nivel de zoom de forma inteligente para fallback:
     // Si place_rank >= 26 es una calle o edificio específico -> zoom 16
-    // Si está entre 16 y 25 es un barrio o código postal -> zoom 14
-    // Si < 16 es una ciudad, municipio, departamento o país -> zoom 12
+    // Si está entre 17 y 25 es un barrio o código postal -> zoom 14
+    // Si es 16 es una ciudad -> zoom 13
+    // Si < 16 es un departamento o país -> zoom 12
     let zoomLevel = 16
     if (place_rank !== undefined) {
       if (place_rank < 16) {
         zoomLevel = 12
+      } else if (place_rank === 16) {
+        zoomLevel = 13
       } else if (place_rank < 26) {
         zoomLevel = 14
       }
@@ -535,12 +545,32 @@ const initMap = (zoomLevel) => {
   }
 
   const { lat, lng } = mapCoords.value
-  mapInstance = L.map('map-container').setView([lat, lng], zoomLevel)
+  mapInstance = L.map('map-container')
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19
   }).addTo(mapInstance)
+
+  // Ajustar la vista con el bounding box de forma inteligente
+  if (mapBoundingBox.value && mapBoundingBox.value.length === 4) {
+    const bounds = [
+      [parseFloat(mapBoundingBox.value[0]), parseFloat(mapBoundingBox.value[2])],
+      [parseFloat(mapBoundingBox.value[1]), parseFloat(mapBoundingBox.value[3])]
+    ]
+    const latDiff = Math.abs(bounds[0][0] - bounds[1][0])
+    const lngDiff = Math.abs(bounds[0][1] - bounds[1][1])
+
+    // Si el área es muy pequeña (ej. dirección exacta/casa), centrar con zoom 16.
+    // De lo contrario, ajustar los límites al área general (fitBounds).
+    if (latDiff < 0.005 && lngDiff < 0.005) {
+      mapInstance.setView([lat, lng], 16)
+    } else {
+      mapInstance.fitBounds(bounds, { maxZoom: 16, padding: [10, 10] })
+    }
+  } else {
+    mapInstance.setView([lat, lng], zoomLevel)
+  }
 
   const customIcon = L.divIcon({
     html: `<div class="custom-marker">
@@ -579,6 +609,7 @@ const closeMap = () => {
   }
   selectedProfessional.value = null
   mapCoords.value = null
+  mapBoundingBox.value = null
 }
 </script>
 
