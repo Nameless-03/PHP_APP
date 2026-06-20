@@ -31,7 +31,7 @@
       </v-list-item>
 
       <v-divider></v-divider>
-      <v-list density="compact" nav class="sidebar-list">
+      <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-view-dashboard" title="Panel Principal" value="dashboard" to="/dashboard"></v-list-item>
         <!-- Admin Menu -->
         <template v-if="isAdmin">
@@ -744,7 +744,10 @@ const cargarContadoresPendientes = async () => {
       const data = await resReservas.json()
       reservasRegistros.value = data.data || []
       if (isProfesional.value) {
-        countReservasPendientes.value = reservasRegistros.value.filter(r => r.estado === 'pagada').length
+        countReservasPendientes.value = reservasRegistros.value.filter(r => 
+          r.estado === 'pagada' || 
+          (r.estado === 'pendiente' && r.pago && r.pago.metodo === 'efectivo')
+        ).length
       } else {
         countReservasPendientes.value = 0
       }
@@ -834,13 +837,11 @@ const logout = async () => {
   color: #ffffff !important;
 }
 
-:deep(.sidebar-list .v-list-item-title) {
+:deep(.v-navigation-drawer .v-list-item-title) {
   font-size: 1.05rem !important;
   font-weight: 500 !important;
-}
-:deep(.sidebar-list .v-list-item) {
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
+  line-height: 1.3 !important;
+  padding-bottom: 2px !important;
 }
 </style>
 
