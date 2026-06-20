@@ -156,7 +156,7 @@
                   variant="outlined"
                   class="text-none font-weight-bold rounded-lg"
                   prepend-icon="mdi-trash-can-outline"
-                  @click="cancelarCompra(compra.id)"
+                  @click="abrirCancelarCompra(compra.id)"
                   :loading="isSubmitting"
                 >
                   Cancelar
@@ -199,7 +199,7 @@
                   variant="outlined"
                   class="text-none font-weight-bold rounded-lg"
                   prepend-icon="mdi-delete-sweep-outline"
-                  @click="eliminarHistorialPaquete(compra.id)"
+                  @click="abrirLimpiarPaquete(compra.id)"
                   :loading="isSubmitting"
                 >
                   Limpiar del Historial
@@ -541,6 +541,84 @@
       </v-card>
     </v-dialog>
 
+    <!-- MODAL CONFIRMAR LIMPIAR PAQUETE -->
+    <v-dialog v-model="limpiarDialog" max-width="500" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header-warning pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-delete-alert-outline</v-icon>
+          <h3 class="text-h5 font-weight-bold">Remover del Inventario</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Confirma la eliminación del paquete</p>
+        </div>
+
+        <v-card-text class="pa-6 text-center text-body-1 text-grey-darken-3">
+          ¿Estás seguro de que deseas remover este paquete de tu inventario?
+          <div class="text-caption text-medium-emphasis mt-2">
+            Esta acción lo quitará definitivamente de tu historial de adquisiciones y no se podrá deshacer.
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmitting"
+            @click="limpiarDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="warning"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmitting"
+            @click="ejecutarLimpiarPaquete"
+          >
+            Remover
+            <v-icon end>mdi-delete</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL CONFIRMAR CANCELAR COMPRA PENDIENTE -->
+    <v-dialog v-model="cancelarCompraPendienteDialog" max-width="500" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header-error pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-alert-circle-outline</v-icon>
+          <h3 class="text-h5 font-weight-bold">Cancelar Adquisición</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Confirma la cancelación</p>
+        </div>
+
+        <v-card-text class="pa-6 text-center text-body-1 text-grey-darken-3">
+          ¿Estás seguro de que deseas cancelar la adquisición de este paquete?
+          <div class="text-caption text-medium-emphasis mt-2">
+            Esta acción cancelará la solicitud de compra y eliminará el paquete pendiente de tu lista.
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmitting"
+            @click="cancelarCompraPendienteDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="error"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmitting"
+            @click="ejecutarCancelarCompra"
+          >
+            Confirmar
+            <v-icon end>mdi-check-circle-outline</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Global Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" location="top">
       {{ snackbar.text }}
@@ -705,12 +783,20 @@ const processPurchase = async () => {
   }
 }
 
-const cancelarCompra = async (id) => {
-  if (!confirm('¿Estás seguro de que deseas cancelar la adquisición de este paquete?')) return
+const cancelarCompraPendienteDialog = ref(false)
+const compraPendienteACancelarId = ref(null)
+
+const abrirCancelarCompra = (id) => {
+  compraPendienteACancelarId.value = id
+  cancelarCompraPendienteDialog.value = true
+}
+
+const ejecutarCancelarCompra = async () => {
+  if (!compraPendienteACancelarId.value) return
   isSubmitting.value = true
   const token = localStorage.getItem('auth_token')
   try {
-    const res = await fetch(`/api/mis-paquetes/${id}`, {
+    const res = await fetch(`/api/mis-paquetes/${compraPendienteACancelarId.value}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -721,6 +807,8 @@ const cancelarCompra = async (id) => {
     if (!res.ok) throw new Error((await res.json()).message || 'Error al cancelar la compra')
 
     snackbar.value = { show: true, text: 'Compra de paquete cancelada y eliminada.', color: 'error' }
+    cancelarCompraPendienteDialog.value = false
+    compraPendienteACancelarId.value = null
     loadPurchases()
   } catch (err) {
     snackbar.value = { show: true, text: err.message, color: 'error' }
@@ -729,12 +817,20 @@ const cancelarCompra = async (id) => {
   }
 }
 
-const eliminarHistorialPaquete = async (id) => {
-  if (!confirm('¿Estás seguro de que deseas remover este paquete de tu inventario?')) return
+const limpiarDialog = ref(false)
+const packageToLimpiarId = ref(null)
+
+const abrirLimpiarPaquete = (id) => {
+  packageToLimpiarId.value = id
+  limpiarDialog.value = true
+}
+
+const ejecutarLimpiarPaquete = async () => {
+  if (!packageToLimpiarId.value) return
   isSubmitting.value = true
   const token = localStorage.getItem('auth_token')
   try {
-    const res = await fetch(`/api/mis-paquetes/${id}`, {
+    const res = await fetch(`/api/mis-paquetes/${packageToLimpiarId.value}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -745,6 +841,8 @@ const eliminarHistorialPaquete = async (id) => {
     if (!res.ok) throw new Error((await res.json()).message || 'Error al eliminar el paquete')
 
     snackbar.value = { show: true, text: 'El paquete ha sido eliminado de tu historial.', color: 'success' }
+    limpiarDialog.value = false
+    packageToLimpiarId.value = null
     loadPurchases()
   } catch (err) {
     snackbar.value = { show: true, text: err.message, color: 'error' }
@@ -1078,6 +1176,9 @@ const formatDate = (dateStr) => {
 }
 .dialog-header {
   background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
+.dialog-header-warning {
+  background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%);
 }
 .dialog-header-error {
   background: #f44336;
