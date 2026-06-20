@@ -366,6 +366,7 @@ const { getAuthHeaders } = useAuth()
 const isLoading = ref(true)
 const profesionales = ref([])
 const tab = ref('about')
+const navegandoIntencionalmente = ref(false)
 
 // Detail modal states
 const dialogDetalle = ref(false)
@@ -445,7 +446,12 @@ watch(() => route.query.id, (newId) => {
 // Watch dialog close to clean query params
 watch(dialogDetalle, (isOpen) => {
   if (!isOpen && route.query.id) {
-    router.push({ name: 'profesionales' })
+    // Si se está navegando intencionalmente (ej: al presionar Reservar)
+    // no redirigir de vuelta a la lista de profesionales
+    if (!navegandoIntencionalmente.value) {
+      router.push({ name: 'profesionales' })
+    }
+    navegandoIntencionalmente.value = false
   }
 })
 
@@ -468,8 +474,12 @@ const getModalityColor = (modality) => {
 }
 
 const reservarServicio = (service) => {
+  // Marcar que estamos navegando intencionalmente para evitar que el
+  // watcher del diálogo sobreescriba nuestra navegación
+  navegandoIntencionalmente.value = true
   dialogDetalle.value = false
-  router.push({ name: 'search', query: { q: service.nombre } })
+  // Navegar directamente a Reservas con el servicio pre-seleccionado
+  router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: service.id } })
 }
 
 // ===== Map Functions =====
