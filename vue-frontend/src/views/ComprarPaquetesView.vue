@@ -118,7 +118,8 @@
                     size="x-small"
                     color="secondary"
                     variant="tonal"
-                    class="font-weight-medium"
+                    class="font-weight-medium cursor-pointer"
+                    @click.stop="buscarServicio(s.nombre)"
                   >
                     {{ s.nombre }}
                   </v-chip>
@@ -385,6 +386,10 @@ const loadPackages = async () => {
 
 const verPerfilProfesional = (id) => {
   router.push({ name: 'profesionales', query: { id } })
+}
+
+const buscarServicio = (nombre) => {
+  router.push({ name: 'search', query: { q: nombre } })
 }
 
 onMounted(async () => {

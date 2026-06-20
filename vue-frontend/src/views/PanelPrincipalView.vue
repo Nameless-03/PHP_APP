@@ -270,7 +270,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import { useAuth } from '../composables/useAuth.js'
@@ -309,7 +309,7 @@ const handleSearch = () => {
   }
 }
 
-onMounted(async () => {
+const cargarDatosDashboard = async () => {
   const headers = getAuthHeaders()
   if (!headers.Authorization) return
 
@@ -353,6 +353,20 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching dashboard data:', error)
   }
+}
+
+const handleReservaActualizada = (event) => {
+  console.log('Real-time event received in PanelPrincipalView:', event.detail)
+  cargarDatosDashboard()
+}
+
+onMounted(async () => {
+  await cargarDatosDashboard()
+  window.addEventListener('reserva-actualizada', handleReservaActualizada)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reserva-actualizada', handleReservaActualizada)
 })
 </script>
 

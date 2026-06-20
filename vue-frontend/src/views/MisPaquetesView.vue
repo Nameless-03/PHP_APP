@@ -98,7 +98,8 @@
                   size="x-small"
                   color="secondary"
                   variant="tonal"
-                  class="font-weight-medium"
+                  class="font-weight-medium cursor-pointer"
+                  @click.stop="buscarServicio(s.nombre)"
                 >
                   {{ s.nombre }}
                 </v-chip>
@@ -342,8 +343,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
+const router = useRouter()
 const isLoading = ref(true)
 const purchases = ref([])
 
@@ -365,6 +368,10 @@ const datosPago = ref({
 const paypalLoaded = ref(false)
 const cargandoPaypalSdk = ref(false)
 const paypalClientId = ref('')
+
+const buscarServicio = (nombre) => {
+  router.push({ name: 'search', query: { q: nombre } })
+}
 
 const loadPurchases = async () => {
   isLoading.value = true

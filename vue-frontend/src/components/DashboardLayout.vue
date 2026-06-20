@@ -226,7 +226,7 @@
             Cliente: <strong>{{ activeSession?.cliente?.nombre }}</strong>
           </p>
           <p class="mb-2" v-else>
-            Profesional: <strong>{{ activeSession?.servicio?.profesional?.usuario?.nombre }}</strong>
+            Profesional: <strong>{{ activeSession?.servicio?.profesional?.nombre || 'Profesional' }}</strong>
           </p>
           <p class="mb-0">
             Modalidad: <v-chip size="small" :color="activeSession?.servicio?.modalidad === 'presencial' ? 'orange' : 'primary'" class="font-weight-bold">{{ activeSession?.servicio?.modalidad === 'presencial' ? 'Presencial' : 'Remota/Híbrida' }}</v-chip>
@@ -602,6 +602,9 @@ const escucharCanalPrivado = (userId) => {
       // Añadir la nueva notificación al inicio de la lista
       notificaciones.value.unshift(newNotif)
       bubbleHidden.value = false
+
+      // Despachar evento global para que las vistas activas se actualicen en tiempo real
+      window.dispatchEvent(new CustomEvent('reserva-actualizada', { detail: notification }))
       
       // Lanzar notificación nativa PWA si se tienen permisos
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {

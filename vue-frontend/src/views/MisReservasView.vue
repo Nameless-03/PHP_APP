@@ -100,7 +100,7 @@
                             {{ formatDateObj(reserva.fecha_hora_inicio) }}
                           </span>
                           <span class="text-caption text-grey-darken-2 d-block">
-                            Profesional: <strong>{{ reserva.servicio?.profesional?.usuario?.nombre }} {{ reserva.servicio?.profesional?.usuario?.apellido || '' }}</strong>
+                            Profesional: <strong>{{ reserva.servicio?.profesional?.nombre || 'Profesional' }}</strong>
                           </span>
                           <div class="text-subtitle-2 text-success font-weight-black mt-2">
                             Total: ${{ reserva.servicio?.precio }} USD
@@ -277,7 +277,7 @@
                       <div>
                         <h4 class="font-weight-bold">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
                         <p class="mb-0 text-caption d-flex align-center flex-wrap gap-2">
-                          {{ reserva.servicio?.nombre }} - {{ isCliente ? reserva.servicio?.profesional?.usuario?.nombre : reserva.cliente?.usuario?.nombre }}
+                          {{ reserva.servicio?.nombre }} - {{ isCliente ? (reserva.servicio?.profesional?.nombre || 'Profesional') : (reserva.cliente?.nombre || 'Cliente') }}
                           <v-chip
                             v-if="reserva.compra_paquete"
                             size="x-small"
@@ -450,7 +450,7 @@
                           <div class="flex-grow-1 mr-4">
                             <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
                             <p class="text-body-2 mb-0">
-                              {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} — {{ reserva.servicio?.nombre }}
+                              {{ reserva.cliente?.nombre || 'Cliente' }} — {{ reserva.servicio?.nombre }}
                             </p>
                             <v-chip size="x-small" color="info" variant="tonal" class="mt-1 font-weight-bold">
                               <v-icon start size="12">mdi-calendar-sync</v-icon>
@@ -503,7 +503,7 @@
                           <div class="flex-grow-1 mr-4">
                             <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
                             <p class="text-body-2 mb-0 d-flex align-center flex-wrap gap-2">
-                              {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} — {{ reserva.servicio?.nombre }}
+                              {{ reserva.cliente?.nombre || 'Cliente' }} — {{ reserva.servicio?.nombre }}
                               <v-chip
                                 v-if="reserva.compra_paquete"
                                 size="x-small"
@@ -567,7 +567,7 @@
                           <div class="flex-grow-1 mr-4">
                             <h4 class="font-weight-bold text-grey-darken-3">{{ formatDateObj(reserva.fecha_hora_inicio) }}</h4>
                             <p class="text-body-2 mb-0">
-                              {{ reserva.cliente?.usuario?.nombre }} {{ reserva.cliente?.usuario?.apellido }} — {{ reserva.servicio?.nombre }}
+                              {{ reserva.cliente?.nombre || 'Cliente' }} — {{ reserva.servicio?.nombre }}
                             </p>
                             <v-chip
                               v-if="reserva.pago && reserva.pago.metodo === 'efectivo'"
@@ -669,7 +669,7 @@
                           </v-chip>
                         </div>
                       </td>
-                      <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ reserva.estado }}</v-chip></td>
+                      <td><v-chip size="small" :color="getColorEstado(reserva.estado)">{{ getLabelEstado(reserva.estado) }}</v-chip></td>
                       <td>
                         <div class="d-flex gap-2 flex-wrap">
                           <v-btn 
@@ -998,7 +998,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import ConfirmationDialog from '../components/ConfirmationDialog.vue'
@@ -1103,9 +1103,19 @@ const procesarQueryParameters = () => {
   }
 }
 
+const handleReservaActualizada = (event) => {
+  console.log('Real-time event received in MisReservasView:', event.detail)
+  cargarRegistros()
+}
+
 onMounted(async () => {
   await cargarRegistros() // Cargar registros al inicio
   procesarQueryParameters()
+  window.addEventListener('reserva-actualizada', handleReservaActualizada)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reserva-actualizada', handleReservaActualizada)
 })
 
 // Watch route query to process changes reactively on the same component instance
@@ -1471,7 +1481,7 @@ const cambiarEstadoReserva = async (id, estado) => {
 
     if (!res.ok) throw new Error((await res.json()).message || 'Error al actualizar')
 
-    showSnackbar(estado === 'cancelada' ? 'Turno cancelado' : `Reserva ${estado}`, estado === 'cancelada' ? 'error' : 'success')
+    showSnackbar(estado === 'cancelada' ? 'Turno cancelado' : `Reserva ${getLabelEstado(estado)}`, estado === 'cancelada' ? 'error' : 'success')
     await cargarRegistros()
   } catch (err) {
     showSnackbar(err.message, 'error')
@@ -1674,6 +1684,15 @@ const cancelarReservaDesdePago = async () => {
 
 // === UTILS ===
 const getColorEstado = (estado) => ({ pendiente: 'warning', confirmada: 'success', cancelada: 'error', pagada: 'primary', finalizada: 'grey' }[estado] || 'grey')
+const getLabelEstado = (estado) => ({
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  cancelada: 'Cancelada',
+  pagada: 'Pagada',
+  en_curso: 'En curso',
+  finalizada: 'Finalizada',
+  no_asistida: 'No asistió'
+}[estado] || estado)
 
 </script>
 

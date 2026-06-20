@@ -83,7 +83,7 @@
                               {{ reserva.servicio?.nombre }}
                             </h4>
                             <v-chip size="x-small" :color="getColorEstado(reserva.estado)" class="text-uppercase font-weight-bold">
-                              {{ reserva.estado }}
+                              {{ getLabelEstado(reserva.estado) }}
                             </v-chip>
                           </div>
                           
@@ -127,12 +127,12 @@
                               </div>
                             </div>
 
-                            <div class="d-flex align-center flex-wrap gap-2">
+                            <div class="d-flex align-center flex-wrap gap-3">
                               <!-- Botón de Videollamada (Redondeado y a la derecha) -->
                               <v-btn 
                                 v-if="(reserva.servicio?.modalidad === 'remota' || reserva.servicio?.modalidad === 'hibrida') && ['pagada', 'confirmada', 'en_curso'].includes(reserva.estado)" 
                                 color="secondary"
-                                class="text-none font-weight-bold rounded-pill px-4" 
+                                class="text-none font-weight-bold rounded-lg px-4" 
                                 prepend-icon="mdi-video"
                                 elevation="1"
                                 @click="joinCall(reserva.id)"
@@ -144,7 +144,7 @@
                               <v-btn
                                 v-if="isCliente"
                                 color="success"
-                                class="text-none font-weight-bold rounded-pill px-4"
+                                class="text-none font-weight-bold rounded-lg px-4"
                                 prepend-icon="mdi-whatsapp"
                                 elevation="1"
                                 @click="contactarWhatsApp(reserva)"
@@ -157,7 +157,7 @@
                                 <v-btn
                                   v-if="['confirmada', 'pagada'].includes(reserva.estado)"
                                   color="primary"
-                                  class="text-none font-weight-bold rounded-pill px-4"
+                                  class="text-none font-weight-bold rounded-lg px-4"
                                   prepend-icon="mdi-play"
                                   elevation="1"
                                   :loading="actualizandoEstadoId === reserva.id"
@@ -169,7 +169,7 @@
                                   v-if="['confirmada', 'pagada'].includes(reserva.estado)"
                                   color="error"
                                   variant="outlined"
-                                  class="text-none font-weight-bold rounded-pill px-4"
+                                  class="text-none font-weight-bold rounded-lg px-4"
                                   prepend-icon="mdi-account-off"
                                   :loading="actualizandoEstadoId === reserva.id"
                                   @click="actualizarEstado(reserva.id, 'no_asistida')"
@@ -179,7 +179,7 @@
                                 <v-btn
                                   v-if="reserva.estado === 'en_curso'"
                                   color="success"
-                                  class="text-none font-weight-bold rounded-pill px-4 text-white"
+                                  class="text-none font-weight-bold rounded-lg px-4 text-white"
                                   prepend-icon="mdi-check-all"
                                   elevation="1"
                                   :loading="actualizandoEstadoId === reserva.id"
@@ -282,7 +282,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import L from 'leaflet'
@@ -541,6 +541,16 @@ const getColorEstado = (estado) => ({
   no_asistida: 'grey'
 }[estado] || 'grey')
 
+const getLabelEstado = (estado) => ({
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  cancelada: 'Cancelada',
+  pagada: 'Pagada',
+  en_curso: 'En curso',
+  finalizada: 'Finalizada',
+  no_asistida: 'No asistió'
+}[estado] || estado)
+
 const getModalityColor = (modality) => {
   switch (modality) {
     case 'remota': return 'info'
@@ -564,7 +574,7 @@ const actualizarEstado = async (id, nuevoEstado) => {
       throw new Error(data.message || 'Error al actualizar el estado')
     }
 
-    showSnackbar(`Estado de la reserva actualizado a "${nuevoEstado}".`, 'success')
+    showSnackbar(`Estado de la reserva actualizado a "${getLabelEstado(nuevoEstado)}".`, 'success')
     await cargarReservas()
   } catch (err) {
     console.error('Error al cambiar de estado:', err)
@@ -574,8 +584,18 @@ const actualizarEstado = async (id, nuevoEstado) => {
   }
 }
 
+const handleReservaActualizada = (event) => {
+  console.log('Real-time event received in MiAgendaView:', event.detail)
+  cargarReservas()
+}
+
 onMounted(() => {
   cargarReservas()
+  window.addEventListener('reserva-actualizada', handleReservaActualizada)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reserva-actualizada', handleReservaActualizada)
 })
 </script>
 

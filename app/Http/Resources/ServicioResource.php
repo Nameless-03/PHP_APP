@@ -29,16 +29,12 @@ class ServicioResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             
             // Relaciones opcionales
-            'profesional' => $this->whenLoaded('profesional', function () {
-                // Return a lightweight array or another resource
-                return [
+            'profesional' => $this->profesional ? [
                     'id_usuario' => $this->profesional->id_usuario,
                     'reputacion' => (float) $this->profesional->reputacion,
                     'telefono' => $this->profesional->telefono,
-                    // If we load nested 'usuario', we can expose the name
                     'nombre' => $this->profesional->usuario ? $this->profesional->usuario->nombre : null,
-                ];
-            }),
+                ] : null,
             'categoria' => $this->whenLoaded('categoria', function () {
                 return [
                     'id' => $this->categoria->id,

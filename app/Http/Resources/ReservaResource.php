@@ -28,14 +28,12 @@ class ReservaResource extends JsonResource
             'calificada' => $this->calificacion()->exists(),
             
             // Relaciones opcionales
-            'cliente' => $this->whenLoaded('cliente', function () {
-                return [
+            'cliente' => $this->cliente ? [
                     'id_usuario' => $this->cliente->id_usuario,
                     'nombre' => $this->cliente->usuario ? $this->cliente->usuario->nombre : null,
                     'email' => $this->cliente->usuario ? $this->cliente->usuario->email : null,
                     'telefono' => $this->cliente->telefono,
-                ];
-            }),
+                ] : null,
             'servicio' => new ServicioResource($this->whenLoaded('servicio')),
             'compra_paquete' => $this->whenLoaded('compraPaquete', function () {
                 return [

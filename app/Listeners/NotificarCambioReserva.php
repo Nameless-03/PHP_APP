@@ -171,7 +171,17 @@ class NotificarCambioReserva implements ShouldQueue
             }
 
             // === OTROS CAMBIOS DE ESTADO ===
-            $mensaje = "El estado de tu reserva para '{$reserva->servicio->nombre}' ha cambiado a: {$nuevoEstado}.";
+            $nuevoEstadoLabel = match ($nuevoEstado) {
+                'pendiente' => 'Pendiente',
+                'confirmada' => 'Confirmada',
+                'pagada' => 'Pagada',
+                'en_curso' => 'En curso',
+                'finalizada' => 'Finalizada',
+                'cancelada' => 'Cancelada',
+                'no_asistida' => 'No asistió',
+                default => $nuevoEstado,
+            };
+            $mensaje = "El estado de tu reserva para '{$reserva->servicio->nombre}' ha cambiado a: {$nuevoEstadoLabel}.";
             $reserva->cliente->usuario->notify(new ReservaEstadoNotificacion(
                 $reserva, "Actualización de Reserva", $mensaje
             ));
