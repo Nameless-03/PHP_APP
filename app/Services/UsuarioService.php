@@ -77,6 +77,12 @@ class UsuarioService
     public function eliminar(int $id): bool
     {
         $usuario = Usuario::findOrFail($id);
+        if ($usuario->esProfesional()) {
+            // Delete packages
+            \App\Models\Paquete::where('id_profesional', $usuario->id)->delete();
+            // Delete services (soft deletes)
+            \App\Models\Servicio::where('id_profesional', $usuario->id)->delete();
+        }
         return $usuario->delete();
     }
 }

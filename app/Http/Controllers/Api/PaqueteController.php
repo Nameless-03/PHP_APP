@@ -26,10 +26,17 @@ class PaqueteController extends Controller
             $query->where('id_profesional', $user->id);
         }
 
+        // Si es un cliente o invitado, filtrar por profesionales activos
+        $esPropio = ($user && $user->esProfesional() && (!$request->has('id_profesional') || (int)$request->id_profesional === $user->id));
+        if (!$esPropio) {
+            $query->whereHas('profesional.usuario', function ($q) {
+                $q->where('activo', true);
+            });
+        }
+
         $paquetes = $query->latest()->get();
 
         // Si es un cliente o invitado, filtrar los paquetes que tienen servicios inactivos
-        $esPropio = ($user && $user->esProfesional() && (!$request->has('id_profesional') || (int)$request->id_profesional === $user->id));
         if (!$esPropio) {
             $paquetes = $paquetes->filter(function ($paquete) {
                 $pivotCount = \DB::table('paquete_servicio')->where('id_paquete', $paquete->id)->count();

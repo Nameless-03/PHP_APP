@@ -100,7 +100,7 @@
                   </div>
                   <div class="d-flex align-center text-caption text-warning font-weight-bold">
                     <v-icon size="small" class="mr-1">mdi-star</v-icon>
-                    5.0 (Excelente)
+                    {{ item.profesional_reputacion ? item.profesional_reputacion.toFixed(1) : '0.0' }}
                   </div>
                 </div>
               </div>

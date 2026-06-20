@@ -229,7 +229,7 @@
                           size="small" 
                           color="primary" 
                           class="text-none font-weight-bold rounded-lg"
-                          @click="reservarServicio(service.id)"
+                          @click="reservarServicio(service)"
                         >
                           Reservar
                         </v-btn>
@@ -467,9 +467,9 @@ const getModalityColor = (modality) => {
   }
 }
 
-const reservarServicio = (id_servicio) => {
+const reservarServicio = (service) => {
   dialogDetalle.value = false
-  router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: id_servicio } })
+  router.push({ name: 'search', query: { q: service.nombre } })
 }
 
 // ===== Map Functions =====

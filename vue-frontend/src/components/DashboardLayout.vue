@@ -91,7 +91,8 @@
           v-model="menuNotificaciones"
           :close-on-content-click="false"
           location="bottom end"
-          width="350"
+          :max-width="$vuetify.display.xs ? 300 : 350"
+          :width="$vuetify.display.xs ? 300 : 350"
         >
           <template v-slot:activator="{ props }">
             <v-btn icon v-bind="props" class="mr-2">
@@ -104,7 +105,19 @@
           <v-card class="rounded-lg elevation-4 border-card">
             <v-card-title class="d-flex justify-space-between align-center pa-4 bg-grey-lighten-4">
               <span class="text-subtitle-1 font-weight-bold">Notificaciones</span>
-              <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
+              <div class="d-flex align-center" style="gap: 8px;">
+                <v-btn
+                  v-if="notificaciones.length > 0"
+                  icon="mdi-check-all"
+                  variant="text"
+                  density="comfortable"
+                  color="secondary"
+                  class="mr-1"
+                  title="Limpiar todas"
+                  @click="marcarTodasComoLeidas"
+                ></v-btn>
+                <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
+              </div>
             </v-card-title>
             <v-divider></v-divider>
             
@@ -195,6 +208,19 @@
       </v-app-bar>
 
       <v-container fluid class="px-4 px-md-8 py-4">
+        <!-- Banner de cuenta deshabilitada -->
+        <v-alert
+          v-if="user && user.activo === false"
+          type="error"
+          variant="elevated"
+          density="comfortable"
+          class="mb-6 rounded-lg font-weight-bold elevation-1"
+          color="red-darken-3"
+          icon="mdi-account-off-outline"
+        >
+          Tu cuenta está actualmente deshabilitada. Algunas acciones como reservar citas o comprar paquetes están bloqueadas. Si crees que es un error, por favor contacta al soporte.
+        </v-alert>
+
         <slot></slot>
       </v-container>
     </v-main>

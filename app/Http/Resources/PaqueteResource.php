@@ -33,6 +33,7 @@ class PaqueteResource extends JsonResource
             'vencimiento' => $this->vencimiento ? (int) $this->vencimiento : null,
             'id_profesional' => (int) $this->id_profesional,
             'profesional_nombre' => $this->profesional && $this->profesional->usuario ? $this->profesional->usuario->nombre : 'Profesional',
+            'profesional_reputacion' => $this->profesional ? (float) ($this->profesional->reputacion ?? 0.00) : 0.00,
             'activo' => $activo,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

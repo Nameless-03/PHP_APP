@@ -48,6 +48,12 @@ class ReservaController extends Controller
      */
     public function store(StoreReservaRequest $request): JsonResponse
     {
+        if ($request->user()->activo === false) {
+            return response()->json([
+                'message' => 'Tu cuenta está deshabilitada. No puedes realizar reservas.'
+            ], 403);
+        }
+
         $data = $request->validated();
         $data['id_cliente'] = $request->user()->id;
 

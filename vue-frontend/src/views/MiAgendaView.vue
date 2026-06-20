@@ -140,6 +140,18 @@
                                 Unirse a videollamada
                               </v-btn>
 
+                              <!-- Botón de Ubicación para Reserva Presencial -->
+                              <v-btn 
+                                v-if="reserva.servicio?.modalidad === 'presencial' && ['pagada', 'confirmada', 'en_curso'].includes(reserva.estado) && reserva.servicio?.ubicacion"
+                                color="primary"
+                                class="text-none font-weight-bold rounded-lg px-4 text-white" 
+                                prepend-icon="mdi-map-marker"
+                                elevation="1"
+                                @click="openMap(reserva.servicio)"
+                              >
+                                Ubicación
+                              </v-btn>
+
                               <!-- Botón de WhatsApp para contactar al Profesional -->
                               <v-btn
                                 v-if="isCliente"

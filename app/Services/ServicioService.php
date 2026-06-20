@@ -51,13 +51,12 @@ class ServicioService
 
         if (!$incluirInactivos) {
             $query->where('activo', true);
+            $query->whereHas('profesional.usuario', function ($q) {
+                $q->where('activo', true);
+            });
         }
 
         // Filter by professional
-        if (isset($filtros['id_profesional'])) {
-            $query->where('id_profesional', $filtros['id_profesional']);
-        }
-
         if (isset($filtros['id_profesional'])) {
             $query->where('id_profesional', $filtros['id_profesional']);
         }

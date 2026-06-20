@@ -24,6 +24,12 @@ class CompraPaqueteController extends Controller
             ], 403);
         }
 
+        if ($request->user()->activo === false) {
+            return response()->json([
+                'message' => 'Tu cuenta está deshabilitada. No puedes adquirir paquetes.'
+            ], 403);
+        }
+
         $request->validate([
             'metodo' => 'required|in:paypal,efectivo',
             'simular_error' => 'nullable|boolean',

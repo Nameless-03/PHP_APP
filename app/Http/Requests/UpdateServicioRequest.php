@@ -24,7 +24,15 @@ class UpdateServicioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => ['sometimes', 'string', 'max:255'],
+            'nombre' => [
+                'sometimes',
+                'string',
+                'max:50',
+                'regex:/[a-zA-ZñÑáéíóúüÁÉÍÓÚÜ]/',
+                Rule::unique('servicios', 'nombre')->where(function ($query) {
+                    return $query->where('id_profesional', $this->user()->id)->whereNull('deleted_at');
+                })->ignore($this->route('servicio'))
+            ],
             'descripcion' => ['nullable', 'string'],
             'precio' => ['sometimes', 'numeric', 'min:0'],
             'modalidad' => ['sometimes', Rule::enum(ModalidadEnum::class)],

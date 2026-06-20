@@ -25,7 +25,15 @@ class StoreServicioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => ['required', 'string', 'max:255'],
+            'nombre' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/[a-zA-ZñÑáéíóúüÁÉÍÓÚÜ]/',
+                Rule::unique('servicios', 'nombre')->where(function ($query) {
+                    return $query->where('id_profesional', $this->user()->id)->whereNull('deleted_at');
+                })
+            ],
             'descripcion' => ['nullable', 'string'],
             'precio' => ['required', 'numeric', 'min:0'],
             'modalidad' => ['required', Rule::enum(ModalidadEnum::class)],

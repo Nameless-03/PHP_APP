@@ -22,7 +22,15 @@ class StorePaqueteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => ['required', 'string', 'max:255'],
+            'nombre' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/[a-zA-ZñÑáéíóúüÁÉÍÓÚÜ]/',
+                \Illuminate\Validation\Rule::unique('paquetes', 'nombre')->where(function ($query) {
+                    return $query->where('id_profesional', $this->user()->id);
+                })
+            ],
             'descripcion' => ['nullable', 'string'],
             'descuento' => ['required', 'numeric', 'min:0'],
             'vencimiento' => ['nullable', 'integer', 'min:1'],
