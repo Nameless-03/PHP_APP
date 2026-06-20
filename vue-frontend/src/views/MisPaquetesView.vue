@@ -170,11 +170,11 @@
                   color="secondary"
                   variant="tonal"
                   class="text-none font-weight-bold rounded-lg"
-                  prepend-icon="mdi-calendar-plus"
-                  to="/mis-reservas"
+                  prepend-icon="mdi-calendar-clock"
                   :disabled="compra.sesiones_disponibles <= 0"
+                  @click="abrirAgendarServicio(compra)"
                 >
-                  Reservar con Paquete
+                  Elegir fecha del servicio
                 </v-btn>
                 <v-btn
                   block
@@ -423,6 +423,111 @@
       </v-card>
     </v-dialog>
 
+    <!-- MODAL AGENDAR SERVICIO DE PAQUETE -->
+    <v-dialog v-model="dialogAgendar" max-width="550" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-calendar-clock</v-icon>
+          <h3 class="text-h5 font-weight-bold">Elegir fecha del servicio</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Reserva una sesión usando tu paquete</p>
+        </div>
+
+        <v-card-text class="pa-6" style="max-height: 70vh; overflow-y: auto;">
+          <v-alert v-if="errorAgendar" type="error" variant="tonal" class="mb-4 rounded-lg">
+            {{ errorAgendar }}
+          </v-alert>
+
+          <div v-if="selectedAgendarCompra">
+            <!-- Paso 1: Seleccionar Servicio -->
+            <div class="mb-4">
+              <label class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2 d-block">1. Selecciona el servicio a utilizar:</label>
+              <v-select
+                v-model="selectedServiceId"
+                :items="serviciosDisponiblesParaReserva"
+                item-title="nombre"
+                item-value="id"
+                label="Servicios disponibles en este paquete"
+                variant="outlined"
+                density="comfortable"
+                color="primary"
+                no-data-text="No hay servicios con sesiones disponibles"
+              ></v-select>
+            </div>
+
+            <!-- Paso 2: Seleccionar Fecha -->
+            <v-expand-transition>
+              <div v-if="selectedServiceId" class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2 d-block">2. Selecciona la fecha:</label>
+                <v-text-field
+                  v-model="selectedDate"
+                  type="date"
+                  label="Fecha de la reserva"
+                  variant="outlined"
+                  density="comfortable"
+                  color="primary"
+                  :min="minDate"
+                  @change="buscarTurnosDisponibles"
+                ></v-text-field>
+              </div>
+            </v-expand-transition>
+
+            <!-- Paso 3: Seleccionar Hora -->
+            <v-expand-transition>
+              <div v-if="selectedServiceId && selectedDate" class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2 d-block">3. Selecciona la hora:</label>
+                
+                <div v-if="cargandoSlots" class="text-center py-4">
+                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                  <div class="text-caption text-primary mt-2">Buscando horarios disponibles...</div>
+                </div>
+                
+                <div v-else-if="slotsDisponibles.length > 0">
+                  <div class="d-flex flex-wrap gap-2 justify-start">
+                    <v-btn
+                      v-for="slot in slotsDisponibles"
+                      :key="slot"
+                      :color="selectedTime === slot ? 'primary' : 'grey-lighten-3'"
+                      variant="flat"
+                      class="text-none font-weight-bold rounded-lg"
+                      @click="selectedTime = slot"
+                    >
+                      {{ slot }}
+                    </v-btn>
+                  </div>
+                </div>
+
+                <v-alert v-else type="info" variant="tonal" class="rounded-lg" color="warning">
+                  No hay horarios disponibles para esta fecha. Por favor, selecciona otro día o revisa la disponibilidad del profesional.
+                </v-alert>
+              </div>
+            </v-expand-transition>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmittingAgendar"
+            @click="cerrarAgendarServicio"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="secondary"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmittingAgendar"
+            :disabled="!selectedServiceId || !selectedDate || !selectedTime"
+            @click="confirmarAgendarServicio"
+          >
+            Confirmar Cita
+            <v-icon end>mdi-calendar-check</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Global Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" location="top">
       {{ snackbar.text }}
@@ -434,7 +539,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
@@ -465,6 +570,19 @@ const paypalClientId = ref('')
 const cancelarDialog = ref(false)
 const selectedCancelPurchase = ref(null)
 const confirmCancelCheckbox = ref(false)
+
+// Booking / Agendar states
+const dialogAgendar = ref(false)
+const selectedAgendarCompra = ref(null)
+const selectedServiceId = ref(null)
+const selectedDate = ref('')
+const selectedTime = ref('')
+const cargandoSlots = ref(false)
+const slotsDisponibles = ref([])
+const errorAgendar = ref('')
+const isSubmittingAgendar = ref(false)
+
+const minDate = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]
 
 const buscarServicio = (nombre) => {
   router.push({ name: 'search', query: { q: nombre } })
@@ -655,6 +773,106 @@ const ejecutarCancelarPaquete = async () => {
     snackbar.value = { show: true, text: err.message, color: 'error' }
   } finally {
     isSubmitting.value = false
+  }
+}
+
+// Booking / Agendar methods
+const abrirAgendarServicio = (compra) => {
+  selectedAgendarCompra.value = compra
+  selectedServiceId.value = null
+  selectedDate.value = ''
+  selectedTime.value = ''
+  slotsDisponibles.value = []
+  errorAgendar.value = ''
+  dialogAgendar.value = true
+}
+
+const cerrarAgendarServicio = () => {
+  dialogAgendar.value = false
+  selectedAgendarCompra.value = null
+  selectedServiceId.value = null
+  selectedDate.value = ''
+  selectedTime.value = ''
+  slotsDisponibles.value = []
+  errorAgendar.value = ''
+}
+
+const serviciosDisponiblesParaReserva = computed(() => {
+  if (!selectedAgendarCompra.value) return []
+  return (selectedAgendarCompra.value.servicios_tracker || []).filter(t => t.sesiones_disponibles > 0).map(t => ({
+    id: t.id,
+    nombre: `${t.nombre} (${t.sesiones_disponibles} de ${t.sesiones_totales} sesiones libres)`
+  }))
+})
+
+const buscarTurnosDisponibles = async () => {
+  if (!selectedServiceId.value || !selectedDate.value) return
+  cargandoSlots.value = true
+  slotsDisponibles.value = []
+  selectedTime.value = ''
+
+  const token = localStorage.getItem('auth_token')
+  try {
+    const res = await fetch(`/api/servicios/${selectedServiceId.value}/turnos?fecha=${selectedDate.value}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      slotsDisponibles.value = data.data || []
+    } else {
+      throw new Error('No se pudieron obtener los turnos disponibles.')
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    cargandoSlots.value = false
+  }
+}
+
+watch(selectedServiceId, () => {
+  buscarTurnosDisponibles()
+})
+
+const confirmarAgendarServicio = async () => {
+  if (!selectedServiceId.value || !selectedDate.value || !selectedTime.value || !selectedAgendarCompra.value) return
+  isSubmittingAgendar.value = true
+  errorAgendar.value = ''
+
+  const token = localStorage.getItem('auth_token')
+  const payload = {
+    id_servicio: selectedServiceId.value,
+    fecha_hora_inicio: `${selectedDate.value} ${selectedTime.value}:00`,
+    id_compra_paquete: selectedAgendarCompra.value.id
+  }
+
+  try {
+    const res = await fetch('/api/reservas', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.message || 'Error al agendar la cita')
+
+    snackbar.value = {
+      show: true,
+      text: '¡Cita agendada exitosamente con tu paquete!',
+      color: 'success'
+    }
+    cerrarAgendarServicio()
+    loadPurchases()
+  } catch (err) {
+    errorAgendar.value = err.message || 'No se pudo reservar el turno. Intenta nuevamente.'
+  } finally {
+    isSubmittingAgendar.value = false
   }
 }
 
