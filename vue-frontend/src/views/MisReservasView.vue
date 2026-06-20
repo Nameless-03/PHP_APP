@@ -1486,6 +1486,7 @@ const cambiarEstadoReserva = async (id, estado) => {
 
     showSnackbar(estado === 'cancelada' ? 'Turno cancelado' : `Reserva ${getLabelEstado(estado)}`, estado === 'cancelada' ? 'error' : 'success')
     await cargarRegistros()
+    window.dispatchEvent(new CustomEvent('update-pending-counts'))
   } catch (err) {
     showSnackbar(err.message, 'error')
   } finally {

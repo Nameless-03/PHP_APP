@@ -31,8 +31,7 @@
       </v-list-item>
 
       <v-divider></v-divider>
-
-      <v-list density="compact" nav>
+      <v-list density="compact" nav class="sidebar-list">
         <v-list-item prepend-icon="mdi-view-dashboard" title="Panel Principal" value="dashboard" to="/dashboard"></v-list-item>
         <!-- Admin Menu -->
         <template v-if="isAdmin">
@@ -48,22 +47,46 @@
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-package-variant" title="Comprar Paquetes" value="comprar-paquetes" to="/comprar-paquetes"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-briefcase-account" title="Paquetes" value="mis-paquetes" to="/mis-paquetes"></v-list-item>
           <v-list-item v-if="isProfesional" prepend-icon="mdi-briefcase-edit" title="Servicios" value="services" to="/services"></v-list-item>
-          <v-list-item v-if="isProfesional" prepend-icon="mdi-package-variant-closed" title="Paquetes" value="packages" to="/packages"></v-list-item>
+          
+          <v-list-item v-if="isProfesional" prepend-icon="mdi-package-variant-closed" title="Paquetes" value="packages" to="/packages">
+            <template v-slot:append v-if="countPaquetesPendientes > 0">
+              <v-avatar color="success" size="20" class="text-caption text-white font-weight-bold ml-2">
+                {{ countPaquetesPendientes }}
+              </v-avatar>
+            </template>
+          </v-list-item>
+
           <v-list-item v-if="isProfesional" prepend-icon="mdi-calendar-clock" title="Horarios" value="schedule" to="/mis-horarios"></v-list-item>
-          <v-list-item prepend-icon="mdi-calendar-check" title="Reservas" value="reservas" to="/mis-reservas"></v-list-item>
+          
+          <v-list-item prepend-icon="mdi-calendar-check" title="Reservas" value="reservas" to="/mis-reservas">
+            <template v-slot:append v-if="isProfesional && countReservasPendientes > 0">
+              <v-avatar color="success" size="20" class="text-caption text-white font-weight-bold ml-2">
+                {{ countReservasPendientes }}
+              </v-avatar>
+            </template>
+          </v-list-item>
+
           <v-list-item prepend-icon="mdi-calendar-multiselect" title="Agenda" value="agenda" to="/mi-agenda"></v-list-item>
-          <v-list-item prepend-icon="mdi-video" title="Videollamadas" value="videollamadas" to="/videollamadas"></v-list-item>
-          <!-- Opción para instalar la PWA -->
-          <v-list-item
-            v-if="canInstall"
-            prepend-icon="mdi-download"
-            title="Instalar App"
-            value="install-pwa"
-            @click="instalarPwa"
-            class="bg-amber-darken-3 font-weight-bold text-white mt-4"
-          ></v-list-item>
+          
+          <v-list-item prepend-icon="mdi-video" title="Videollamadas" value="videollamadas" to="/videollamadas">
+            <template v-slot:append v-if="minutesToNextVideollamada !== null">
+              <span class="d-flex align-center text-caption text-amber-lighten-3 font-weight-bold ml-2">
+                <v-icon size="14" class="mr-1" color="amber-lighten-3">mdi-clock-outline</v-icon>
+                {{ minutesToNextVideollamada }} min
+              </span>
+            </template>
+          </v-list-item>
         </template>
 
+        <!-- Opción para instalar la PWA -->
+        <v-list-item
+          v-if="canInstall"
+          prepend-icon="mdi-download"
+          title="Instalar App"
+          value="install-pwa"
+          @click="instalarPwa"
+          class="bg-amber-darken-3 font-weight-bold text-white mt-4"
+        ></v-list-item>
       </v-list>
 
       <template v-slot:append>
@@ -627,20 +650,105 @@ const dejarCanalPrivado = () => {
 watch(() => user.value?.id, (newId) => {
   if (newId) {
     escucharCanalPrivado(newId)
+    cargarContadoresPendientes()
   } else {
     dejarCanalPrivado()
+    countPaquetesPendientes.value = 0
+    countReservasPendientes.value = 0
+    minutesToNextVideollamada.value = null
+    reservasRegistros.value = []
   }
 }, { immediate: true })
+
+const countPaquetesPendientes = ref(0)
+const countReservasPendientes = ref(0)
+const minutesToNextVideollamada = ref(null)
+const reservasRegistros = ref([])
+let countdownTimer = null
+let contadoresInterval = null
+
+const updateVideollamadaCountdown = () => {
+  if (reservasRegistros.value.length === 0) {
+    minutesToNextVideollamada.value = null
+    return
+  }
+  const now = new Date()
+  let minDiff = null
+
+  for (const r of reservasRegistros.value) {
+    if (!r.servicio || (r.servicio.modalidad !== 'remota' && r.servicio.modalidad !== 'hibrida')) {
+      continue
+    }
+    if (!['confirmada', 'pagada', 'pendiente', 'en_curso'].includes(r.estado)) {
+      continue
+    }
+
+    const startTime = new Date(r.fecha_hora_inicio)
+    const diffMins = Math.ceil((startTime - now) / 60000)
+
+    if (diffMins >= 0 && diffMins <= 15) {
+      if (minDiff === null || diffMins < minDiff) {
+        minDiff = diffMins
+      }
+    }
+  }
+  minutesToNextVideollamada.value = minDiff
+}
+
+const cargarContadoresPendientes = async () => {
+  if (!user.value) return
+  
+  if (isProfesional.value) {
+    try {
+      const resPaquetes = await fetch('/api/paquetes-pendientes', { headers: getAuthHeaders() })
+      if (resPaquetes.ok) {
+        const data = await resPaquetes.json()
+        countPaquetesPendientes.value = (data.data || []).length
+      }
+    } catch (err) {
+      console.error('Error al cargar paquetes pendientes:', err)
+    }
+  } else {
+    countPaquetesPendientes.value = 0
+  }
+
+  try {
+    const resReservas = await fetch('/api/reservas', { headers: getAuthHeaders() })
+    if (resReservas.ok) {
+      const data = await resReservas.json()
+      reservasRegistros.value = data.data || []
+      if (isProfesional.value) {
+        countReservasPendientes.value = reservasRegistros.value.filter(r => r.estado === 'pagada').length
+      } else {
+        countReservasPendientes.value = 0
+      }
+      updateVideollamadaCountdown()
+    }
+  } catch (err) {
+    console.error('Error al cargar reservas pendientes:', err)
+  }
+}
 
 onMounted(() => {
   cargarNotificaciones()
   chequearSesionActiva()
+  cargarContadoresPendientes()
   
   // Polling como fallback para actualizar notificaciones cada 30 segundos si websockets fallan
   pollingInterval = setInterval(cargarNotificaciones, 30000)
   
   // Chequear sesiones activas cada 30 segundos
   sessionCheckInterval = setInterval(chequearSesionActiva, 30000)
+
+  // Polling contadores cada 30 segundos
+  contadoresInterval = setInterval(cargarContadoresPendientes, 30000)
+
+  // Actualizar countdown cada 10 segundos
+  countdownTimer = setInterval(updateVideollamadaCountdown, 10000)
+
+  // Listeners para actualizaciones en tiempo real
+  window.addEventListener('reserva-actualizada', cargarContadoresPendientes)
+  window.addEventListener('update-pending-counts', cargarContadoresPendientes)
 
   // PWA listeners
   window.addEventListener('online', actualizarEstadoConexion)
@@ -656,6 +764,14 @@ onUnmounted(() => {
   if (sessionCheckInterval) {
     clearInterval(sessionCheckInterval)
   }
+  if (contadoresInterval) {
+    clearInterval(contadoresInterval)
+  }
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+  }
+  window.removeEventListener('reserva-actualizada', cargarContadoresPendientes)
+  window.removeEventListener('update-pending-counts', cargarContadoresPendientes)
   window.removeEventListener('online', actualizarEstadoConexion)
   window.removeEventListener('offline', actualizarEstadoConexion)
   window.removeEventListener('beforeinstallprompt', capturarPromptInstalacion)
@@ -690,6 +806,15 @@ const logout = async () => {
   background-color: rgba(255, 255, 255, 0.15) !important;
   border-color: rgba(255, 255, 255, 0.9) !important;
   color: #ffffff !important;
+}
+
+:deep(.sidebar-list .v-list-item-title) {
+  font-size: 1.05rem !important;
+  font-weight: 500 !important;
+}
+:deep(.sidebar-list .v-list-item) {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
 }
 </style>
 

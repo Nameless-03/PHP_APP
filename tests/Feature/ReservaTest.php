@@ -644,6 +644,42 @@ class ReservaTest extends TestCase
     }
 
     /**
+     * Test de que la pausa en la disponibilidad semanal bloquea los turnos correspondientes.
+     */
+    public function test_pausa_bloquea_turnos_disponibles(): void
+    {
+        $calculador = app(\App\Services\CalculadorTurnosService::class);
+
+        $nombresDias = [
+            0 => 'domingo', 1 => 'lunes', 2 => 'martes', 3 => 'miercoles',
+            4 => 'jueves', 5 => 'viernes', 6 => 'sabado'
+        ];
+        $diaSemana = $nombresDias[Carbon::tomorrow()->dayOfWeek];
+
+        // Crear disponibilidad base con pausa
+        \App\Models\Disponibilidad::create([
+            'dia_semana' => $diaSemana,
+            'hora_inicio' => '08:00',
+            'hora_fin' => '13:00',
+            'pausa_inicio' => '10:00',
+            'pausa_minutos' => 60, // 10:00 a 11:00 está en pausa
+            'buffer_minutos' => 0,
+            'id_profesional' => $this->profesionalUser->id
+        ]);
+
+        $turnos = $calculador->obtenerTurnosDisponibles($this->servicio, Carbon::tomorrow()->toDateString());
+
+        // Con servicio duracion 60 mins (1 hora):
+        // Turnos esperados: 08:00 (hasta 09:00), 09:00 (hasta 10:00), 11:00 (hasta 12:00), 12:00 (hasta 13:00)
+        // 10:00 (hasta 11:00) debería solaparse con la pausa, por lo tanto NO estar disponible.
+        $this->assertContains('08:00', $turnos);
+        $this->assertContains('09:00', $turnos);
+        $this->assertNotContains('10:00', $turnos);
+        $this->assertContains('11:00', $turnos);
+        $this->assertContains('12:00', $turnos);
+    }
+
+    /**
      * Test de que al reprogramar una reserva pagada desde el cliente se mantiene en estado PAGADA.
      */
     public function test_reprogramar_reserva_pagada_desde_cliente_mantiene_estado_pagada(): void
