@@ -41,7 +41,9 @@ class ReservaService
             }
 
             // Validar solapamiento (Concurrency check usando un lock pesimista o simplemente validando)
-            $solapamiento = Reserva::where('id_servicio', $servicio->id)
+            $solapamiento = Reserva::whereHas('servicio', function ($q) use ($servicio) {
+                    $q->where('id_profesional', $servicio->id_profesional);
+                })
                 ->whereIn('estado', [
                     EstadoReservaEnum::PENDIENTE->value, 
                     EstadoReservaEnum::CONFIRMADA->value, 
@@ -49,12 +51,8 @@ class ReservaService
                     EstadoReservaEnum::EN_CURSO->value
                 ])
                 ->where(function ($query) use ($inicio, $fin) {
-                    $query->whereBetween('fecha_hora_inicio', [$inicio, $fin])
-                          ->orWhereBetween('fecha_hora_fin', [$inicio, $fin])
-                          ->orWhere(function ($q) use ($inicio, $fin) {
-                              $q->where('fecha_hora_inicio', '<=', $inicio)
-                                ->where('fecha_hora_fin', '>=', $fin);
-                          });
+                    $query->where('fecha_hora_inicio', '<', $fin)
+                          ->where('fecha_hora_fin', '>', $inicio);
                 })
                 ->lockForUpdate()
                 ->exists();
@@ -339,7 +337,10 @@ class ReservaService
             }
 
             // Validar que el nuevo horario esté disponible (ignorando esta misma reserva)
-            $solapamiento = Reserva::where('id_servicio', $reserva->id_servicio)
+            $idProfesional = $reserva->servicio ? $reserva->servicio->id_profesional : Servicio::where('id', $reserva->id_servicio)->value('id_profesional');
+            $solapamiento = Reserva::whereHas('servicio', function ($q) use ($idProfesional) {
+                    $q->where('id_profesional', $idProfesional);
+                })
                 ->where('id', '!=', $reserva->id) // Ignorar la reserva actual
                 ->whereIn('estado', [
                     EstadoReservaEnum::PENDIENTE->value, 
@@ -348,12 +349,8 @@ class ReservaService
                     EstadoReservaEnum::EN_CURSO->value
                 ])
                 ->where(function ($query) use ($nuevoInicio, $nuevoFin) {
-                    $query->whereBetween('fecha_hora_inicio', [$nuevoInicio, $nuevoFin])
-                          ->orWhereBetween('fecha_hora_fin', [$nuevoInicio, $nuevoFin])
-                          ->orWhere(function ($q) use ($nuevoInicio, $nuevoFin) {
-                              $q->where('fecha_hora_inicio', '<=', $nuevoInicio)
-                                ->where('fecha_hora_fin', '>=', $nuevoFin);
-                          });
+                    $query->where('fecha_hora_inicio', '<', $nuevoFin)
+                          ->where('fecha_hora_fin', '>', $nuevoInicio);
                 })
                 ->lockForUpdate()
                 ->exists();
