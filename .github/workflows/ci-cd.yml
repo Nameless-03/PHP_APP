@@ -80,4 +80,7 @@ jobs:
           composer install --no-dev --optimize-autoloader --no-interaction
           php artisan migrate --force
           php artisan optimize
+          cd vue-frontend
+          npm install
+          npm run build
 
