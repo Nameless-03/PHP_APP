@@ -26,6 +26,7 @@ class Paquete extends Model
         'descripcion',
         'cantidad_sesiones',
         'precio',
+        'descuento',
         'vencimiento',
         'id_profesional',
     ];
@@ -38,6 +39,7 @@ class Paquete extends Model
     protected $casts = [
         'cantidad_sesiones' => 'integer',
         'precio' => 'decimal:2',
+        'descuento' => 'decimal:2',
         'vencimiento' => 'integer',
         'id_profesional' => 'integer',
     ];
@@ -63,7 +65,8 @@ class Paquete extends Model
      */
     public function servicios()
     {
-        return $this->belongsToMany(Servicio::class, 'paquete_servicio', 'id_paquete', 'id_servicio');
+        return $this->belongsToMany(Servicio::class, 'paquete_servicio', 'id_paquete', 'id_servicio')
+            ->withPivot('cantidad_sesiones');
     }
 }
 

@@ -121,7 +121,7 @@
                     class="font-weight-medium cursor-pointer"
                     @click.stop="buscarServicio(s.nombre)"
                   >
-                    {{ s.nombre }}
+                    {{ s.nombre }} ({{ s.cantidad_sesiones }} {{ s.cantidad_sesiones === 1 ? 'sesión' : 'sesiones' }})
                   </v-chip>
                 </div>
               </div>

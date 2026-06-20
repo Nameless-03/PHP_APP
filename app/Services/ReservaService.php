@@ -27,6 +27,11 @@ class ReservaService
         return DB::transaction(function () use ($data) {
             $servicio = Servicio::findOrFail($data['id_servicio']);
             
+            // Validar que el servicio esté activo
+            if (!$servicio->activo) {
+                throw new Exception("El servicio seleccionado no está activo.");
+            }
+
             $inicio = Carbon::parse($data['fecha_hora_inicio']);
             $fin = (clone $inicio)->addMinutes($servicio->duracion);
 
@@ -71,17 +76,31 @@ class ReservaService
                 }
 
                 // Validar que esté activo y tenga sesiones
-                if ($compra->estado !== 'activo' || $compra->sesiones_disponibles <= 0) {
-                    throw new Exception("El paquete no tiene sesiones disponibles.");
+                if ($compra->estado !== 'activo') {
+                    throw new Exception("El paquete no está activo.");
                 }
 
-                // Validar que el servicio esté incluido en el paquete
-                $servicioValido = $compra->paquete->servicios->contains($servicio->id);
-                if (!$servicioValido) {
+                // Validar que el servicio esté incluido en el paquete y tenga sesiones disponibles
+                $pivotTracker = DB::table('compra_paquete_servicio')
+                    ->where('id_compra_paquete', $compra->id)
+                    ->where('id_servicio', $servicio->id)
+                    ->first();
+
+                if (!$pivotTracker) {
                     throw new Exception("El servicio seleccionado no está incluido en este paquete.");
                 }
 
-                // Descontar sesión
+                if ($pivotTracker->sesiones_disponibles <= 0) {
+                    throw new Exception("No te quedan sesiones disponibles de este servicio en el paquete.");
+                }
+
+                // Descontar sesión del servicio específico en la tabla tracker
+                DB::table('compra_paquete_servicio')
+                    ->where('id_compra_paquete', $compra->id)
+                    ->where('id_servicio', $servicio->id)
+                    ->decrement('sesiones_disponibles');
+
+                // Descontar sesión global
                 $compra->decrement('sesiones_disponibles');
                 
                 // Si ya no quedan sesiones, agotar el paquete
@@ -89,15 +108,8 @@ class ReservaService
                     $compra->update(['estado' => 'agotado']);
                 }
 
-                // Check if the package was paid in cash
-                $pagoPaqueteEfectivo = $compra->pagos()->where('metodo', 'efectivo')->exists();
-
-                if ($pagoPaqueteEfectivo) {
-                    $estadoReserva = EstadoReservaEnum::PENDIENTE;
-                    $crearPagoEfectivo = true;
-                } else {
-                    $estadoReserva = EstadoReservaEnum::PAGADA;
-                }
+                // Al agendar con un paquete ya activo, la reserva se autoconfirma directamente
+                $estadoReserva = EstadoReservaEnum::CONFIRMADA;
             }
 
             $reserva = Reserva::create([
@@ -239,9 +251,14 @@ class ReservaService
                 $compra = $reserva->compraPaquete;
                 if ($compra) {
                     $compra->increment('sesiones_disponibles');
-                    if ($compra->estado === 'agotado') {
+                    if ($compra->estado === 'agotado' || $compra->estado === 'cancelado') {
                         $compra->update(['estado' => 'activo']);
                     }
+                    // Reintegrar la sesión al servicio específico en la tabla tracker
+                    DB::table('compra_paquete_servicio')
+                        ->where('id_compra_paquete', $reserva->id_compra_paquete)
+                        ->where('id_servicio', $reserva->id_servicio)
+                        ->increment('sesiones_disponibles');
                 }
             }
 

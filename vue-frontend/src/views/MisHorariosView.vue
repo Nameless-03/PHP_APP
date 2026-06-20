@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout title="Mis Horarios">
+  <DashboardLayout title="Horarios">
     
     <!-- VISTA PRINCIPAL (MENÚ) -->
     <v-fade-transition leave-absolute>

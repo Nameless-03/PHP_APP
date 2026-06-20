@@ -84,10 +84,14 @@ class PaqueteTest extends TestCase
         $data = [
             'nombre' => 'Paquete Premium Juan',
             'descripcion' => 'Un paquete increíble',
-            'cantidad_sesiones' => 5,
-            'precio' => 400.00,
+            'descuento' => 50.00,
             'vencimiento' => 30,
-            'servicios' => [$this->servicioPro1->id],
+            'servicios' => [
+                [
+                    'id' => $this->servicioPro1->id,
+                    'cantidad_sesiones' => 5,
+                ]
+            ],
         ];
 
         $response = $this->actingAs($this->usuarioPro1, 'sanctum')
@@ -110,7 +114,7 @@ class PaqueteTest extends TestCase
                 ]
             ])
             ->assertJsonPath('data.nombre', 'Paquete Premium Juan')
-            ->assertJsonPath('data.precio', 400)
+            ->assertJsonPath('data.precio', 450)
             ->assertJsonCount(1, 'data.servicios');
 
         $this->assertDatabaseHas('paquetes', [
@@ -133,17 +137,21 @@ class PaqueteTest extends TestCase
         $data = [
             'nombre' => 'Paquete Ilícito',
             'descripcion' => 'Intentando robar servicios',
-            'cantidad_sesiones' => 5,
-            'precio' => 300.00,
+            'descuento' => 10.00,
             'vencimiento' => 30,
-            'servicios' => [$this->servicioPro2->id], // Servicio de María
+            'servicios' => [
+                [
+                    'id' => $this->servicioPro2->id, // Servicio de María
+                    'cantidad_sesiones' => 5,
+                ]
+            ],
         ];
 
         $response = $this->actingAs($this->usuarioPro1, 'sanctum')
             ->postJson('/api/paquetes', $data);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['servicios.0']);
+            ->assertJsonValidationErrors(['servicios']);
     }
 
     /**
@@ -153,8 +161,7 @@ class PaqueteTest extends TestCase
     {
         $data = [
             'nombre' => '',
-            'cantidad_sesiones' => -1,
-            'precio' => -50,
+            'descuento' => -5,
             'vencimiento' => -5,
             'servicios' => [],
         ];
@@ -163,7 +170,7 @@ class PaqueteTest extends TestCase
             ->postJson('/api/paquetes', $data);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['nombre', 'cantidad_sesiones', 'precio', 'vencimiento', 'servicios']);
+            ->assertJsonValidationErrors(['nombre', 'descuento', 'vencimiento', 'servicios']);
     }
 
     /**

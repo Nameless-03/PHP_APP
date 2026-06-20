@@ -1,10 +1,10 @@
 <template>
-  <DashboardLayout title="Mi Perfil Profesional">
+  <DashboardLayout title="Perfil">
     <v-row justify="center">
       <v-col cols="12" lg="10">
         <!-- Header visual -->
         <BannerHeader
-          title="Mi Perfil Profesional"
+          title="Perfil Profesional"
           subtitle="Gestiona tu información pública, reputación, datos de contacto y preferencias de atención."
           icon="mdi-account-circle"
           class="mb-6"

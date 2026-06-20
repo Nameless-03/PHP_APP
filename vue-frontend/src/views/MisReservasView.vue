@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout title="Mis Reservas">
+  <DashboardLayout title="Reservas">
     <!-- MENÚ PRINCIPAL -->
     <v-fade-transition leave-absolute>
       <v-row v-if="currentView === 'menu'" justify="center" align="start" class="mt-4">
@@ -1070,14 +1070,17 @@ const minDate = new Date(new Date().getTime() - (new Date().getTimezoneOffset() 
 const paquetesAplicables = computed(() => {
   if (!formData.value.id_servicio) return []
   return misPaquetesList.value.filter(compra => {
-    const servicios = compra.paquete?.servicios || []
-    const contieneServicio = servicios.some(s => s.id === formData.value.id_servicio)
-    return compra.estado === 'activo' && compra.sesiones_disponibles > 0 && contieneServicio
-  }).map(compra => ({
-    id: compra.id,
-    label: `${compra.paquete?.nombre} (${compra.sesiones_disponibles} sesiones restantes)`,
-    sesiones_disponibles: compra.sesiones_disponibles
-  }))
+    if (compra.estado !== 'activo') return false
+    const tracker = (compra.servicios_tracker || []).find(t => t.id === formData.value.id_servicio)
+    return tracker && tracker.sesiones_disponibles > 0
+  }).map(compra => {
+    const tracker = (compra.servicios_tracker || []).find(t => t.id === formData.value.id_servicio)
+    return {
+      id: compra.id,
+      label: `${compra.paquete?.nombre} (${tracker.sesiones_disponibles} sesiones de este servicio restantes)`,
+      sesiones_disponibles: tracker.sesiones_disponibles
+    }
+  })
 })
 
 const procesarQueryParameters = () => {

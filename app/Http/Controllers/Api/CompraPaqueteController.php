@@ -29,18 +29,45 @@ class CompraPaqueteController extends Controller
             'simular_error' => 'nullable|boolean',
         ]);
 
+        // Verificar si el paquete está activo (todos sus servicios asociados están activos)
+        $pivotCount = DB::table('paquete_servicio')->where('id_paquete', $paquete->id)->count();
+        $activeCount = DB::table('paquete_servicio')
+            ->join('servicios', 'paquete_servicio.id_servicio', '=', 'servicios.id')
+            ->where('paquete_servicio.id_paquete', $paquete->id)
+            ->where('servicios.activo', true)
+            ->whereNull('servicios.deleted_at')
+            ->count();
+        $activo = ($pivotCount > 0 && $pivotCount === $activeCount);
+
+        if (!$activo) {
+            return response()->json([
+                'message' => 'Este paquete no está disponible para compra porque uno o más de sus servicios asociados está inactivo o ha sido eliminado.'
+            ], 422);
+        }
+
         $compra = DB::transaction(function () use ($request, $paquete) {
-            $esEfectivo = $request->metodo === 'efectivo';
-            // Create package purchase
+            // Toda compra de paquete comienza en pendiente (tanto efectivo como paypal)
+            // hasta que el pago correspondiente sea completado/aprobado.
             $compra = CompraPaquete::create([
-                'sesiones_disponibles' => $esEfectivo ? $paquete->cantidad_sesiones : 0,
+                'sesiones_disponibles' => 0,
                 'fecha_compra' => now(),
-                'estado' => $esEfectivo ? 'activo' : 'pendiente',
+                'estado' => 'pendiente',
                 'id_cliente' => $request->user()->id,
                 'id_paquete' => $paquete->id,
             ]);
 
-            // Call PagoService to initiate payment
+            // Inicializar las sesiones en la tabla tracker en 0 (disponibles = 0)
+            foreach ($paquete->servicios as $servicio) {
+                $cantidad = $servicio->pivot->cantidad_sesiones ?? 1;
+                DB::table('compra_paquete_servicio')->insert([
+                    'id_compra_paquete' => $compra->id,
+                    'id_servicio' => $servicio->id,
+                    'sesiones_totales' => $cantidad,
+                    'sesiones_disponibles' => 0,
+                ]);
+            }
+
+            // Llamar a PagoService para registrar el pago pendiente
             $pagoService = app(\App\Services\PagoService::class);
             $pagoService->iniciarPago([
                 'id_compra' => $compra->id,
@@ -52,9 +79,8 @@ class CompraPaqueteController extends Controller
             return $compra;
         });
 
-        // Load relations, making sure we get the fresh status of the purchase and payments
         $compra->refresh();
-        $compra->load(['paquete.servicios', 'pagos']);
+        $compra->load(['paquete.servicios', 'pagos', 'serviciosTracker']);
 
         if ($compra->pagos->contains('estado', \App\Enums\EstadoPagoEnum::FALLIDO)) {
             $compra->pagos()->delete();
@@ -65,7 +91,7 @@ class CompraPaqueteController extends Controller
         }
 
         return response()->json([
-            'message' => 'Compra registrada y proceso de pago iniciado.',
+            'message' => 'Compra de paquete registrada y proceso de pago iniciado.',
             'data' => new CompraPaqueteResource($compra),
         ], 201);
     }
@@ -82,7 +108,7 @@ class CompraPaqueteController extends Controller
         }
 
         $compras = CompraPaquete::where('id_cliente', $request->user()->id)
-            ->with(['paquete.servicios', 'paquete.profesional.usuario', 'pagos'])
+            ->with(['paquete.servicios', 'paquete.profesional.usuario', 'pagos', 'serviciosTracker'])
             ->latest()
             ->get();
 
@@ -92,9 +118,43 @@ class CompraPaqueteController extends Controller
     }
 
     /**
-     * Cancelar y eliminar una compra de paquete pendiente.
+     * Cancelar y eliminar una compra de paquete pendiente. (Disponible para cliente y profesional)
      */
     public function destroy(Request $request, CompraPaquete $compraPaquete): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'No autorizado.'], 403);
+        }
+
+        $esDuenoCliente = ($compraPaquete->id_cliente === $user->id);
+        $esProfesionalDelPaquete = ($compraPaquete->paquete->id_profesional === $user->id);
+
+        if (!$esDuenoCliente && !$esProfesionalDelPaquete) {
+            return response()->json([
+                'message' => 'No estás autorizado para cancelar esta compra.'
+            ], 403);
+        }
+
+        if ($compraPaquete->estado !== 'pendiente') {
+            return response()->json([
+                'message' => 'Solo se pueden cancelar o rechazar compras de paquetes en estado pendiente.'
+            ], 422);
+        }
+
+        // Eliminar pagos asociados y la compra
+        $compraPaquete->pagos()->delete();
+        $compraPaquete->delete();
+
+        return response()->json([
+            'message' => 'Compra de paquete cancelada/eliminada con éxito.'
+        ]);
+    }
+
+    /**
+     * Cancelar un paquete activo por parte del cliente.
+     */
+    public function cancelar(Request $request, CompraPaquete $compraPaquete): JsonResponse
     {
         if (!$request->user() || $compraPaquete->id_cliente !== $request->user()->id) {
             return response()->json([
@@ -102,18 +162,116 @@ class CompraPaqueteController extends Controller
             ], 403);
         }
 
-        if ($compraPaquete->estado !== 'pendiente') {
+        if ($compraPaquete->estado !== 'activo') {
             return response()->json([
-                'message' => 'Solo se pueden cancelar compras de paquetes en estado pendiente.'
+                'message' => 'Solo se pueden cancelar paquetes en estado activo.'
             ], 422);
         }
 
-        // Delete associated pending payments first (cascading or manual)
-        $compraPaquete->pagos()->delete();
-        $compraPaquete->delete();
+        DB::transaction(function () use ($compraPaquete) {
+            $compraPaquete->update([
+                'estado' => 'cancelado',
+                'sesiones_disponibles' => 0,
+            ]);
+
+            DB::table('compra_paquete_servicio')
+                ->where('id_compra_paquete', $compraPaquete->id)
+                ->update(['sesiones_disponibles' => 0]);
+        });
 
         return response()->json([
-            'message' => 'Compra de paquete cancelada y eliminada con éxito.'
+            'message' => 'El paquete ha sido cancelado con éxito. Las sesiones restantes han sido anuladas.'
+        ]);
+    }
+
+    /**
+     * Listar compras de paquetes pendientes de pago para el profesional.
+     */
+    public function comprasPendientes(Request $request): JsonResponse
+    {
+        if (!$request->user() || !$request->user()->esProfesional()) {
+            return response()->json([
+                'message' => 'Solo los profesionales pueden consultar pagos pendientes de paquetes.'
+            ], 403);
+        }
+
+        $compras = CompraPaquete::whereHas('paquete', function ($query) use ($request) {
+                $query->where('id_profesional', $request->user()->id);
+            })
+            ->where('estado', 'pendiente')
+            ->with(['paquete.servicios', 'cliente.usuario', 'pagos'])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'data' => CompraPaqueteResource::collection($compras),
+        ]);
+    }
+
+    /**
+     * Aprobar el pago en efectivo/transferencia de un paquete pendiente.
+     */
+    public function aprobarPago(Request $request, CompraPaquete $compraPaquete): JsonResponse
+    {
+        if (!$request->user() || !$request->user()->esProfesional()) {
+            return response()->json([
+                'message' => 'Solo los profesionales pueden aprobar pagos de paquetes.'
+            ], 403);
+        }
+
+        if ($compraPaquete->paquete->id_profesional !== $request->user()->id) {
+            return response()->json([
+                'message' => 'No estás autorizado para aprobar el pago de este paquete.'
+            ], 403);
+        }
+
+        if ($compraPaquete->estado !== 'pendiente') {
+            return response()->json([
+                'message' => 'Solo se pueden aprobar compras de paquetes en estado pendiente.'
+            ], 422);
+        }
+
+        DB::transaction(function () use ($compraPaquete) {
+            // Habilitar sesiones globales
+            $compraPaquete->update([
+                'estado' => 'activo',
+                'sesiones_disponibles' => $compraPaquete->paquete->cantidad_sesiones,
+            ]);
+
+            // Aprobar el pago asociado
+            $compraPaquete->pagos()->where('estado', \App\Enums\EstadoPagoEnum::PENDIENTE)->update([
+                'estado' => \App\Enums\EstadoPagoEnum::COMPLETADO,
+                'referencia_externa' => 'CASH_PKG_' . strtoupper(uniqid()),
+            ]);
+
+            // Habilitar sesiones por servicio en la tabla tracker
+            DB::table('compra_paquete_servicio')
+                ->where('id_compra_paquete', $compraPaquete->id)
+                ->update([
+                    'sesiones_disponibles' => DB::raw('sesiones_totales')
+                ]);
+        });
+
+        // Notificar al cliente
+        $cliente = $compraPaquete->cliente->usuario;
+        $mensaje = "Tu pago para el paquete '{$compraPaquete->paquete->nombre}' fue aprobado. El paquete está habilitado con {$compraPaquete->paquete->cantidad_sesiones} sesiones.";
+        
+        $cliente->notify(new \App\Notifications\PagoNotificacion(
+            "Compra de Paquete Exitosa",
+            $mensaje,
+            'confirmacion'
+        ));
+
+        \App\Models\Notificacion::create([
+            'titulo' => 'Compra de Paquete Exitosa',
+            'mensaje' => $mensaje,
+            'tipo' => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
+            'id_usuario' => $cliente->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Pago aprobado y paquete activado exitosamente.',
+            'data' => new CompraPaqueteResource($compraPaquete->load(['paquete.servicios', 'pagos', 'serviciosTracker']))
         ]);
     }
 }

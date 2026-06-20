@@ -139,6 +139,13 @@ class ReservaTest extends TestCase
             'id_paquete' => $paquete->id
         ]);
 
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 5,
+        ]);
+
         $data = [
             'id_servicio' => $this->servicio->id,
             'fecha_hora_inicio' => $mañana,
@@ -155,13 +162,14 @@ class ReservaTest extends TestCase
         $compra->refresh();
         $this->assertEquals(4, $compra->sesiones_disponibles);
         $this->assertEquals('activo', $compra->estado);
+        $this->assertEquals(4, \DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compra->id)->where('id_servicio', $this->servicio->id)->value('sesiones_disponibles'));
 
-        // Validar que la reserva se creó como pagada y asociada al paquete
+        // Validar que la reserva se creó como confirmada y asociada al paquete
         $this->assertDatabaseHas('reservas', [
             'id_servicio' => $this->servicio->id,
             'id_cliente' => $this->clienteUser->id,
             'id_compra_paquete' => $compra->id,
-            'estado' => \App\Enums\EstadoReservaEnum::PAGADA->value,
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA->value,
         ]);
     }
 
@@ -190,6 +198,13 @@ class ReservaTest extends TestCase
             'id_paquete' => $paquete->id
         ]);
 
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 5,
+        ]);
+
         // Crear pago asociado en efectivo
         \App\Models\Pago::create([
             'monto' => 150.00,
@@ -212,21 +227,14 @@ class ReservaTest extends TestCase
 
         $compra->refresh();
         $this->assertEquals(4, $compra->sesiones_disponibles);
+        $this->assertEquals(4, \DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compra->id)->where('id_servicio', $this->servicio->id)->value('sesiones_disponibles'));
 
-        // Validar que la reserva se creó como pendiente y tiene un pago asociado
+        // Las reservas hechas con paquetes activos (incluso efectivo) se autoconfirman directamente
         $this->assertDatabaseHas('reservas', [
             'id_servicio' => $this->servicio->id,
             'id_cliente' => $this->clienteUser->id,
             'id_compra_paquete' => $compra->id,
-            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE->value,
-        ]);
-
-        $reserva = \App\Models\Reserva::where('id_compra_paquete', $compra->id)->first();
-
-        $this->assertDatabaseHas('pagos', [
-            'id_reserva' => $reserva->id,
-            'metodo' => 'efectivo',
-            'estado' => \App\Enums\EstadoPagoEnum::PENDIENTE->value,
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA->value,
         ]);
     }
 
@@ -253,6 +261,13 @@ class ReservaTest extends TestCase
             'estado' => 'agotado',
             'id_cliente' => $this->clienteUser->id,
             'id_paquete' => $paquete->id
+        ]);
+
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 0,
         ]);
 
         $data = [
@@ -330,6 +345,13 @@ class ReservaTest extends TestCase
             'id_paquete' => $paquete->id
         ]);
 
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 0,
+        ]);
+
         $reserva = \App\Models\Reserva::create([
             'fecha_hora_inicio' => $mañana,
             'fecha_hora_fin' => (clone $mañana)->addMinutes(60),
@@ -350,6 +372,7 @@ class ReservaTest extends TestCase
         $compra->refresh();
         $this->assertEquals(1, $compra->sesiones_disponibles);
         $this->assertEquals('activo', $compra->estado);
+        $this->assertEquals(1, \DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compra->id)->where('id_servicio', $this->servicio->id)->value('sesiones_disponibles'));
     }
 
     /**

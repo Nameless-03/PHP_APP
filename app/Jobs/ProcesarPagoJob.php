@@ -137,6 +137,13 @@ class ProcesarPagoJob implements ShouldQueue
                         'sesiones_disponibles' => $compra->paquete->cantidad_sesiones,
                     ]);
 
+                    // Sincronizar las sesiones de cada servicio en la tabla tracker
+                    \Illuminate\Support\Facades\DB::table('compra_paquete_servicio')
+                        ->where('id_compra_paquete', $compra->id)
+                        ->update([
+                            'sesiones_disponibles' => \Illuminate\Support\Facades\DB::raw('sesiones_totales')
+                        ]);
+
                     $cliente = $compra->cliente->usuario;
                     $mensaje = "Tu pago para el paquete '{$compra->paquete->nombre}' fue aprobado. El paquete está habilitado con {$compra->paquete->cantidad_sesiones} sesiones.";
                     

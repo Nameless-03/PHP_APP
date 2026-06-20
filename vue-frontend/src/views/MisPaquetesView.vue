@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout title="Mis Paquetes Adquiridos">
+  <DashboardLayout title="Paquetes Adquiridos">
     <!-- Header visual -->
     <v-row class="mb-6">
       <v-col cols="12">
@@ -9,9 +9,9 @@
               <v-icon size="36" color="primary">mdi-briefcase-account</v-icon>
             </v-avatar>
             <div>
-              <h1 class="text-h4 font-weight-bold mb-2">Mi Inventario de Paquetes</h1>
+              <h1 class="text-h4 font-weight-bold mb-2">Inventario de Paquetes</h1>
               <p class="text-body-1 opacity-80 mb-0">
-                Consulta tus paquetes activos, revisa tus sesiones disponibles y haz seguimiento a tus transacciones.
+                Consulta tus paquetes adquiridos, revisa tus sesiones disponibles por servicio y haz seguimiento a tus transacciones.
               </p>
             </div>
           </div>
@@ -60,21 +60,38 @@
               </v-chip>
             </div>
 
-            <!-- Sessions remaining visual tracker -->
-            <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-4 text-center">
-              <div class="text-caption text-medium-emphasis font-weight-bold mb-1">SESIONES DISPONIBLES</div>
-              <div class="d-flex justify-center align-baseline mb-2">
-                <span class="text-h3 font-weight-black text-primary">{{ compra.sesiones_disponibles }}</span>
-                <span class="text-h6 text-medium-emphasis font-weight-bold mx-1">/</span>
-                <span class="text-h5 text-medium-emphasis font-weight-medium">{{ compra.paquete?.cantidad_sesiones || 0 }}</span>
-              </div>
-              <v-progress-linear
-                :model-value="(compra.sesiones_disponibles / (compra.paquete?.cantidad_sesiones || 1)) * 100"
-                color="primary"
-                height="6"
-                rounded
-                class="mt-1"
-              ></v-progress-linear>
+            <!-- Sessions remaining breakdown per service -->
+            <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-4">
+              <template v-if="compra.servicios_tracker && compra.servicios_tracker.length > 0">
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2 text-center">SESIONES DISPONIBLES POR SERVICIO</div>
+                <div v-for="tracker in compra.servicios_tracker" :key="tracker.id" class="mb-3">
+                  <div class="d-flex justify-space-between align-center text-body-2 mb-1">
+                    <span class="font-weight-medium text-grey-darken-3">{{ tracker.nombre }}</span>
+                    <span class="font-weight-bold text-primary">{{ tracker.sesiones_disponibles }} / {{ tracker.sesiones_totales }}</span>
+                  </div>
+                  <v-progress-linear
+                    :model-value="(tracker.sesiones_disponibles / (tracker.sesiones_totales || 1)) * 100"
+                    color="primary"
+                    height="6"
+                    rounded
+                  ></v-progress-linear>
+                </div>
+              </template>
+              <template v-else>
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2 text-center">SESIONES DISPONIBLES</div>
+                <div v-for="s in compra.paquete?.servicios || []" :key="s.id" class="mb-3">
+                  <div class="d-flex justify-space-between align-center text-body-2 mb-1">
+                    <span class="font-weight-medium text-grey-darken-3">{{ s.nombre }}</span>
+                    <span class="font-weight-bold text-medium-emphasis">0 / {{ s.cantidad_sesiones }} (Pendiente)</span>
+                  </div>
+                  <v-progress-linear
+                    :model-value="0"
+                    color="grey"
+                    height="6"
+                    rounded
+                  ></v-progress-linear>
+                </div>
+              </template>
             </div>
 
             <!-- Date and payment details -->
@@ -146,18 +163,35 @@
                 </v-btn>
               </div>
             </template>
+            <template v-else-if="compra.estado === 'activo'">
+              <div class="d-flex flex-column gap-2 w-100">
+                <v-btn
+                  block
+                  color="secondary"
+                  variant="tonal"
+                  class="text-none font-weight-bold rounded-lg"
+                  prepend-icon="mdi-calendar-plus"
+                  to="/mis-reservas"
+                  :disabled="compra.sesiones_disponibles <= 0"
+                >
+                  Reservar con Paquete
+                </v-btn>
+                <v-btn
+                  block
+                  color="error"
+                  variant="outlined"
+                  class="text-none font-weight-bold rounded-lg mt-1"
+                  prepend-icon="mdi-cancel"
+                  @click="abrirCancelarPaquete(compra)"
+                >
+                  Cancelar Paquete
+                </v-btn>
+              </div>
+            </template>
             <template v-else>
-              <v-btn
-                block
-                color="secondary"
-                variant="tonal"
-                class="text-none font-weight-bold rounded-lg"
-                prepend-icon="mdi-calendar-plus"
-                to="/mis-reservas"
-                :disabled="compra.estado !== 'activo' || compra.sesiones_disponibles <= 0"
-              >
-                Reservar con Paquete
-              </v-btn>
+              <div class="text-center text-caption text-medium-emphasis py-2 font-weight-bold text-uppercase">
+                Paquete {{ compra.estado }}
+              </div>
             </template>
           </div>
         </v-card>
@@ -331,6 +365,64 @@
       </v-card>
     </v-dialog>
 
+    <!-- MODAL CANCELAR PAQUETE ACTIVO -->
+    <v-dialog v-model="cancelarDialog" max-width="500" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header-error bg-red pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-alert-circle-outline</v-icon>
+          <h3 class="text-h5 font-weight-bold">Cancelar Paquete</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Esta acción no se puede deshacer</p>
+        </div>
+
+        <v-card-text class="pa-6">
+          <v-alert type="warning" variant="tonal" class="mb-4 rounded-lg text-left" color="warning">
+            <strong>Atención:</strong> Al cancelar este paquete, se anularán de forma definitiva todas las sesiones restantes sin derecho a reembolso o reclamo.
+          </v-alert>
+
+          <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6" v-if="selectedCancelPurchase">
+            <div class="d-flex justify-space-between align-center mb-2">
+              <span class="text-body-2 text-medium-emphasis">Paquete:</span>
+              <strong class="text-body-1 text-grey-darken-3">{{ selectedCancelPurchase.paquete?.nombre }}</strong>
+            </div>
+            <div class="d-flex justify-space-between align-center mb-2">
+              <span class="text-body-2 text-medium-emphasis">Sesiones Restantes:</span>
+              <strong class="text-body-1 text-red font-weight-bold">{{ selectedCancelPurchase.sesiones_disponibles }} sesiones</strong>
+            </div>
+          </div>
+
+          <v-checkbox
+            v-model="confirmCancelCheckbox"
+            color="error"
+            label="Comprendo que perderé las sesiones restantes y confirmo la cancelación definitiva del paquete."
+            hide-details
+            class="mt-2"
+          ></v-checkbox>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmitting"
+            @click="cancelarDialog = false"
+          >
+            Cerrar
+          </v-btn>
+          <v-btn
+            color="error"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmitting"
+            :disabled="!confirmCancelCheckbox"
+            @click="ejecutarCancelarPaquete"
+          >
+            Confirmar Cancelación
+            <v-icon end>mdi-check-circle-outline</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Global Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" location="top">
       {{ snackbar.text }}
@@ -342,7 +434,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
@@ -368,6 +460,11 @@ const datosPago = ref({
 const paypalLoaded = ref(false)
 const cargandoPaypalSdk = ref(false)
 const paypalClientId = ref('')
+
+// Cancellation states
+const cancelarDialog = ref(false)
+const selectedCancelPurchase = ref(null)
+const confirmCancelCheckbox = ref(false)
 
 const buscarServicio = (nombre) => {
   router.push({ name: 'search', query: { q: nombre } })
@@ -460,7 +557,7 @@ const processPurchase = async () => {
       snackbar.value = {
         show: true,
         text: paymentMethod.value === 'efectivo'
-          ? '¡Solicitud de pago en efectivo registrada! El paquete ha sido habilitado.'
+          ? '¡Solicitud de pago en efectivo registrada! Esperando aprobación del profesional.'
           : '¡Pago completado con éxito! El paquete ha sido habilitado.',
         color: 'success'
       }
@@ -527,7 +624,39 @@ const cancelarCompraDesdePago = async () => {
   }
 }
 
-import { watch } from 'vue'
+// Active Package Cancellation methods
+const abrirCancelarPaquete = (compra) => {
+  selectedCancelPurchase.value = compra
+  confirmCancelCheckbox.value = false
+  cancelarDialog.value = true
+}
+
+const ejecutarCancelarPaquete = async () => {
+  if (!selectedCancelPurchase.value || !confirmCancelCheckbox.value) return
+  isSubmitting.value = true
+  const token = localStorage.getItem('auth_token')
+  try {
+    const res = await fetch(`/api/mis-paquetes/${selectedCancelPurchase.value.id}/cancelar`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.message || 'Error al cancelar el paquete')
+
+    snackbar.value = { show: true, text: 'El paquete ha sido cancelado. Sesiones restantes anuladas.', color: 'error' }
+    cancelarDialog.value = false
+    selectedCancelPurchase.value = null
+    loadPurchases()
+  } catch (err) {
+    snackbar.value = { show: true, text: err.message, color: 'error' }
+  } finally {
+    isSubmitting.value = false
+  }
+}
 
 const cargarPaypalSdk = async () => {
   if (paypalLoaded.value) return true
@@ -653,6 +782,7 @@ const getStatusColor = (status) => {
     case 'activo': return 'success'
     case 'agotado': return 'grey'
     case 'vencido': return 'error'
+    case 'cancelado': return 'error'
     default: return 'warning'
   }
 }
@@ -693,6 +823,9 @@ const formatDate = (dateStr) => {
 }
 .dialog-header {
   background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
+.dialog-header-error {
+  background: #f44336;
 }
 .border-red {
   border: 1px solid rgba(244, 67, 54, 0.2);

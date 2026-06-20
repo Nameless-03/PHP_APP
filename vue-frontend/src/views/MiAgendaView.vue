@@ -1,11 +1,11 @@
 <template>
-  <DashboardLayout title="Mi Agenda">
+  <DashboardLayout title="Agenda">
     <v-row class="mt-4" justify="center">
       <v-col cols="12" xl="10">
         <div class="brand-header pa-6 mb-6 rounded-xl elevation-3 text-white d-flex align-center" style="background: linear-gradient(135deg, #A6987A 0%, #8C6D46 100%);">
           <v-icon size="40" class="mr-4">mdi-calendar-multiselect</v-icon>
           <div>
-            <h1 class="text-h4 font-weight-bold mb-1">Mi Agenda</h1>
+            <h1 class="text-h4 font-weight-bold mb-1">Agenda</h1>
             <p class="text-subtitle-1 opacity-90 mb-0">Planifica y visualiza tu día</p>
           </div>
         </div>

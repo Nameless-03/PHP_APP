@@ -146,7 +146,12 @@ Route::prefix('paquetes')->middleware('auth:sanctum')->group(function () {
     Route::post('/{paquete}/comprar', [CompraPaqueteController::class, 'comprar'])->middleware('role:cliente');
 });
 Route::get('/mis-paquetes', [CompraPaqueteController::class, 'misPaquetes'])->middleware(['auth:sanctum', 'role:cliente']);
-Route::delete('/mis-paquetes/{compraPaquete}', [CompraPaqueteController::class, 'destroy'])->middleware(['auth:sanctum', 'role:cliente']);
+Route::delete('/mis-paquetes/{compraPaquete}', [CompraPaqueteController::class, 'destroy'])->middleware(['auth:sanctum']);
+Route::post('/mis-paquetes/{compraPaquete}/cancelar', [CompraPaqueteController::class, 'cancelar'])->middleware(['auth:sanctum', 'role:cliente']);
+
+// Gestión de pagos pendientes de paquetes (Profesional)
+Route::get('/paquetes-pendientes', [CompraPaqueteController::class, 'comprasPendientes'])->middleware(['auth:sanctum', 'role:profesional']);
+Route::post('/paquetes-pendientes/{compraPaquete}/aprobar', [CompraPaqueteController::class, 'aprobarPago'])->middleware(['auth:sanctum', 'role:profesional']);
 
 // Admin Dashboard Stats
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {

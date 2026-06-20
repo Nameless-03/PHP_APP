@@ -28,6 +28,21 @@ class PaqueteController extends Controller
 
         $paquetes = $query->latest()->get();
 
+        // Si es un cliente o invitado, filtrar los paquetes que tienen servicios inactivos
+        $esPropio = ($user && $user->esProfesional() && (!$request->has('id_profesional') || (int)$request->id_profesional === $user->id));
+        if (!$esPropio) {
+            $paquetes = $paquetes->filter(function ($paquete) {
+                $pivotCount = \DB::table('paquete_servicio')->where('id_paquete', $paquete->id)->count();
+                $activeCount = \DB::table('paquete_servicio')
+                    ->join('servicios', 'paquete_servicio.id_servicio', '=', 'servicios.id')
+                    ->where('paquete_servicio.id_paquete', $paquete->id)
+                    ->where('servicios.activo', true)
+                    ->whereNull('servicios.deleted_at')
+                    ->count();
+                return $pivotCount > 0 && $pivotCount === $activeCount;
+            });
+        }
+
         return response()->json([
             'data' => PaqueteResource::collection($paquetes),
         ]);
@@ -41,12 +56,37 @@ class PaqueteController extends Controller
         $data = $request->validated();
         $data['id_profesional'] = $request->user()->id;
 
-        $paquete = Paquete::create($data);
-        
-        // Asociar los servicios vinculados al paquete
-        if (isset($data['servicios'])) {
-            $paquete->servicios()->sync($data['servicios']);
+        // Calcular cantidad de sesiones y el precio final del paquete
+        $totalSesiones = 0;
+        $totalPrecioSinDescuento = 0.00;
+        $serviciosInput = $data['servicios'];
+
+        foreach ($serviciosInput as $item) {
+            $servicio = \App\Models\Servicio::find($item['id']);
+            $cantidad = (int) $item['cantidad_sesiones'];
+            $totalSesiones += $cantidad;
+            $totalPrecioSinDescuento += ((float) $servicio->precio) * $cantidad;
         }
+
+        $descuento = (float) $data['descuento'];
+        $precioFinal = max(0.00, $totalPrecioSinDescuento - $descuento);
+
+        $paquete = Paquete::create([
+            'nombre' => $data['nombre'],
+            'descripcion' => $data['descripcion'] ?? null,
+            'cantidad_sesiones' => $totalSesiones,
+            'precio' => $precioFinal,
+            'descuento' => $descuento,
+            'vencimiento' => $data['vencimiento'] ?? null,
+            'id_profesional' => $data['id_profesional'],
+        ]);
+        
+        // Asociar los servicios vinculados al paquete con sus sesiones
+        $syncData = [];
+        foreach ($serviciosInput as $item) {
+            $syncData[$item['id']] = ['cantidad_sesiones' => $item['cantidad_sesiones']];
+        }
+        $paquete->servicios()->sync($syncData);
 
         return response()->json([
             'message' => 'Paquete creado exitosamente',

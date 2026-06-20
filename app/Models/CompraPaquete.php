@@ -105,4 +105,13 @@ class CompraPaquete extends Model
     {
         return $query->where('sesiones_disponibles', '>', 0);
     }
+
+    /**
+     * Relación con los servicios adquiridos y sus sesiones disponibles.
+     */
+    public function serviciosTracker()
+    {
+        return $this->belongsToMany(Servicio::class, 'compra_paquete_servicio', 'id_compra_paquete', 'id_servicio')
+            ->withPivot(['sesiones_disponibles', 'sesiones_totales']);
+    }
 }
