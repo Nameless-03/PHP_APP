@@ -118,7 +118,7 @@ class CompraPaqueteController extends Controller
     }
 
     /**
-     * Cancelar y eliminar una compra de paquete pendiente. (Disponible para cliente y profesional)
+     * Eliminar/limpiar una compra de paquete del inventario.
      */
     public function destroy(Request $request, CompraPaquete $compraPaquete): JsonResponse
     {
@@ -132,22 +132,25 @@ class CompraPaqueteController extends Controller
 
         if (!$esDuenoCliente && !$esProfesionalDelPaquete) {
             return response()->json([
-                'message' => 'No estás autorizado para cancelar esta compra.'
+                'message' => 'No estás autorizado para realizar esta acción.'
             ], 403);
         }
 
-        if ($compraPaquete->estado !== 'pendiente') {
+        $estadosPermitidos = ['pendiente', 'cancelado', 'agotado', 'vencido'];
+        if (!in_array($compraPaquete->estado, $estadosPermitidos)) {
             return response()->json([
-                'message' => 'Solo se pueden cancelar o rechazar compras de paquetes en estado pendiente.'
+                'message' => 'Solo se pueden eliminar paquetes en estado pendiente, cancelado, agotado o vencido.'
             ], 422);
         }
 
-        // Eliminar pagos asociados y la compra
-        $compraPaquete->pagos()->delete();
-        $compraPaquete->delete();
+        DB::transaction(function () use ($compraPaquete) {
+            $compraPaquete->pagos()->delete();
+            DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compraPaquete->id)->delete();
+            $compraPaquete->delete();
+        });
 
         return response()->json([
-            'message' => 'Compra de paquete cancelada/eliminada con éxito.'
+            'message' => 'El paquete ha sido eliminado del inventario con éxito.'
         ]);
     }
 

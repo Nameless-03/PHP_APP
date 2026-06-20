@@ -189,8 +189,21 @@
               </div>
             </template>
             <template v-else>
-              <div class="text-center text-caption text-medium-emphasis py-2 font-weight-bold text-uppercase">
-                Paquete {{ compra.estado }}
+              <div class="d-flex flex-column gap-2 w-100">
+                <div class="text-center text-caption text-medium-emphasis py-1 font-weight-bold text-uppercase mb-1">
+                  Paquete {{ compra.estado }}
+                </div>
+                <v-btn
+                  block
+                  color="grey-darken-1"
+                  variant="outlined"
+                  class="text-none font-weight-bold rounded-lg"
+                  prepend-icon="mdi-delete-sweep-outline"
+                  @click="eliminarHistorialPaquete(compra.id)"
+                  :loading="isSubmitting"
+                >
+                  Limpiar del Historial
+                </v-btn>
               </div>
             </template>
           </div>
@@ -708,6 +721,30 @@ const cancelarCompra = async (id) => {
     if (!res.ok) throw new Error((await res.json()).message || 'Error al cancelar la compra')
 
     snackbar.value = { show: true, text: 'Compra de paquete cancelada y eliminada.', color: 'error' }
+    loadPurchases()
+  } catch (err) {
+    snackbar.value = { show: true, text: err.message, color: 'error' }
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const eliminarHistorialPaquete = async (id) => {
+  if (!confirm('¿Estás seguro de que deseas remover este paquete de tu inventario?')) return
+  isSubmitting.value = true
+  const token = localStorage.getItem('auth_token')
+  try {
+    const res = await fetch(`/api/mis-paquetes/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!res.ok) throw new Error((await res.json()).message || 'Error al eliminar el paquete')
+
+    snackbar.value = { show: true, text: 'El paquete ha sido eliminado de tu historial.', color: 'success' }
     loadPurchases()
   } catch (err) {
     snackbar.value = { show: true, text: err.message, color: 'error' }
