@@ -25,6 +25,7 @@ class Disponibilidad extends Model
         'dia_semana',
         'hora_inicio',
         'hora_fin',
+        'pausa_inicio',
         'pausa_minutos',
         'buffer_minutos',
         'id_profesional',

@@ -573,6 +573,7 @@ const aprobarPagoPaquete = async (compra) => {
 
     successMsg.value = 'Pago aprobado y sesiones habilitadas para el cliente.'
     await loadComprasPendientes()
+    window.dispatchEvent(new CustomEvent('update-pending-counts'))
   } catch (err) {
     errorMsg.value = err.message || 'Error al aprobar el pago.'
   } finally {
@@ -594,6 +595,7 @@ const rechazarPagoPaquete = async (compra) => {
 
     successMsg.value = 'Compra de paquete rechazada y eliminada.'
     await loadComprasPendientes()
+    window.dispatchEvent(new CustomEvent('update-pending-counts'))
   } catch (err) {
     errorMsg.value = err.message || 'Error al rechazar la compra.'
   } finally {

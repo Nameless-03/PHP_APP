@@ -19,6 +19,7 @@ class DisponibilidadResource extends JsonResource
             'dia_semana' => $this->dia_semana?->value ?? $this->dia_semana,
             'hora_inicio' => $this->hora_inicio,
             'hora_fin' => $this->hora_fin,
+            'pausa_inicio' => $this->pausa_inicio,
             'pausa_minutos' => $this->pausa_minutos,
             'buffer_minutos' => $this->buffer_minutos,
             'id_profesional' => $this->id_profesional,

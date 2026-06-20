@@ -1,5 +1,8 @@
 export function useFormRules() {
-  const required = (value) => !!value || 'Este campo es obligatorio.'
+  const required = (value) => {
+    if (value === 0 || value === '0') return true
+    return (value !== null && value !== undefined && value !== '') || 'Este campo es obligatorio.'
+  }
 
   const email = (value) => {
     if (!value) return true
