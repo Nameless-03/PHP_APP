@@ -9,16 +9,16 @@ use App\Enums\ModalidadEnum;
 class StoreServicioRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina si el usuario está autorizado para realizar esta solicitud.
      */
     public function authorize(): bool
     {
-        // Require professional role (basic check, could also be handled by middleware)
+        // Requerir rol de profesional (verificación básica, también podría manejarse por middleware)
         return $this->user() && $this->user()->esProfesional();
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtiene las reglas de validación que se aplican a la solicitud.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
@@ -37,7 +37,7 @@ class StoreServicioRequest extends FormRequest
             'descripcion' => ['nullable', 'string'],
             'precio' => ['required', 'numeric', 'min:0'],
             'modalidad' => ['required', Rule::enum(ModalidadEnum::class)],
-            'duracion' => ['required', 'integer', 'min:1'], // in minutes
+            'duracion' => ['required', 'integer', 'min:1'], // en minutos
             'ubicacion' => ['nullable', 'string', 'max:255'],
             'activo' => ['boolean'],
             'limite_cancelacion_horas' => ['sometimes', 'integer', 'min:0'],

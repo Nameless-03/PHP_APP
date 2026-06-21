@@ -19,7 +19,7 @@ class ProcesarPagoJob implements ShouldQueue
     public bool $simularError;
 
     /**
-     * Create a new job instance.
+     * Crea una nueva instancia del trabajo.
      */
     public function __construct(Pago $pago, bool $simularError = false)
     {
@@ -28,7 +28,7 @@ class ProcesarPagoJob implements ShouldQueue
     }
 
     /**
-     * Execute the job.
+     * Ejecuta el trabajo.
      */
     public function handle(): void
     {

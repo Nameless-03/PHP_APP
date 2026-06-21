@@ -8,7 +8,7 @@ use App\Models\Usuario;
 class ExcepcionAgendaPolicy
 {
     /**
-     * Determine whether the user can delete the model.
+     * Determina si el usuario puede eliminar el modelo.
      */
     public function delete(Usuario $usuario, ExcepcionAgenda $excepcion): bool
     {

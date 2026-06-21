@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreReservaRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina si el usuario está autorizado para realizar esta solicitud.
      */
     public function authorize(): bool
     {
@@ -15,7 +15,7 @@ class StoreReservaRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtiene las reglas de validación que se aplican a la solicitud.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
@@ -24,7 +24,7 @@ class StoreReservaRequest extends FormRequest
         return [
             'id_servicio' => ['required', 'exists:servicios,id'],
             'fecha_hora_inicio' => ['required', 'date', 'after:now'],
-            // 'fecha_hora_fin' is calculated automatically based on the service's duration
+            // 'fecha_hora_fin' se calcula automáticamente basándose en la duración del servicio
             'observaciones' => ['nullable', 'string'],
             'id_compra_paquete' => ['nullable', 'exists:compras_paquete,id'],
         ];

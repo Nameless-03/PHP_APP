@@ -18,7 +18,7 @@ class EnviarEmailBienvenidaJob implements ShouldQueue
     public Usuario $usuario;
 
     /**
-     * Create a new job instance.
+     * Crea una nueva instancia del trabajo.
      */
     public function __construct(Usuario $usuario)
     {
@@ -26,7 +26,7 @@ class EnviarEmailBienvenidaJob implements ShouldQueue
     }
 
     /**
-     * Execute the job.
+     * Ejecuta el trabajo.
      */
     public function handle(): void
     {

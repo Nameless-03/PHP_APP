@@ -14,7 +14,7 @@ class RecordatorioTurnoNotification extends Notification implements ShouldQueue
     public $reserva;
 
     /**
-     * Create a new notification instance.
+     * Crea una nueva instancia de la notificación.
      */
     public function __construct(Reserva $reserva)
     {
@@ -22,7 +22,7 @@ class RecordatorioTurnoNotification extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the notification's delivery channels.
+     * Obtiene los canales de entrega de la notificación.
      */
     public function via(object $notifiable): array
     {
@@ -30,7 +30,7 @@ class RecordatorioTurnoNotification extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the array representation of the notification.
+     * Obtiene la representación en arreglo de la notificación.
      */
     public function toArray(object $notifiable): array
     {

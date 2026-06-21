@@ -15,7 +15,7 @@ class NotificarCambioReserva implements ShouldQueue
     use InteractsWithQueue;
 
     /**
-     * Handle the event.
+     * Maneja el evento.
      */
     public function handle(mixed $event): void
     {

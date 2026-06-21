@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ExcepcionAgendaResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transforma el recurso en un arreglo.
      *
      * @return array<string, mixed>
      */

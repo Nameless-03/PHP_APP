@@ -41,9 +41,9 @@ class AuthService
             ]);
         }
 
-        // Generate token using Sanctum (assuming Sanctum will be installed)
-        // Since we don't have Sanctum installed in this skeleton, we'll write the code for it
-        // and it will work once Sanctum is set up.
+        // Genera un token usando Sanctum (asumiendo que Sanctum está instalado)
+        // Ya que no tenemos Sanctum instalado en este esqueleto, escribiremos el código para ello
+        // y funcionará una vez que Sanctum esté configurado.
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
         $this->logger->log("Inicio de sesión exitoso", 'info', ['email' => $usuario->email], $usuario->id);
@@ -55,7 +55,7 @@ class AuthService
     }
 
     /**
-     * Register a new Cliente.
+     * Registra un nuevo Cliente.
      */
     public function registerCliente(array $data): Usuario
     {
@@ -90,7 +90,7 @@ class AuthService
     }
 
     /**
-     * Register a new Profesional.
+     * Registra un nuevo Profesional.
      */
     public function registerProfesional(array $data): Usuario
     {
@@ -129,7 +129,7 @@ class AuthService
     }
 
     /**
-     * Logout a user (revoke tokens).
+     * Cierra la sesión de un usuario (revoca los tokens).
      */
     public function logout(Usuario $usuario): void
     {

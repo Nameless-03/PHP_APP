@@ -15,7 +15,7 @@ class ResetPasswordNotification extends Notification
     public $token;
 
     /**
-     * Create a new notification instance.
+     * Crea una nueva instancia de la notificación.
      */
     public function __construct($token)
     {
@@ -23,7 +23,7 @@ class ResetPasswordNotification extends Notification
     }
 
     /**
-     * Get the notification's delivery channels.
+     * Obtiene los canales de entrega de la notificación.
      *
      * @return array<int, string>
      */
@@ -33,7 +33,7 @@ class ResetPasswordNotification extends Notification
     }
 
     /**
-     * Get the mail representation of the notification.
+     * Obtiene la representación de correo de la notificación.
      */
     public function toMail(object $notifiable): MailMessage
     {
@@ -51,7 +51,7 @@ class ResetPasswordNotification extends Notification
     }
 
     /**
-     * Get the array representation of the notification.
+     * Obtiene la representación en arreglo de la notificación.
      *
      * @return array<string, mixed>
      */

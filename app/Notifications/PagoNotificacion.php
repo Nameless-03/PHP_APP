@@ -16,7 +16,7 @@ class PagoNotificacion extends Notification implements ShouldQueue
     public string $tipo;
 
     /**
-     * Create a new notification instance.
+     * Crea una nueva instancia de la notificación.
      */
     public function __construct(string $titulo, string $mensaje, string $tipo = 'otro')
     {
@@ -26,7 +26,7 @@ class PagoNotificacion extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the notification's delivery channels.
+     * Obtiene los canales de entrega de la notificación.
      *
      * @return array<int, string>
      */
@@ -36,7 +36,7 @@ class PagoNotificacion extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the mail representation of the notification.
+     * Obtiene la representación de correo de la notificación.
      */
     public function toMail(object $notifiable): MailMessage
     {
@@ -48,7 +48,7 @@ class PagoNotificacion extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the array representation of the notification.
+     * Obtiene la representación en arreglo de la notificación.
      *
      * @return array<string, mixed>
      */

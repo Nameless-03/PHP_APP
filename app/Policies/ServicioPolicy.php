@@ -8,7 +8,7 @@ use App\Models\Usuario;
 class ServicioPolicy
 {
     /**
-     * Determine whether the user can update the model.
+     * Determina si el usuario puede actualizar el modelo.
      */
     public function update(Usuario $usuario, Servicio $servicio): bool
     {
@@ -16,7 +16,7 @@ class ServicioPolicy
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * Determina si el usuario puede eliminar el modelo.
      */
     public function delete(Usuario $usuario, Servicio $servicio): bool
     {

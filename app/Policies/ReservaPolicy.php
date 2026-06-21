@@ -8,7 +8,7 @@ use App\Models\Usuario;
 class ReservaPolicy
 {
     /**
-     * Determine whether the user can view the model.
+     * Determina si el usuario puede ver el modelo.
      */
     public function view(Usuario $usuario, Reserva $reserva): bool
     {

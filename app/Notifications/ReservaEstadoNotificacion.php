@@ -18,7 +18,7 @@ class ReservaEstadoNotificacion extends Notification implements ShouldQueue
     public $mensaje;
 
     /**
-     * Create a new notification instance.
+     * Crea una nueva instancia de la notificación.
      */
     public function __construct(Reserva $reserva, string $titulo, string $mensaje)
     {
@@ -28,7 +28,7 @@ class ReservaEstadoNotificacion extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the notification's delivery channels.
+     * Obtiene los canales de entrega de la notificación.
      *
      * @return array<int, string>
      */
@@ -38,7 +38,7 @@ class ReservaEstadoNotificacion extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the mail representation of the notification.
+     * Obtiene la representación de correo de la notificación.
      */
     public function toMail(object $notifiable): MailMessage
     {
@@ -54,7 +54,7 @@ class ReservaEstadoNotificacion extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the array representation of the notification.
+     * Obtiene la representación en arreglo de la notificación.
      *
      * @return array<string, mixed>
      */
