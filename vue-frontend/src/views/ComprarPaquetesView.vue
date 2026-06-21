@@ -19,31 +19,131 @@
       </v-col>
     </v-row>
 
-    <!-- Skeleton Loader while fetching -->
-    <v-row v-if="isLoading">
-      <v-col cols="12" sm="6" md="4" v-for="i in 6" :key="i">
-        <v-skeleton-loader type="card, article"></v-skeleton-loader>
-      </v-col>
-    </v-row>
+    <v-row>
+      <!-- Panel de Filtros -->
+      <v-col cols="12" md="3">
+        <v-card class="rounded-xl elevation-2 pa-4 sticky-filters">
+          <h3 class="text-h6 font-weight-bold mb-4 d-flex align-center">
+            <v-icon color="primary" class="mr-2">mdi-filter-variant</v-icon>
+            Filtros
+          </h3>
+          <v-divider class="mb-4"></v-divider>
 
-    <!-- Empty State -->
-    <v-row v-else-if="packages.length === 0" justify="center">
-      <v-col cols="12" md="8" class="text-center">
-        <v-card class="pa-10 text-center rounded-xl elevation-1 bg-white">
-          <v-icon size="80" color="grey-lighten-1" class="mb-4">mdi-package-variant-closed-remove</v-icon>
-          <h3 class="text-h5 font-weight-bold text-grey-darken-2 mb-2">No hay paquetes disponibles</h3>
-          <p class="text-body-1 text-medium-emphasis">
-            Actualmente ningún profesional ha publicado paquetes de sesiones. ¡Vuelve más tarde!
-          </p>
+          <!-- Búsqueda Principal -->
+          <v-text-field
+            v-model="filters.keyword"
+            label="Buscar por palabra clave"
+            placeholder="Ej. Promoción, Mensual..."
+            variant="outlined"
+            density="comfortable"
+            prepend-inner-icon="mdi-magnify"
+            color="primary"
+            class="mb-4"
+            clearable
+            hide-details
+          ></v-text-field>
+
+          <!-- Rango de Precios -->
+          <div class="mb-4">
+            <div class="text-subtitle-2 text-medium-emphasis mb-2">Precio máximo (USD)</div>
+            <v-slider
+              v-model="filters.precio_max"
+              :min="0"
+              :max="500"
+              :step="10"
+              thumb-label
+              color="primary"
+              track-color="grey-lighten-2"
+              hide-details
+            >
+              <template v-slot:append>
+                <v-text-field
+                  v-model="filters.precio_max"
+                  type="number"
+                  style="width: 80px"
+                  density="compact"
+                  hide-details
+                  variant="outlined"
+                ></v-text-field>
+              </template>
+            </v-slider>
+          </div>
+
+          <!-- Vencimiento -->
+          <div class="mb-4">
+            <div class="text-subtitle-2 text-medium-emphasis mb-2">Vencimiento</div>
+            <v-select
+              v-model="filters.vencimiento"
+              :items="opcionesVencimiento"
+              item-title="title"
+              item-value="value"
+              label="Cualquiera"
+              variant="outlined"
+              density="comfortable"
+              color="primary"
+              hide-details
+              clearable
+            ></v-select>
+          </div>
+
+          <!-- Calificación Mínima -->
+          <div class="mb-4">
+            <div class="text-subtitle-2 text-medium-emphasis mb-2">Calificación Mínima</div>
+            <v-rating
+              v-model="filters.reputacion"
+              color="warning"
+              active-color="warning"
+              hover
+              half-increments
+              density="compact"
+            ></v-rating>
+            <div class="text-caption text-medium-emphasis text-center mt-1">
+              {{ filters.reputacion }} estrellas o más
+            </div>
+          </div>
+          
+          <v-btn 
+            block 
+            variant="tonal" 
+            color="primary" 
+            class="text-none font-weight-bold"
+            @click="resetFilters"
+          >
+            Limpiar Filtros
+          </v-btn>
         </v-card>
       </v-col>
-    </v-row>
 
-    <!-- Packages Grid -->
-    <v-row v-else>
-      <v-col cols="12" sm="6" md="4" v-for="item in packages" :key="item.id">
-        <v-hover v-slot="{ isHovering, props }">
-          <v-card
+      <!-- Resultados -->
+      <v-col cols="12" md="9">
+        <div class="d-flex justify-space-between align-center mb-6">
+          <h2 class="text-h5 font-weight-bold text-grey-darken-4">Resultados ({{ filteredPackages.length }})</h2>
+        </div>
+
+        <!-- Skeleton Loader while fetching -->
+        <v-row v-if="isLoading">
+          <v-col cols="12" sm="6" lg="4" v-for="i in 6" :key="i">
+            <v-skeleton-loader type="card, article"></v-skeleton-loader>
+          </v-col>
+        </v-row>
+
+        <!-- Empty State -->
+        <v-card v-else-if="filteredPackages.length === 0" class="pa-10 text-center rounded-xl elevation-1 bg-grey-lighten-4">
+          <v-icon size="80" color="grey-lighten-1" class="mb-4">mdi-package-variant-closed-remove</v-icon>
+          <h3 class="text-h5 font-weight-bold text-grey-darken-2 mb-2">No se encontraron paquetes</h3>
+          <p class="text-body-1 text-medium-emphasis">
+            Intenta ajustar tus filtros o probar con otras palabras clave.
+          </p>
+          <v-btn color="primary" class="mt-4 text-none font-weight-bold" @click="resetFilters">
+            Ver Todos los Paquetes
+          </v-btn>
+        </v-card>
+
+        <!-- Packages Grid -->
+        <v-row v-else>
+          <v-col cols="12" sm="6" lg="4" v-for="item in filteredPackages" :key="item.id">
+            <v-hover v-slot="{ isHovering, props }">
+              <v-card
             v-bind="props"
             :elevation="isHovering ? 8 : 2"
             class="rounded-xl border h-100 d-flex flex-column card-hover position-relative"
@@ -141,6 +241,8 @@
             </div>
           </v-card>
         </v-hover>
+      </v-col>
+    </v-row>
       </v-col>
     </v-row>
 
@@ -331,13 +433,60 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
 const router = useRouter()
 const isLoading = ref(true)
 const packages = ref([])
+
+const opcionesVencimiento = [
+  { title: 'Cualquiera', value: null },
+  { title: 'Sin Vencimiento', value: 'sin_vencimiento' },
+  { title: 'Con Vencimiento', value: 'con_vencimiento' }
+]
+
+const filters = ref({
+  keyword: '',
+  precio_max: 500,
+  vencimiento: null,
+  reputacion: 0
+})
+
+const filteredPackages = computed(() => {
+  return packages.value.filter(pkg => {
+    if (filters.value.keyword) {
+      const search = filters.value.keyword.toLowerCase()
+      const inNombre = pkg.nombre?.toLowerCase().includes(search)
+      const inDesc = pkg.descripcion?.toLowerCase().includes(search)
+      if (!inNombre && !inDesc) return false
+    }
+    
+    if (filters.value.precio_max !== null && pkg.precio > filters.value.precio_max) return false
+    
+    if (filters.value.reputacion > 0) {
+      const rep = pkg.profesional_reputacion || 0
+      if (rep < filters.value.reputacion) return false
+    }
+
+    if (filters.value.vencimiento) {
+      if (filters.value.vencimiento === 'sin_vencimiento' && pkg.vencimiento) return false
+      if (filters.value.vencimiento === 'con_vencimiento' && !pkg.vencimiento) return false
+    }
+
+    return true
+  })
+})
+
+const resetFilters = () => {
+  filters.value = {
+    keyword: '',
+    precio_max: 500,
+    vencimiento: null,
+    reputacion: 0
+  }
+}
 
 // Dialog and flow states
 const purchaseDialog = ref(false)
@@ -796,6 +945,13 @@ watch([paymentMethod, purchaseDialog], async ([nuevoMetodo, estaAbierto]) => {
 </script>
 
 <style scoped>
+@media (min-width: 960px) {
+  .sticky-filters {
+    position: sticky;
+    top: 20px;
+    z-index: 10;
+  }
+}
 .bg-gradient {
   background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
 }
