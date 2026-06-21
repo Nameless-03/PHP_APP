@@ -181,7 +181,7 @@
               <small>Los mensajes desaparecerán al finalizar la sesión.</small>
             </div>
             <div v-for="msg in messages" :key="msg.id" class="mb-4">
-              <!-- Self Message -->
+              <!-- Mensaje Propio -->
               <div v-if="msg.isSelf" class="d-flex justify-end">
                 <div class="pa-3 rounded-xl rounded-tr-sm" style="background-color: #EBE5D9; max-width: 85%;">
                   <div class="text-caption font-weight-medium mb-1" style="color: #8C6D46;">
@@ -193,7 +193,7 @@
                 </div>
               </div>
               
-              <!-- Remote Message -->
+              <!-- Mensaje Remoto -->
               <div v-else class="d-flex align-start">
                 <v-avatar color="secondary" size="36" class="mr-3 mt-1 elevation-1">
                   <v-img v-if="otherPersonAvatar" :src="otherPersonAvatar"></v-img>
@@ -432,7 +432,7 @@ async function initCall() {
     
     localData.value.name = name || 'Tú'
 
-    // Connect to LiveKit room
+    // Conectar a la sala de LiveKit
     const lkRoom = new Room()
     
     lkRoom.on(RoomEvent.ParticipantConnected, updateParticipantState)
@@ -483,24 +483,24 @@ async function initCall() {
       scrollToBottom()
     })
 
-    // Connect
+    // Conectar
     await lkRoom.connect(url, token, { autoSubscribe: true })
     room.value = lkRoom
     roomConnected.value = true
     
-    // Timer
+    // Temporizador
     timerInterval = setInterval(() => { durationSeconds.value++ }, 1000)
     
-    // Add already connected participants
+    // Agregar participantes ya conectados
     lkRoom.remoteParticipants.forEach(updateParticipantState)
 
-    // Create local tracks and publish
+    // Crear tracks locales y publicar
     const tracks = await createLocalTracks({ audio: true, video: true })
     for (const t of tracks) {
       await lkRoom.localParticipant.publishTrack(t)
     }
     
-    // Attach local video
+    // Adjuntar video local
     const videoTrack = tracks.find(t => t.kind === Track.Kind.Video)
     if (videoTrack) {
       localVideoTrack.value = videoTrack

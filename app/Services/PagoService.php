@@ -50,7 +50,7 @@ class PagoService
 
             $pago->refresh();
 
-            // Log NoSQL activity
+            // Registrar actividad en NoSQL
             $this->logger->log("Inicio de pago", 'info', [
                 'pago_id' => $pago->id,
                 'monto' => $pago->monto,

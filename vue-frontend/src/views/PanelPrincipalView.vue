@@ -1,8 +1,8 @@
 <template>
   <DashboardLayout title="Resumen de Actividad">
-    <!-- Dashboard Content -->
+    <!-- Contenido del Panel -->
     <v-row>
-      <!-- Welcome Card -->
+      <!-- Tarjeta de Bienvenida -->
       <v-col cols="12">
         <v-card class="pa-8 rounded-xl elevation-2 bg-gradient text-white">
           <v-row align="center">
@@ -37,7 +37,7 @@
       </v-col>
     </v-row>
 
-    <!-- Admin Stats Cards -->
+    <!-- Tarjetas de Estadísticas de Admin -->
     <v-row class="mt-4" v-if="isAdmin">
       <v-col cols="12" sm="6" md="3">
         <v-card class="pa-5 rounded-xl elevation-1 card-hover">
@@ -89,7 +89,7 @@
       </v-col>
     </v-row>
 
-    <!-- Admin Quick Links -->
+    <!-- Enlaces Rápidos de Admin -->
     <v-row class="mt-2" v-if="isAdmin">
       <v-col cols="12" md="6">
         <v-card class="pa-6 rounded-xl elevation-1 card-hover" to="/admin/users">
@@ -123,7 +123,7 @@
       </v-col>
     </v-row>
 
-    <!-- Stats Cards (Solo Profesionales) -->
+    <!-- Tarjetas de Estadísticas (Solo Profesionales) -->
     <v-row class="mt-4" v-if="isProfesional && !isAdmin">
       <v-col cols="12" sm="6">
         <v-card class="pa-6 rounded-xl elevation-1 card-hover">
@@ -289,7 +289,7 @@ const activeServicesCount = ref(0)
 const avgRating = ref('0.0')
 const searchQuery = ref('')
 
-// Admin stats
+// Estadísticas de Admin
 const adminStats = ref({
   total_usuarios: 0,
   usuarios_activos: 0,
@@ -314,7 +314,7 @@ const cargarDatosDashboard = async () => {
   if (!headers.Authorization) return
 
   try {
-    // Fetch user info
+    // Obtener información del usuario
     const authResponse = await fetch('/api/auth/me', { headers })
 
     if (authResponse.ok) {
@@ -326,7 +326,7 @@ const cargarDatosDashboard = async () => {
       }
     }
 
-    // Admin: fetch stats
+    // Admin: obtener estadísticas
     if (isAdmin.value) {
       try {
         const statsRes = await fetch('/api/admin/stats', { headers })
@@ -338,7 +338,7 @@ const cargarDatosDashboard = async () => {
       }
     }
 
-    // Profesional: fetch services count
+    // Profesional: obtener cantidad de servicios
     if (isProfesional.value && !isAdmin.value) {
       if (user.value && user.value.id) {
         try {

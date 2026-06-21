@@ -45,7 +45,7 @@ class ServicioService
     {
         $query = Servicio::with(['profesional.usuario', 'categoria']);
 
-        // Conditionally filter by active
+        // Filtrar condicionalmente por servicios activos
         $incluirInactivos = isset($filtros['incluir_inactivos']) && 
             ($filtros['incluir_inactivos'] == true || $filtros['incluir_inactivos'] === '1' || $filtros['incluir_inactivos'] === 'true');
 
@@ -56,7 +56,7 @@ class ServicioService
             });
         }
 
-        // Filter by professional
+        // Filtrar por profesional
         if (isset($filtros['id_profesional'])) {
             $query->where('id_profesional', $filtros['id_profesional']);
         }

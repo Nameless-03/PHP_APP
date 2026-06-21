@@ -15,7 +15,7 @@ class NoSqlLoggerService
     }
 
     /**
-     * Log system activity in NoSQL.
+     * Registrar la actividad del sistema en NoSQL.
      */
     public function log(string $accion, string $tipo = 'info', array $detalles = [], ?int $usuarioId = null): void
     {
@@ -31,7 +31,7 @@ class NoSqlLoggerService
 
         try {
             if ($this->driver === 'redis') {
-                // Redis NoSQL store (uses a list and limits to last 1000 items)
+                // Almacenamiento en Redis NoSQL (usa una lista y se limita a los últimos 1000 elementos)
                 Redis::rpush('nosql_system_logs', json_encode($logData));
                 Redis::ltrim('nosql_system_logs', -1000, -1);
             } elseif ($this->driver === 'mongodb') {
@@ -47,7 +47,7 @@ class NoSqlLoggerService
                     $collection = $client->selectDatabase($dbName)->selectCollection('activity_logs');
                     $collection->insertOne($logData);
                 } else {
-                    // Fallback to Redis since extension is not loaded in PHP CLI/Local
+                    // Fallback a Redis ya que la extensión no está cargada en PHP CLI/Local
                     Log::warning('MongoDB PHP driver not found. Falling back to Redis NoSQL for: ' . json_encode($logData));
                     Redis::rpush('nosql_system_logs', json_encode($logData));
                     Redis::ltrim('nosql_system_logs', -1000, -1);
@@ -56,13 +56,13 @@ class NoSqlLoggerService
                 Log::info('NoSQL Log (Fallback to file): ' . json_encode($logData));
             }
         } catch (\Exception $e) {
-            // Never break main request execution if logger fails
+            // Nunca interrumpir la ejecución de la petición principal si falla el logger
             Log::error('NoSQL Logging failed: ' . $e->getMessage());
         }
     }
 
     /**
-     * Get recent logs.
+     * Obtener registros recientes.
      */
     public function getLogs(int $limit = 50): array
     {
@@ -73,7 +73,7 @@ class NoSqlLoggerService
                     return [];
                 }
                 $logs = array_map(fn($item) => json_decode($item, true), $rawLogs);
-                return array_reverse($logs); // Newest first
+                return array_reverse($logs); // Más recientes primero
             } elseif ($this->driver === 'mongodb') {
                 $host = config('services.nosql.mongodb.host') ?? 'mongodb';
                 $port = config('services.nosql.mongodb.port') ?? '27017';
@@ -101,7 +101,7 @@ class NoSqlLoggerService
                     }
                     return $logs;
                 } else {
-                    // Fallback read from Redis
+                    // Fallback de lectura desde Redis
                     $rawLogs = Redis::lrange('nosql_system_logs', -$limit, -1);
                     if (empty($rawLogs)) {
                         return [];

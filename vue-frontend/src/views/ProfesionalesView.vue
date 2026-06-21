@@ -152,7 +152,7 @@
 
         <v-card-text class="pa-6 bg-grey-lighten-4" style="height: 55vh; overflow-y: auto;">
           <v-window v-model="tab">
-            <!-- Window: About -->
+            <!-- Pestaña: Acerca de -->
             <v-window-item value="about">
               <v-card class="pa-6 rounded-xl border mb-4" elevation="0" color="white">
                 <h3 class="text-subtitle-1 font-weight-bold text-primary mb-3">Descripción Profesional</h3>
@@ -202,7 +202,7 @@
               </v-card>
             </v-window-item>
 
-            <!-- Window: Services -->
+            <!-- Pestaña: Servicios -->
             <v-window-item value="services">
               <div v-if="profesionalDetalle.servicios && profesionalDetalle.servicios.length > 0">
                 <v-row>
@@ -244,7 +244,7 @@
               </v-card>
             </v-window-item>
 
-            <!-- Window: Reviews -->
+            <!-- Pestaña: Opiniones -->
             <v-window-item value="reviews">
               <div v-if="cargandoOpiniones" class="text-center py-8">
                 <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -303,13 +303,13 @@
           </v-btn>
         </div>
 
-        <!-- Loading State -->
+        <!-- Estado de Carga -->
         <div v-if="mapLoading" class="d-flex flex-column align-center justify-center" style="height: 400px;">
           <v-progress-circular indeterminate color="primary" size="48" class="mb-4"></v-progress-circular>
           <div class="text-body-1 text-medium-emphasis">Buscando ubicación...</div>
         </div>
 
-        <!-- Error State -->
+        <!-- Estado de Error -->
         <div v-else-if="mapError" class="d-flex flex-column align-center justify-center pa-8" style="height: 400px;">
           <v-icon size="64" color="warning" class="mb-4">mdi-map-marker-question</v-icon>
           <div class="text-h6 font-weight-bold text-grey-darken-2 mb-2">Ubicación no encontrada</div>
@@ -322,7 +322,7 @@
           </v-btn>
         </div>
 
-        <!-- Map Container -->
+        <!-- Contenedor del Mapa -->
         <div v-else id="map-container" style="height: 400px; width: 100%;"></div>
 
         <div v-if="!mapLoading && !mapError" class="pa-4 bg-grey-lighten-4">
@@ -368,7 +368,7 @@ const profesionales = ref([])
 const tab = ref('about')
 const navegandoIntencionalmente = ref(false)
 
-// Detail modal states
+// Estados del modal de detalle
 const dialogDetalle = ref(false)
 const profesionalDetalle = ref(null)
 const opinionesList = ref([])
@@ -402,7 +402,7 @@ const fetchProfesionalDetalle = async (id) => {
       dialogDetalle.value = true
       tab.value = 'about'
       
-      // Load reviews
+      // Cargar opiniones
       fetchOpiniones(id)
     }
   } catch (error) {
@@ -429,11 +429,11 @@ const fetchOpiniones = async (id) => {
 }
 
 const verDetalleProfesional = (id) => {
-  // Push route query parameter so URL updates, which triggers watch
+  // Hacer push del parámetro query a la ruta para actualizar URL y disparar watcher
   router.push({ name: 'profesionales', query: { id } })
 }
 
-// Watch query parameters for modal trigger
+// Observar parámetros de query para activar el modal
 watch(() => route.query.id, (newId) => {
   if (newId) {
     fetchProfesionalDetalle(parseInt(newId))
@@ -443,7 +443,7 @@ watch(() => route.query.id, (newId) => {
   }
 })
 
-// Watch dialog close to clean query params
+// Observar cierre del diálogo para limpiar parámetros
 watch(dialogDetalle, (isOpen) => {
   if (!isOpen && route.query.id) {
     // Si se está navegando intencionalmente (ej: al presionar Reservar)
@@ -458,7 +458,7 @@ watch(dialogDetalle, (isOpen) => {
 onMounted(async () => {
   await fetchProfesionales()
   
-  // If ?id=XX is in URL on load
+  // Si ?id=XX está en la URL al cargar
   if (route.query.id) {
     fetchProfesionalDetalle(parseInt(route.query.id))
   }
@@ -482,7 +482,7 @@ const reservarServicio = (service) => {
   router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: service.id } })
 }
 
-// ===== Map Functions =====
+// ===== Funciones del Mapa =====
 const mapDialog = ref(false)
 const mapLoading = ref(false)
 const mapError = ref(false)
@@ -684,7 +684,7 @@ const closeMap = () => {
 .map-dialog-header {
   background: linear-gradient(135deg, #8C6D46 0%, #6B5235 100%);
 }
-/* Leaflet overrides */
+/* Sobrescritura de Leaflet */
 .custom-div-icon {
   background: transparent;
   border: none;

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 class UsuarioService
 {
     /**
-     * Get a user by ID.
+     * Obtener un usuario por ID.
      */
     public function obtenerPorId(int $id): Usuario
     {
@@ -18,7 +18,7 @@ class UsuarioService
     }
 
     /**
-     * Get all users.
+     * Obtener todos los usuarios.
      */
     public function listarTodos(): Collection
     {
@@ -26,7 +26,7 @@ class UsuarioService
     }
 
     /**
-     * Update user details.
+     * Actualizar detalles del usuario.
      */
     public function actualizar(Usuario $usuario, array $data): Usuario
     {
@@ -72,15 +72,15 @@ class UsuarioService
     }
 
     /**
-     * Soft delete a user.
+     * Eliminación lógica (soft delete) de un usuario.
      */
     public function eliminar(int $id): bool
     {
         $usuario = Usuario::findOrFail($id);
         if ($usuario->esProfesional()) {
-            // Delete packages
+            // Eliminar paquetes
             \App\Models\Paquete::where('id_profesional', $usuario->id)->delete();
-            // Delete services (soft deletes)
+            // Eliminar servicios (soft deletes)
             \App\Models\Servicio::where('id_profesional', $usuario->id)->delete();
         }
         return $usuario->delete();

@@ -20,7 +20,7 @@
                   <v-icon color="white">mdi-camera</v-icon>
                 </div>
               </v-avatar>
-              <!-- Hidden input for file selection -->
+              <!-- Input oculto para la selección de archivo -->
               <input
                 ref="fileInput"
                 type="file"
@@ -45,7 +45,7 @@
 
           <v-form @submit.prevent="saveProfile" ref="form">
             <v-row>
-              <!-- Personal/Business Data -->
+              <!-- Datos Personales/Empresariales -->
               <v-col cols="12">
                 <h3 class="text-subtitle-1 font-weight-bold text-primary mb-4">
                   <v-icon start color="primary">mdi-card-account-details</v-icon>
@@ -87,7 +87,7 @@
                 ></v-textarea>
               </v-col>
 
-              <!-- Location & Contact -->
+              <!-- Ubicación y Contacto -->
               <v-col cols="12" class="mt-4">
                 <h3 class="text-subtitle-1 font-weight-bold text-primary mb-4">
                   <v-icon start color="primary">mdi-map-marker-radius</v-icon>
@@ -126,7 +126,7 @@
               </v-col>
             </v-row>
 
-            <!-- Alerts & Actions -->
+            <!-- Alertas y Acciones -->
             <v-alert v-if="successMsg" type="success" variant="tonal" class="mt-4 rounded-lg">
               {{ successMsg }}
             </v-alert>
@@ -320,11 +320,11 @@ const saveProfile = async () => {
     }
 
     const response = await fetch(`/api/usuarios/${userId}`, {
-      method: 'POST', // Use POST with _method=PUT to allow file uploads under standard PHP/Laravel configurations
+      method: 'POST', // Usar POST con _method=PUT para permitir la subida de archivos en configuraciones estándar de PHP/Laravel
       headers: {
         'Authorization': `Bearer ${token.value}`,
         'Accept': 'application/json'
-        // 'Content-Type' must be omitted when sending FormData so the browser generates the correct boundary
+        // 'Content-Type' debe ser omitido al enviar FormData para que el navegador genere el boundary correcto
       },
       body: formData
     })
@@ -338,12 +338,12 @@ const saveProfile = async () => {
     console.log('Perfil guardado:', data)
     successMsg.value = '¡Perfil actualizado exitosamente!'
     
-    // Update local storage and notify Layout of changes
+    // Actualizar local storage y notificar al Layout sobre los cambios
     if (data.data) {
       localStorage.setItem('user', JSON.stringify(data.data))
       window.dispatchEvent(new Event('user-updated'))
       
-      // Update local state references
+      // Actualizar referencias de estado local
       fotoPerfilUrl.value = data.data.profesional?.foto_perfil_url || null
       previewUrl.value = null
       selectedFile.value = null

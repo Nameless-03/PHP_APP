@@ -294,7 +294,7 @@ class ReservaService
                 $reserva->delete();
             }
 
-            // Log NoSQL activity
+            // Registrar actividad en NoSQL
             $this->logger->log("Cambio de estado de reserva", 'info', [
                 'reserva_id' => $reserva->id,
                 'estado_anterior' => $estadoAnterior,
@@ -400,7 +400,7 @@ class ReservaService
             // Disparar evento — el listener NotificarCambioReserva se encarga de notificar a ambas partes
             ReservaEstadoCambiado::dispatch($reservaRenovada, $estadoAnterior);
 
-            // Log NoSQL activity
+            // Registrar actividad en NoSQL
             $this->logger->log("Reprogramación de reserva", 'info', [
                 'reserva_id'  => $reserva->id,
                 'nueva_fecha' => $nuevoInicio->toIso8601String(),

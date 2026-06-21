@@ -2,7 +2,7 @@
   <v-container fluid class="pa-0" style="min-height: 100vh;">
     <v-row no-gutters style="min-height: 100vh;">
       
-      <!-- Left Panel -->
+      <!-- Panel Izquierdo -->
       <v-col cols="12" md="5" class="brand-sidebar d-none d-md-flex flex-column align-center justify-center text-center pa-10">
         <div class="decorative-circle circle-1"></div>
         <div class="decorative-circle circle-2"></div>
@@ -16,7 +16,7 @@
         </div>
       </v-col>
 
-      <!-- Right Panel -->
+      <!-- Panel Derecho -->
       <v-col cols="12" md="7" class="d-flex align-center justify-center bg-grey-lighten-4 pa-6">
         <v-card class="form-card pa-8 rounded-xl elevation-3" width="100%" max-width="550">
           <div class="text-center mb-6">
@@ -24,7 +24,7 @@
             <p class="text-body-1 text-grey-darken-1">Comienza tu viaje con nosotros hoy mismo.</p>
           </div>
 
-          <!-- Role Selection using Vuetify Button Toggle -->
+          <!-- Selección de rol usando Vuetify Button Toggle -->
           <v-btn-toggle
             v-model="roleTab"
             mandatory
@@ -96,7 +96,7 @@
               </v-col>
             </v-row>
 
-            <!-- Specific fields for Profesional -->
+            <!-- Campos específicos para Profesional -->
             <v-expand-transition>
               <div v-if="roleTab === 'profesional'" class="mt-2">
                 <v-select
