@@ -82,6 +82,7 @@ class ServicioTest extends TestCase
             'duracion' => 60,
             'precio' => 75.00,
             'modalidad' => 'presencial',
+            'ubicacion' => 'Mi consultorio',
             'id_categoria' => $categoria->id
         ];
 
