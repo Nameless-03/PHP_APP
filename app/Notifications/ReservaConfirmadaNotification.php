@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use App\Models\Reserva;
 
@@ -26,7 +27,22 @@ class ReservaConfirmadaNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast']; // Guardamos en bd y emitimos por ws
+        return ['mail', 'database', 'broadcast']; // Guardamos en bd y emitimos por ws, enviamos por email
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     */
+    public function toMail(object $notifiable): MailMessage
+    {
+        $fecha = \Carbon\Carbon::parse($this->reserva->fecha_hora_inicio)->format('d/m/Y H:i');
+        
+        return (new MailMessage)
+                    ->subject('Reserva Confirmada')
+                    ->greeting('Hola ' . $notifiable->nombre . '!')
+                    ->line("Tu reserva para el servicio '{$this->reserva->servicio->nombre}' el {$fecha} ha sido confirmada.")
+                    ->action('Ver Reserva', url('/reservas/' . $this->reserva->id))
+                    ->line('Gracias por usar nuestra plataforma.');
     }
 
     /**

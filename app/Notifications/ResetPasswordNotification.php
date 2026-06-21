@@ -41,11 +41,13 @@ class ResetPasswordNotification extends Notification
         $url = $frontendUrl . '/reset-password?token=' . $this->token . '&email=' . urlencode($notifiable->getEmailForPasswordReset());
 
         return (new MailMessage)
-            ->subject(Lang::get('Notificación de Restablecimiento de Contraseña'))
+            ->subject(Lang::get('Recuperación de Contraseña'))
+            ->greeting(Lang::get('¡Hola!'))
             ->line(Lang::get('Estás recibiendo este correo porque recibimos una solicitud de restablecimiento de contraseña para tu cuenta.'))
             ->action(Lang::get('Restablecer Contraseña'), $url)
-            ->line(Lang::get('Este enlace de restablecimiento de contraseña expirará en :count minutos.', ['count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire')]))
-            ->line(Lang::get('Si no solicitaste un restablecimiento de contraseña, no es necesario realizar ninguna otra acción.'));
+            ->line(Lang::get('Este enlace expirará en :count minutos.', ['count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire')]))
+            ->line(Lang::get('Si no solicitaste este cambio, puedes ignorar este correo.'))
+            ->salutation(Lang::get('Saludos, el equipo de soporte.'));
     }
 
     /**
