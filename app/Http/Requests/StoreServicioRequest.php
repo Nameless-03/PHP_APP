@@ -38,7 +38,7 @@ class StoreServicioRequest extends FormRequest
             'precio' => ['required', 'numeric', 'min:0'],
             'modalidad' => ['required', Rule::enum(ModalidadEnum::class)],
             'duracion' => ['required', 'integer', 'min:1'], // en minutos
-            'ubicacion' => ['nullable', 'string', 'max:255'],
+            'ubicacion' => ['required_if:modalidad,presencial,hibrida', 'nullable', 'string', 'max:255'],
             'activo' => ['boolean'],
             'limite_cancelacion_horas' => ['sometimes', 'integer', 'min:0'],
             'id_categoria' => ['required', function ($attribute, $value, $fail) {

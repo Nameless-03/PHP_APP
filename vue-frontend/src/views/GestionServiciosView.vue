@@ -138,6 +138,7 @@
               <v-col cols="12" v-if="service.modality !== 'remota'">
                 <v-text-field
                   v-model="service.location"
+                  :rules="[rules.required]"
                   label="Ubicación del Servicio"
                   placeholder="Ej: Av. Corrientes 1234, Buenos Aires, Argentina"
                   variant="outlined"

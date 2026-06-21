@@ -37,7 +37,7 @@ class UpdateServicioRequest extends FormRequest
             'precio' => ['sometimes', 'numeric', 'min:0'],
             'modalidad' => ['sometimes', Rule::enum(ModalidadEnum::class)],
             'duracion' => ['sometimes', 'integer', 'min:1'],
-            'ubicacion' => ['nullable', 'string', 'max:255'],
+            'ubicacion' => ['required_if:modalidad,presencial,hibrida', 'nullable', 'string', 'max:255'],
             'activo' => ['sometimes', 'boolean'],
             'limite_cancelacion_horas' => ['sometimes', 'integer', 'min:0'],
             'id_categoria' => ['sometimes', function ($attribute, $value, $fail) {

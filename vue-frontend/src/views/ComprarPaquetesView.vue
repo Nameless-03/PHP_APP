@@ -45,28 +45,18 @@
 
           <!-- Rango de Precios -->
           <div class="mb-4">
-            <div class="text-subtitle-2 text-medium-emphasis mb-2">Precio máximo (USD)</div>
-            <v-slider
-              v-model="filters.precio_max"
-              :min="0"
-              :max="500"
-              :step="10"
-              thumb-label
+            <v-text-field
+              v-model.number="filters.precio_max"
+              label="Precio máximo (USD)"
+              type="number"
+              placeholder="Cualquier precio"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-currency-usd"
               color="primary"
-              track-color="grey-lighten-2"
               hide-details
-            >
-              <template v-slot:append>
-                <v-text-field
-                  v-model="filters.precio_max"
-                  type="number"
-                  style="width: 80px"
-                  density="compact"
-                  hide-details
-                  variant="outlined"
-                ></v-text-field>
-              </template>
-            </v-slider>
+              clearable
+            ></v-text-field>
           </div>
 
           <!-- Vencimiento -->
@@ -449,7 +439,7 @@ const opcionesVencimiento = [
 
 const filters = ref({
   keyword: '',
-  precio_max: 500,
+  precio_max: null,
   vencimiento: null,
   reputacion: 0
 })
@@ -463,7 +453,7 @@ const filteredPackages = computed(() => {
       if (!inNombre && !inDesc) return false
     }
     
-    if (filters.value.precio_max !== null && pkg.precio > filters.value.precio_max) return false
+    if (filters.value.precio_max !== null && filters.value.precio_max !== '' && pkg.precio > filters.value.precio_max) return false
     
     if (filters.value.reputacion > 0) {
       const rep = pkg.profesional_reputacion || 0
@@ -482,7 +472,7 @@ const filteredPackages = computed(() => {
 const resetFilters = () => {
   filters.value = {
     keyword: '',
-    precio_max: 500,
+    precio_max: null,
     vencimiento: null,
     reputacion: 0
   }
