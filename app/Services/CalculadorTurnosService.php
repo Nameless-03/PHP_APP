@@ -66,18 +66,34 @@ class CalculadorTurnosService
 
         $turnosGenerados = collect();
 
+        $pausaInicio = null;
+        $pausaFin = null;
+        if (!empty($disponibilidad->pausa_inicio) && ($disponibilidad->pausa_minutos ?? 0) > 0) {
+            $pausaInicio = Carbon::parse($fechaStr . ' ' . $disponibilidad->pausa_inicio);
+            $pausaFin = $pausaInicio->copy()->addMinutes($disponibilidad->pausa_minutos);
+        }
+
         $horaActualIteracion = clone $horaInicio;
 
         // Bucle para generar bloques
         while ($horaActualIteracion->copy()->addMinutes($duracionMinutos)->lessThanOrEqualTo($horaFin)) {
             $finTurno = $horaActualIteracion->copy()->addMinutes($duracionMinutos);
             
-            $turnosGenerados->push([
-                'inicio' => $horaActualIteracion->format('H:i'),
-                'fin' => $finTurno->format('H:i'),
-                'inicio_datetime' => clone $horaActualIteracion,
-                'fin_datetime' => clone $finTurno,
-            ]);
+            $seSolapaConPausa = false;
+            if ($pausaInicio && $pausaFin) {
+                if ($horaActualIteracion->lessThan($pausaFin) && $finTurno->greaterThan($pausaInicio)) {
+                    $seSolapaConPausa = true;
+                }
+            }
+
+            if (!$seSolapaConPausa) {
+                $turnosGenerados->push([
+                    'inicio' => $horaActualIteracion->format('H:i'),
+                    'fin' => $finTurno->format('H:i'),
+                    'inicio_datetime' => clone $horaActualIteracion,
+                    'fin_datetime' => clone $finTurno,
+                ]);
+            }
 
             $horaActualIteracion->addMinutes($pasoTotal);
         }

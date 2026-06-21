@@ -27,6 +27,11 @@ class ReservaService
         return DB::transaction(function () use ($data) {
             $servicio = Servicio::findOrFail($data['id_servicio']);
             
+            // Validar que el servicio esté activo
+            if (!$servicio->activo) {
+                throw new Exception("El servicio seleccionado no está activo.");
+            }
+
             $inicio = Carbon::parse($data['fecha_hora_inicio']);
             $fin = (clone $inicio)->addMinutes($servicio->duracion);
 
@@ -36,7 +41,9 @@ class ReservaService
             }
 
             // Validar solapamiento (Concurrency check usando un lock pesimista o simplemente validando)
-            $solapamiento = Reserva::where('id_servicio', $servicio->id)
+            $solapamiento = Reserva::whereHas('servicio', function ($q) use ($servicio) {
+                    $q->where('id_profesional', $servicio->id_profesional);
+                })
                 ->whereIn('estado', [
                     EstadoReservaEnum::PENDIENTE->value, 
                     EstadoReservaEnum::CONFIRMADA->value, 
@@ -44,12 +51,8 @@ class ReservaService
                     EstadoReservaEnum::EN_CURSO->value
                 ])
                 ->where(function ($query) use ($inicio, $fin) {
-                    $query->whereBetween('fecha_hora_inicio', [$inicio, $fin])
-                          ->orWhereBetween('fecha_hora_fin', [$inicio, $fin])
-                          ->orWhere(function ($q) use ($inicio, $fin) {
-                              $q->where('fecha_hora_inicio', '<=', $inicio)
-                                ->where('fecha_hora_fin', '>=', $fin);
-                          });
+                    $query->where('fecha_hora_inicio', '<', $fin)
+                          ->where('fecha_hora_fin', '>', $inicio);
                 })
                 ->lockForUpdate()
                 ->exists();
@@ -71,17 +74,31 @@ class ReservaService
                 }
 
                 // Validar que esté activo y tenga sesiones
-                if ($compra->estado !== 'activo' || $compra->sesiones_disponibles <= 0) {
-                    throw new Exception("El paquete no tiene sesiones disponibles.");
+                if ($compra->estado !== 'activo') {
+                    throw new Exception("El paquete no está activo.");
                 }
 
-                // Validar que el servicio esté incluido en el paquete
-                $servicioValido = $compra->paquete->servicios->contains($servicio->id);
-                if (!$servicioValido) {
+                // Validar que el servicio esté incluido en el paquete y tenga sesiones disponibles
+                $pivotTracker = DB::table('compra_paquete_servicio')
+                    ->where('id_compra_paquete', $compra->id)
+                    ->where('id_servicio', $servicio->id)
+                    ->first();
+
+                if (!$pivotTracker) {
                     throw new Exception("El servicio seleccionado no está incluido en este paquete.");
                 }
 
-                // Descontar sesión
+                if ($pivotTracker->sesiones_disponibles <= 0) {
+                    throw new Exception("No te quedan sesiones disponibles de este servicio en el paquete.");
+                }
+
+                // Descontar sesión del servicio específico en la tabla tracker
+                DB::table('compra_paquete_servicio')
+                    ->where('id_compra_paquete', $compra->id)
+                    ->where('id_servicio', $servicio->id)
+                    ->decrement('sesiones_disponibles');
+
+                // Descontar sesión global
                 $compra->decrement('sesiones_disponibles');
                 
                 // Si ya no quedan sesiones, agotar el paquete
@@ -89,15 +106,8 @@ class ReservaService
                     $compra->update(['estado' => 'agotado']);
                 }
 
-                // Check if the package was paid in cash
-                $pagoPaqueteEfectivo = $compra->pagos()->where('metodo', 'efectivo')->exists();
-
-                if ($pagoPaqueteEfectivo) {
-                    $estadoReserva = EstadoReservaEnum::PENDIENTE;
-                    $crearPagoEfectivo = true;
-                } else {
-                    $estadoReserva = EstadoReservaEnum::PAGADA;
-                }
+                // Al agendar con un paquete ya activo, la reserva se autoconfirma directamente
+                $estadoReserva = EstadoReservaEnum::CONFIRMADA;
             }
 
             $reserva = Reserva::create([
@@ -166,7 +176,7 @@ class ReservaService
      */
     public function listarPorCliente(int $idCliente): Collection
     {
-        return Reserva::with(['servicio', 'compraPaquete.paquete', 'pago'])->where('id_cliente', $idCliente)->get();
+        return Reserva::with(['servicio.profesional.usuario', 'compraPaquete.paquete', 'pago'])->where('id_cliente', $idCliente)->get();
     }
 
     /**
@@ -200,15 +210,18 @@ class ReservaService
                 EstadoReservaEnum::EN_CURSO->value,
                 EstadoReservaEnum::CANCELADA->value,
                 EstadoReservaEnum::NO_ASISTIDA->value,
+                EstadoReservaEnum::FINALIZADA->value,
             ],
             EstadoReservaEnum::PAGADA->value => [
                 EstadoReservaEnum::CONFIRMADA->value,
                 EstadoReservaEnum::EN_CURSO->value,
                 EstadoReservaEnum::CANCELADA->value,
                 EstadoReservaEnum::NO_ASISTIDA->value,
+                EstadoReservaEnum::FINALIZADA->value,
             ],
             EstadoReservaEnum::EN_CURSO->value => [
                 EstadoReservaEnum::FINALIZADA->value,
+                EstadoReservaEnum::NO_ASISTIDA->value,
             ],
             // Estados terminales
             EstadoReservaEnum::FINALIZADA->value => [],
@@ -236,9 +249,14 @@ class ReservaService
                 $compra = $reserva->compraPaquete;
                 if ($compra) {
                     $compra->increment('sesiones_disponibles');
-                    if ($compra->estado === 'agotado') {
+                    if ($compra->estado === 'agotado' || $compra->estado === 'cancelado') {
                         $compra->update(['estado' => 'activo']);
                     }
+                    // Reintegrar la sesión al servicio específico en la tabla tracker
+                    DB::table('compra_paquete_servicio')
+                        ->where('id_compra_paquete', $reserva->id_compra_paquete)
+                        ->where('id_servicio', $reserva->id_servicio)
+                        ->increment('sesiones_disponibles');
                 }
             }
 
@@ -250,16 +268,25 @@ class ReservaService
                 ]);
             }
 
-            // Si la reserva se cancela y tiene un pago pendiente, lo marcamos como fallido
-            if ($nuevoEstado === EstadoReservaEnum::CANCELADA && $reserva->pago && $reserva->pago->estado === 'pendiente') {
-                $reserva->pago->update([
-                    'estado' => 'fallido',
-                ]);
+            // Si la reserva se cancela y tiene un pago pendiente, lo marcamos como fallido.
+            // Si el pago ya estaba completado, lo marcamos como reembolsado para descontarlo de la administración.
+            if ($nuevoEstado === EstadoReservaEnum::CANCELADA && $reserva->pago) {
+                if ($reserva->pago->estado === 'pendiente') {
+                    $reserva->pago->update([
+                        'estado' => 'fallido',
+                    ]);
+                } elseif ($reserva->pago->estado === 'completado') {
+                    $reserva->pago->update([
+                        'estado' => 'reembolsado',
+                    ]);
+                }
             }
 
             $reserva->update([
                 'estado' => $nuevoEstado
             ]);
+
+            \Illuminate\Support\Facades\Cache::forget("reprogramada_por_cliente_{$reserva->id}");
 
             ReservaEstadoCambiado::dispatch($reserva->fresh(), $estadoAnterior);
 
@@ -310,7 +337,10 @@ class ReservaService
             }
 
             // Validar que el nuevo horario esté disponible (ignorando esta misma reserva)
-            $solapamiento = Reserva::where('id_servicio', $reserva->id_servicio)
+            $idProfesional = $reserva->servicio ? $reserva->servicio->id_profesional : Servicio::where('id', $reserva->id_servicio)->value('id_profesional');
+            $solapamiento = Reserva::whereHas('servicio', function ($q) use ($idProfesional) {
+                    $q->where('id_profesional', $idProfesional);
+                })
                 ->where('id', '!=', $reserva->id) // Ignorar la reserva actual
                 ->whereIn('estado', [
                     EstadoReservaEnum::PENDIENTE->value, 
@@ -319,12 +349,8 @@ class ReservaService
                     EstadoReservaEnum::EN_CURSO->value
                 ])
                 ->where(function ($query) use ($nuevoInicio, $nuevoFin) {
-                    $query->whereBetween('fecha_hora_inicio', [$nuevoInicio, $nuevoFin])
-                          ->orWhereBetween('fecha_hora_fin', [$nuevoInicio, $nuevoFin])
-                          ->orWhere(function ($q) use ($nuevoInicio, $nuevoFin) {
-                              $q->where('fecha_hora_inicio', '<=', $nuevoInicio)
-                                ->where('fecha_hora_fin', '>=', $nuevoFin);
-                          });
+                    $query->where('fecha_hora_inicio', '<', $nuevoFin)
+                          ->where('fecha_hora_fin', '>', $nuevoInicio);
                 })
                 ->lockForUpdate()
                 ->exists();
@@ -333,27 +359,52 @@ class ReservaService
                 throw new Exception("El horario seleccionado ya no está disponible.");
             }
 
-            // Actualizar horas y volver a pendiente
+            // Determinar el nuevo estado al reprogramar:
+            // Si ya estaba pagada o confirmada, debe conservar su carácter de pagada.
+            // Si la reprogramó el profesional, se marca directamente como CONFIRMADA.
+            // Si la reprogramó el cliente, queda en PAGADA esperando la confirmación del profesional.
+            // Si no estaba pagada, vuelve a PENDIENTE.
             $estadoAnterior = $reserva->estado->value;
+            $nuevoEstado = EstadoReservaEnum::PENDIENTE;
+            $fuePagada = in_array($estadoAnterior, [EstadoReservaEnum::PAGADA->value, EstadoReservaEnum::CONFIRMADA->value]);
+
+            if ($fuePagada) {
+                if ($usuario->esProfesional()) {
+                    $nuevoEstado = EstadoReservaEnum::CONFIRMADA;
+                } else {
+                    $nuevoEstado = EstadoReservaEnum::PAGADA;
+                }
+            }
+
             $reserva->update([
                 'fecha_hora_inicio' => $nuevoInicio,
-                'fecha_hora_fin' => $nuevoFin,
-                'estado' => EstadoReservaEnum::PENDIENTE
+                'fecha_hora_fin'    => $nuevoFin,
+                'estado'            => $nuevoEstado
             ]);
 
             $reservaRenovada = $reserva->fresh();
-            
-            // Notificar a ambas partes sobre la reprogramación
-            $clienteUser = $reservaRenovada->cliente->usuario;
-            $profesionalUser = $reservaRenovada->servicio->profesional->usuario;
-            
-            $clienteUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
-            $profesionalUser->notify(new \App\Notifications\ReservaModificadaNotification($reservaRenovada, 'reprogramada'));
+
+            // Si el cliente reprogramó y la reserva queda pagada (esperando confirmación del profesional),
+            // guardar en caché para que el frontend lo distinga de una reserva simplemente pagada.
+            if ($usuario->esCliente() && $nuevoEstado === EstadoReservaEnum::PAGADA) {
+                \Illuminate\Support\Facades\Cache::put(
+                    "reprogramada_por_cliente_{$reserva->id}",
+                    true,
+                    now()->addDays(7) // expira si el profesional confirma antes
+                );
+            } else {
+                // Si reprogramó el profesional o cambió el estado, limpiar el flag
+                \Illuminate\Support\Facades\Cache::forget("reprogramada_por_cliente_{$reserva->id}");
+            }
+
+            // Disparar evento — el listener NotificarCambioReserva se encarga de notificar a ambas partes
+            ReservaEstadoCambiado::dispatch($reservaRenovada, $estadoAnterior);
 
             // Log NoSQL activity
             $this->logger->log("Reprogramación de reserva", 'info', [
-                'reserva_id' => $reserva->id,
-                'nueva_fecha' => $nuevoInicio->toIso8601String()
+                'reserva_id'  => $reserva->id,
+                'nueva_fecha' => $nuevoInicio->toIso8601String(),
+                'por'         => $usuario->role
             ], $usuario->id);
 
             return $reservaRenovada;

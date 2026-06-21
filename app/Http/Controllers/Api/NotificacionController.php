@@ -30,5 +30,14 @@ class NotificacionController extends Controller
         }
         
         return response()->json(['message' => 'Notificación no encontrada'], 404);
+     }
+
+    /**
+     * Mark all notifications as read.
+     */
+    public function marcarTodasLeidas(Request $request): JsonResponse
+    {
+        $request->user()->unreadNotifications->markAsRead();
+        return response()->json(['message' => 'Todas las notificaciones marcadas como leídas']);
     }
 }

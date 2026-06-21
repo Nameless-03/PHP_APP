@@ -86,15 +86,21 @@
               <!-- Professional details -->
               <div class="d-flex align-center mb-4" v-if="item.id_profesional">
                 <v-avatar size="36" color="primary-lighten-1" class="mr-3 text-white font-weight-bold text-caption">
-                  {{ item.id_profesional ? 'PR' : 'PR' }}
+                  {{ item.profesional_nombre ? item.profesional_nombre.substring(0, 2).toUpperCase() : 'PR' }}
                 </v-avatar>
                 <div>
                   <div class="text-subtitle-2 font-weight-medium text-grey-darken-3">
-                    Ofrecido por Profesional
+                    Ofrecido por 
+                    <span 
+                      class="text-primary font-weight-bold cursor-pointer hover-underline" 
+                      @click="verPerfilProfesional(item.id_profesional)"
+                    >
+                      {{ item.profesional_nombre || 'Profesional' }}
+                    </span>
                   </div>
                   <div class="d-flex align-center text-caption text-warning font-weight-bold">
                     <v-icon size="small" class="mr-1">mdi-star</v-icon>
-                    5.0 (Excelente)
+                    {{ item.profesional_reputacion ? item.profesional_reputacion.toFixed(1) : '0.0' }}
                   </div>
                 </div>
               </div>
@@ -112,9 +118,10 @@
                     size="x-small"
                     color="secondary"
                     variant="tonal"
-                    class="font-weight-medium"
+                    class="font-weight-medium cursor-pointer"
+                    @click.stop="buscarServicio(s.nombre)"
                   >
-                    {{ s.nombre }}
+                    {{ s.nombre }} ({{ s.cantidad_sesiones }} {{ s.cantidad_sesiones === 1 ? 'sesión' : 'sesiones' }})
                   </v-chip>
                 </div>
               </div>
@@ -285,20 +292,6 @@
                 </div>
               </v-expand-transition>
 
-              <!-- Error simulation switch -->
-              <v-divider class="my-4"></v-divider>
-              <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
-                <div>
-                  <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
-                  <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
-                </div>
-                <v-switch
-                  v-model="simulateError"
-                  color="error"
-                  hide-details
-                  density="compact"
-                ></v-switch>
-              </div>
             </div>
           </v-card-text>
 
@@ -389,6 +382,14 @@ const loadPackages = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const verPerfilProfesional = (id) => {
+  router.push({ name: 'profesionales', query: { id } })
+}
+
+const buscarServicio = (nombre) => {
+  router.push({ name: 'search', query: { q: nombre } })
 }
 
 onMounted(async () => {
@@ -846,5 +847,8 @@ watch([paymentMethod, purchaseDialog], async ([nuevoMetodo, estaAbierto]) => {
 .payment-box-efectivo {
   background-color: rgba(76, 175, 80, 0.04) !important;
   border: 1px solid rgba(76, 175, 80, 0.15) !important;
+}
+.hover-underline:hover {
+  text-decoration: underline !important;
 }
 </style>

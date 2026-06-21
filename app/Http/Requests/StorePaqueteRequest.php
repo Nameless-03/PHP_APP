@@ -22,26 +22,41 @@ class StorePaqueteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => ['required', 'string', 'max:255'],
-            'descripcion' => ['nullable', 'string'],
-            'cantidad_sesiones' => ['required', 'integer', 'min:1'],
-            'precio' => ['required', 'numeric', 'min:0'],
-            'vencimiento' => ['nullable', 'integer', 'min:1'],
-            'servicios' => ['required', 'array', 'min:1'],
-            'servicios.*' => [
+            'nombre' => [
                 'required',
-                'integer',
-                'exists:servicios,id',
+                'string',
+                'max:255',
+                'regex:/[a-zA-ZñÑáéíóúüÁÉÍÓÚÜ]/',
+                \Illuminate\Validation\Rule::unique('paquetes', 'nombre')->where(function ($query) {
+                    return $query->where('id_profesional', $this->user()->id);
+                })
+            ],
+            'descripcion' => ['nullable', 'string'],
+            'descuento' => ['required', 'numeric', 'min:0'],
+            'vencimiento' => ['nullable', 'integer', 'min:1'],
+            'servicios' => [
+                'required',
+                'array',
+                'min:1',
                 function ($attribute, $value, $fail) {
-                    $esPropio = \DB::table('servicios')
-                        ->where('id', $value)
-                        ->where('id_profesional', $this->user()->id)
-                        ->exists();
-                    if (!$esPropio) {
-                        $fail('Uno o más servicios seleccionados no pertenecen a tu perfil.');
+                    foreach ($value as $index => $item) {
+                        if (!is_array($item) || !isset($item['id'])) {
+                            $fail("El formato del servicio en la posición {$index} no es válido.");
+                            return;
+                        }
+                        $esPropio = \DB::table('servicios')
+                            ->where('id', $item['id'])
+                            ->where('id_profesional', $this->user()->id)
+                            ->exists();
+                        if (!$esPropio) {
+                            $fail("Uno o más servicios seleccionados no pertenecen a tu perfil.");
+                            return;
+                        }
                     }
                 }
             ],
+            'servicios.*.id' => ['required', 'integer', 'exists:servicios,id'],
+            'servicios.*.cantidad_sesiones' => ['required', 'integer', 'min:1'],
         ];
     }
 
@@ -52,13 +67,13 @@ class StorePaqueteRequest extends FormRequest
     {
         return [
             'nombre.required' => 'El nombre del paquete es obligatorio.',
-            'cantidad_sesiones.required' => 'La cantidad de sesiones es obligatoria.',
-            'cantidad_sesiones.min' => 'El paquete debe incluir al menos 1 sesión.',
-            'precio.required' => 'El precio del paquete es obligatorio.',
-            'precio.min' => 'El precio del paquete no puede ser menor a 0.',
+            'descuento.required' => 'El descuento es obligatorio.',
+            'descuento.min' => 'El descuento no puede ser menor a 0.',
             'vencimiento.min' => 'La duración de vencimiento debe ser al menos 1 día.',
             'servicios.required' => 'Debes asociar al menos un servicio al paquete.',
             'servicios.min' => 'Debes asociar al menos un servicio al paquete.',
+            'servicios.*.cantidad_sesiones.required' => 'La cantidad de sesiones es obligatoria para cada servicio.',
+            'servicios.*.cantidad_sesiones.min' => 'Cada servicio debe incluir al menos 1 sesión.',
         ];
     }
 }

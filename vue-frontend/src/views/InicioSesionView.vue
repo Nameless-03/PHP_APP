@@ -153,9 +153,14 @@ const handleLogin = async () => {
       throw new Error(data.message || 'Error de autenticación')
     }
     
-    // Guardar token y datos del usuario en localStorage
-    localStorage.setItem('auth_token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
+    // Guardar token y datos del usuario según la opción "Recordarme"
+    // Si recordar: localStorage (persiste entre sesiones del navegador)
+    // Si NO recordar: sessionStorage (se borra al cerrar el navegador)
+    const storage = remember.value ? localStorage : sessionStorage
+    storage.setItem('auth_token', data.token)
+    storage.setItem('user', JSON.stringify(data.user))
+    // Guardar indicador de dónde está el token
+    localStorage.setItem('auth_remember', remember.value ? 'localStorage' : 'sessionStorage')
     
     // Despachar evento para notificar cambio de sesión
     window.dispatchEvent(new Event('user-updated'))

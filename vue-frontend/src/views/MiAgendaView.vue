@@ -1,11 +1,11 @@
 <template>
-  <DashboardLayout title="Mi Agenda">
+  <DashboardLayout title="Agenda">
     <v-row class="mt-4" justify="center">
       <v-col cols="12" xl="10">
         <div class="brand-header pa-6 mb-6 rounded-xl elevation-3 text-white d-flex align-center" style="background: linear-gradient(135deg, #A6987A 0%, #8C6D46 100%);">
           <v-icon size="40" class="mr-4">mdi-calendar-multiselect</v-icon>
           <div>
-            <h1 class="text-h4 font-weight-bold mb-1">Mi Agenda</h1>
+            <h1 class="text-h4 font-weight-bold mb-1">Agenda</h1>
             <p class="text-subtitle-1 opacity-90 mb-0">Planifica y visualiza tu día</p>
           </div>
         </div>
@@ -83,7 +83,7 @@
                               {{ reserva.servicio?.nombre }}
                             </h4>
                             <v-chip size="x-small" :color="getColorEstado(reserva.estado)" class="text-uppercase font-weight-bold">
-                              {{ reserva.estado }}
+                              {{ getLabelEstado(reserva.estado) }}
                             </v-chip>
                           </div>
                           
@@ -119,8 +119,7 @@
                               </v-avatar>
                               <div>
                                 <p class="mb-0 text-body-2 font-weight-medium">
-                                  {{ isCliente ? reserva.servicio?.profesional?.usuario?.nombre : reserva.cliente?.usuario?.nombre }}
-                                  {{ isCliente ? '' : reserva.cliente?.usuario?.apellido }}
+                                  {{ isCliente ? (reserva.servicio?.profesional?.nombre || reserva.servicio?.profesional?.usuario?.nombre) : (reserva.cliente?.nombre || reserva.cliente?.usuario?.nombre) }}
                                 </p>
                                 <p class="mb-0 text-caption text-medium-emphasis">
                                   {{ isCliente ? 'Profesional' : 'Cliente' }}
@@ -128,12 +127,12 @@
                               </div>
                             </div>
 
-                            <div class="d-flex align-center flex-wrap gap-2">
+                            <div class="d-flex align-center flex-wrap gap-3">
                               <!-- Botón de Videollamada (Redondeado y a la derecha) -->
                               <v-btn 
                                 v-if="(reserva.servicio?.modalidad === 'remota' || reserva.servicio?.modalidad === 'hibrida') && ['pagada', 'confirmada', 'en_curso'].includes(reserva.estado)" 
                                 color="secondary"
-                                class="text-none font-weight-bold rounded-pill px-4" 
+                                class="text-none font-weight-bold rounded-lg px-4" 
                                 prepend-icon="mdi-video"
                                 elevation="1"
                                 @click="joinCall(reserva.id)"
@@ -141,12 +140,36 @@
                                 Unirse a videollamada
                               </v-btn>
 
+                              <!-- Botón de Ubicación para Reserva Presencial -->
+                              <v-btn 
+                                v-if="reserva.servicio?.modalidad === 'presencial' && ['pagada', 'confirmada', 'en_curso'].includes(reserva.estado) && reserva.servicio?.ubicacion"
+                                color="primary"
+                                class="text-none font-weight-bold rounded-lg px-4 text-white" 
+                                prepend-icon="mdi-map-marker"
+                                elevation="1"
+                                @click="openMap(reserva.servicio)"
+                              >
+                                Ubicación
+                              </v-btn>
+
+                              <!-- Botón de WhatsApp para contactar al Profesional -->
+                              <v-btn
+                                v-if="isCliente"
+                                color="success"
+                                class="text-none font-weight-bold rounded-lg px-4"
+                                prepend-icon="mdi-whatsapp"
+                                elevation="1"
+                                @click="contactarWhatsApp(reserva)"
+                              >
+                                WhatsApp
+                              </v-btn>
+
                               <!-- Acciones de Estado (Solo Profesional/Admin) -->
                               <template v-if="!isCliente">
                                 <v-btn
                                   v-if="['confirmada', 'pagada'].includes(reserva.estado)"
                                   color="primary"
-                                  class="text-none font-weight-bold rounded-pill px-4"
+                                  class="text-none font-weight-bold rounded-lg px-4"
                                   prepend-icon="mdi-play"
                                   elevation="1"
                                   :loading="actualizandoEstadoId === reserva.id"
@@ -158,7 +181,7 @@
                                   v-if="['confirmada', 'pagada'].includes(reserva.estado)"
                                   color="error"
                                   variant="outlined"
-                                  class="text-none font-weight-bold rounded-pill px-4"
+                                  class="text-none font-weight-bold rounded-lg px-4"
                                   prepend-icon="mdi-account-off"
                                   :loading="actualizandoEstadoId === reserva.id"
                                   @click="actualizarEstado(reserva.id, 'no_asistida')"
@@ -168,7 +191,7 @@
                                 <v-btn
                                   v-if="reserva.estado === 'en_curso'"
                                   color="success"
-                                  class="text-none font-weight-bold rounded-pill px-4 text-white"
+                                  class="text-none font-weight-bold rounded-lg px-4 text-white"
                                   prepend-icon="mdi-check-all"
                                   elevation="1"
                                   :loading="actualizandoEstadoId === reserva.id"
@@ -271,7 +294,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import L from 'leaflet'
@@ -297,6 +320,7 @@ const mapLoading = ref(false)
 const mapError = ref(false)
 const selectedService = ref(null)
 const mapCoords = ref(null)
+const mapBoundingBox = ref(null)
 let mapInstance = null
 
 // --- COMPUTADAS ---
@@ -307,9 +331,19 @@ const turnosDelDia = computed(() => {
   const offset = fechaSeleccionada.value.getTimezoneOffset()
   const fechaStr = new Date(fechaSeleccionada.value.getTime() - (offset*60*1000)).toISOString().split('T')[0]
   
+  const ahora = new Date()
+  
   return reservas.value.filter(r => {
-    // ignorar las canceladas o rechazadas para que la agenda se vea limpia, o mostrarlas pero grises.
-    if(r.estado === 'cancelada' || r.estado === 'rechazada') return false;
+    // Ignorar las canceladas, rechazadas, finalizadas o no asistidas
+    if (['cancelada', 'rechazada', 'finalizada', 'no_asistida'].includes(r.estado)) {
+      return false;
+    }
+    
+    // Si la fecha y hora de fin ya pasó, se considera expirada y no se muestra en la agenda activa
+    const fin = new Date(r.fecha_hora_fin)
+    if (fin <= ahora) {
+      return false;
+    }
     
     return r.fecha_hora_inicio.startsWith(fechaStr)
   }).sort((a,b) => new Date(a.fecha_hora_inicio) - new Date(b.fecha_hora_inicio))
@@ -344,6 +378,7 @@ const openMap = async (service) => {
   mapLoading.value = true
   mapError.value = false
   mapCoords.value = null
+  mapBoundingBox.value = null
 
   try {
     // Geocode the address using Nominatim (OpenStreetMap free API)
@@ -359,13 +394,32 @@ const openMap = async (service) => {
       return
     }
 
-    const { lat, lon } = results[0]
+    const firstResult = results[0]
+    const { lat, lon, place_rank, boundingbox } = firstResult
     mapCoords.value = { lat: parseFloat(lat), lng: parseFloat(lon) }
+    mapBoundingBox.value = boundingbox
+    
+    // Determinar nivel de zoom de forma inteligente para fallback:
+    // Si place_rank >= 26 es una calle o edificio específico -> zoom 16
+    // Si está entre 17 y 25 es un barrio o código postal -> zoom 14
+    // Si es 16 es una ciudad -> zoom 13
+    // Si < 16 es un departamento o país -> zoom 12
+    let zoomLevel = 16
+    if (place_rank !== undefined) {
+      if (place_rank < 16) {
+        zoomLevel = 12
+      } else if (place_rank === 16) {
+        zoomLevel = 13
+      } else if (place_rank < 26) {
+        zoomLevel = 14
+      }
+    }
+    
     mapLoading.value = false
 
     // Wait for DOM to render the map container
     await nextTick()
-    setTimeout(() => initMap(), 100)
+    setTimeout(() => initMap(zoomLevel), 100)
   } catch (error) {
     console.error('Geocoding error:', error)
     mapError.value = true
@@ -374,7 +428,7 @@ const openMap = async (service) => {
   }
 }
 
-const initMap = () => {
+const initMap = (zoomLevel) => {
   const container = document.getElementById('map-container')
   if (!container || !mapCoords.value) return
 
@@ -386,12 +440,32 @@ const initMap = () => {
 
   const { lat, lng } = mapCoords.value
 
-  mapInstance = L.map('map-container').setView([lat, lng], 15)
+  mapInstance = L.map('map-container')
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19
   }).addTo(mapInstance)
+
+  // Ajustar la vista con el bounding box de forma inteligente
+  if (mapBoundingBox.value && mapBoundingBox.value.length === 4) {
+    const bounds = [
+      [parseFloat(mapBoundingBox.value[0]), parseFloat(mapBoundingBox.value[2])],
+      [parseFloat(mapBoundingBox.value[1]), parseFloat(mapBoundingBox.value[3])]
+    ]
+    const latDiff = Math.abs(bounds[0][0] - bounds[1][0])
+    const lngDiff = Math.abs(bounds[0][1] - bounds[1][1])
+
+    // Si el área es muy pequeña (ej. dirección exacta/casa), centrar con zoom 16.
+    // De lo contrario, ajustar los límites al área general (fitBounds).
+    if (latDiff < 0.005 && lngDiff < 0.005) {
+      mapInstance.setView([lat, lng], 16)
+    } else {
+      mapInstance.fitBounds(bounds, { maxZoom: 16, padding: [10, 10] })
+    }
+  } else {
+    mapInstance.setView([lat, lng], zoomLevel)
+  }
 
   // Custom marker icon
   const customIcon = L.divIcon({
@@ -437,9 +511,24 @@ const closeMap = () => {
   }
   selectedService.value = null
   mapCoords.value = null
+  mapBoundingBox.value = null
 }
 const joinCall = (id) => {
   router.push({ name: 'videollamada', params: { id } })
+}
+
+const contactarWhatsApp = (reserva) => {
+  const profesional = reserva.servicio?.profesional
+  const nombre = profesional?.nombre || 'el profesional'
+  const telefono = profesional?.telefono
+
+  if (!telefono) {
+    showSnackbar(`El profesional ${nombre} no tiene un número de teléfono registrado`, 'warning')
+    return
+  }
+
+  const formattedPhone = telefono.replace(/\D/g, '')
+  window.open(`https://wa.me/${formattedPhone}`, '_blank')
 }
 
 // --- UTILS ---
@@ -464,6 +553,16 @@ const getColorEstado = (estado) => ({
   no_asistida: 'grey'
 }[estado] || 'grey')
 
+const getLabelEstado = (estado) => ({
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  cancelada: 'Cancelada',
+  pagada: 'Pagada',
+  en_curso: 'En curso',
+  finalizada: 'Finalizada',
+  no_asistida: 'No asistió'
+}[estado] || estado)
+
 const getModalityColor = (modality) => {
   switch (modality) {
     case 'remota': return 'info'
@@ -487,7 +586,7 @@ const actualizarEstado = async (id, nuevoEstado) => {
       throw new Error(data.message || 'Error al actualizar el estado')
     }
 
-    showSnackbar(`Estado de la reserva actualizado a "${nuevoEstado}".`, 'success')
+    showSnackbar(`Estado de la reserva actualizado a "${getLabelEstado(nuevoEstado)}".`, 'success')
     await cargarReservas()
   } catch (err) {
     console.error('Error al cambiar de estado:', err)
@@ -497,8 +596,18 @@ const actualizarEstado = async (id, nuevoEstado) => {
   }
 }
 
+const handleReservaActualizada = (event) => {
+  console.log('Real-time event received in MiAgendaView:', event.detail)
+  cargarReservas()
+}
+
 onMounted(() => {
   cargarReservas()
+  window.addEventListener('reserva-actualizada', handleReservaActualizada)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reserva-actualizada', handleReservaActualizada)
 })
 </script>
 

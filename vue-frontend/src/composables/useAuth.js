@@ -3,9 +3,20 @@ import { ref, computed } from 'vue'
 const user = ref(null)
 const token = ref(null)
 
+/**
+ * Determina de qué storage leer el token según la preferencia guardada.
+ * - Si "auth_remember" === 'sessionStorage', leer de sessionStorage
+ * - Caso contrario, leer de localStorage (default)
+ */
+const getStorage = () => {
+  const remember = localStorage.getItem('auth_remember')
+  return remember === 'sessionStorage' ? sessionStorage : localStorage
+}
+
 const loadSession = () => {
-  const tokenStr = localStorage.getItem('auth_token')
-  const userStr = localStorage.getItem('user')
+  const storage = getStorage()
+  const tokenStr = storage.getItem('auth_token')
+  const userStr = storage.getItem('user')
   token.value = tokenStr
   if (userStr) {
     try {
@@ -35,22 +46,29 @@ export function useAuth() {
   const isProfesional = computed(() => user.value ? user.value.role === 'profesional' : false)
   const isAdmin = computed(() => user.value ? user.value.role === 'admin' : false)
   
-  const getAuthHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': token.value ? `Bearer ${token.value}` : `Bearer ${localStorage.getItem('auth_token')}`
-  })
+  const getAuthHeaders = () => {
+    const storage = getStorage()
+    const t = token.value || storage.getItem('auth_token')
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': t ? `Bearer ${t}` : ''
+    }
+  }
 
   const logoutLocal = () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user')
+    const storage = getStorage()
+    storage.removeItem('auth_token')
+    storage.removeItem('user')
+    localStorage.removeItem('auth_remember')
     user.value = null
     token.value = null
     window.dispatchEvent(new Event('user-updated'))
   }
 
   const logoutServer = async (routerRedirect = null) => {
-    const currentToken = token.value || localStorage.getItem('auth_token')
+    const storage = getStorage()
+    const currentToken = token.value || storage.getItem('auth_token')
     logoutLocal()
     if (routerRedirect) {
       routerRedirect('/login')

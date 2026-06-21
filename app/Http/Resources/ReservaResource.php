@@ -24,16 +24,16 @@ class ReservaResource extends JsonResource
             'id_servicio' => $this->id_servicio,
             'id_compra_paquete' => $this->id_compra_paquete,
             'created_at' => $this->created_at?->toIso8601String(),
+            'reprogramacion_por' => \Illuminate\Support\Facades\Cache::has("reprogramada_por_cliente_{$this->id}") ? 'cliente' : null,
+            'calificada' => $this->calificacion()->exists(),
             
             // Relaciones opcionales
-            'cliente' => $this->whenLoaded('cliente', function () {
-                return [
+            'cliente' => $this->cliente ? [
                     'id_usuario' => $this->cliente->id_usuario,
                     'nombre' => $this->cliente->usuario ? $this->cliente->usuario->nombre : null,
                     'email' => $this->cliente->usuario ? $this->cliente->usuario->email : null,
                     'telefono' => $this->cliente->telefono,
-                ];
-            }),
+                ] : null,
             'servicio' => new ServicioResource($this->whenLoaded('servicio')),
             'compra_paquete' => $this->whenLoaded('compraPaquete', function () {
                 return [

@@ -13,6 +13,7 @@ class ReservaEstadoCambiado
 
     public $reserva;
     public $estadoAnterior;
+    public $porQuien;
 
     /**
      * Create a new event instance.
@@ -21,5 +22,18 @@ class ReservaEstadoCambiado
     {
         $this->reserva = $reserva;
         $this->estadoAnterior = $estadoAnterior;
+
+        $porQuien = "el sistema";
+        if (auth()->check()) {
+            $authUser = auth()->user();
+            if ($authUser->id === $reserva->cliente->id_usuario) {
+                $porQuien = "ti";
+            } elseif ($reserva->servicio->profesional && $authUser->id === $reserva->servicio->profesional->id_usuario) {
+                $porQuien = "el profesional";
+            } elseif ($authUser->esAdmin()) {
+                $porQuien = "el administrador";
+            }
+        }
+        $this->porQuien = $porQuien;
     }
 }

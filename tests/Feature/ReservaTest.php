@@ -139,6 +139,13 @@ class ReservaTest extends TestCase
             'id_paquete' => $paquete->id
         ]);
 
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 5,
+        ]);
+
         $data = [
             'id_servicio' => $this->servicio->id,
             'fecha_hora_inicio' => $mañana,
@@ -155,13 +162,14 @@ class ReservaTest extends TestCase
         $compra->refresh();
         $this->assertEquals(4, $compra->sesiones_disponibles);
         $this->assertEquals('activo', $compra->estado);
+        $this->assertEquals(4, \DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compra->id)->where('id_servicio', $this->servicio->id)->value('sesiones_disponibles'));
 
-        // Validar que la reserva se creó como pagada y asociada al paquete
+        // Validar que la reserva se creó como confirmada y asociada al paquete
         $this->assertDatabaseHas('reservas', [
             'id_servicio' => $this->servicio->id,
             'id_cliente' => $this->clienteUser->id,
             'id_compra_paquete' => $compra->id,
-            'estado' => \App\Enums\EstadoReservaEnum::PAGADA->value,
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA->value,
         ]);
     }
 
@@ -190,6 +198,13 @@ class ReservaTest extends TestCase
             'id_paquete' => $paquete->id
         ]);
 
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 5,
+        ]);
+
         // Crear pago asociado en efectivo
         \App\Models\Pago::create([
             'monto' => 150.00,
@@ -212,21 +227,14 @@ class ReservaTest extends TestCase
 
         $compra->refresh();
         $this->assertEquals(4, $compra->sesiones_disponibles);
+        $this->assertEquals(4, \DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compra->id)->where('id_servicio', $this->servicio->id)->value('sesiones_disponibles'));
 
-        // Validar que la reserva se creó como pendiente y tiene un pago asociado
+        // Las reservas hechas con paquetes activos (incluso efectivo) se autoconfirman directamente
         $this->assertDatabaseHas('reservas', [
             'id_servicio' => $this->servicio->id,
             'id_cliente' => $this->clienteUser->id,
             'id_compra_paquete' => $compra->id,
-            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE->value,
-        ]);
-
-        $reserva = \App\Models\Reserva::where('id_compra_paquete', $compra->id)->first();
-
-        $this->assertDatabaseHas('pagos', [
-            'id_reserva' => $reserva->id,
-            'metodo' => 'efectivo',
-            'estado' => \App\Enums\EstadoPagoEnum::PENDIENTE->value,
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA->value,
         ]);
     }
 
@@ -253,6 +261,13 @@ class ReservaTest extends TestCase
             'estado' => 'agotado',
             'id_cliente' => $this->clienteUser->id,
             'id_paquete' => $paquete->id
+        ]);
+
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 0,
         ]);
 
         $data = [
@@ -330,6 +345,13 @@ class ReservaTest extends TestCase
             'id_paquete' => $paquete->id
         ]);
 
+        \DB::table('compra_paquete_servicio')->insert([
+            'id_compra_paquete' => $compra->id,
+            'id_servicio' => $this->servicio->id,
+            'sesiones_totales' => 5,
+            'sesiones_disponibles' => 0,
+        ]);
+
         $reserva = \App\Models\Reserva::create([
             'fecha_hora_inicio' => $mañana,
             'fecha_hora_fin' => (clone $mañana)->addMinutes(60),
@@ -350,6 +372,7 @@ class ReservaTest extends TestCase
         $compra->refresh();
         $this->assertEquals(1, $compra->sesiones_disponibles);
         $this->assertEquals('activo', $compra->estado);
+        $this->assertEquals(1, \DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compra->id)->where('id_servicio', $this->servicio->id)->value('sesiones_disponibles'));
     }
 
     /**
@@ -618,6 +641,364 @@ class ReservaTest extends TestCase
         
         // El horario '12:00' no debería figurar en los turnos disponibles
         $this->assertNotContains('12:00', $turnos);
+    }
+
+    /**
+     * Test de que la pausa en la disponibilidad semanal bloquea los turnos correspondientes.
+     */
+    public function test_pausa_bloquea_turnos_disponibles(): void
+    {
+        $calculador = app(\App\Services\CalculadorTurnosService::class);
+
+        $nombresDias = [
+            0 => 'domingo', 1 => 'lunes', 2 => 'martes', 3 => 'miercoles',
+            4 => 'jueves', 5 => 'viernes', 6 => 'sabado'
+        ];
+        $diaSemana = $nombresDias[Carbon::tomorrow()->dayOfWeek];
+
+        // Crear disponibilidad base con pausa
+        \App\Models\Disponibilidad::create([
+            'dia_semana' => $diaSemana,
+            'hora_inicio' => '08:00',
+            'hora_fin' => '13:00',
+            'pausa_inicio' => '10:00',
+            'pausa_minutos' => 60, // 10:00 a 11:00 está en pausa
+            'buffer_minutos' => 0,
+            'id_profesional' => $this->profesionalUser->id
+        ]);
+
+        $turnos = $calculador->obtenerTurnosDisponibles($this->servicio, Carbon::tomorrow()->toDateString());
+
+        // Con servicio duracion 60 mins (1 hora):
+        // Turnos esperados: 08:00 (hasta 09:00), 09:00 (hasta 10:00), 11:00 (hasta 12:00), 12:00 (hasta 13:00)
+        // 10:00 (hasta 11:00) debería solaparse con la pausa, por lo tanto NO estar disponible.
+        $this->assertContains('08:00', $turnos);
+        $this->assertContains('09:00', $turnos);
+        $this->assertNotContains('10:00', $turnos);
+        $this->assertContains('11:00', $turnos);
+        $this->assertContains('12:00', $turnos);
+    }
+
+    /**
+     * Test de que al reprogramar una reserva pagada desde el cliente se mantiene en estado PAGADA.
+     */
+    public function test_reprogramar_reserva_pagada_desde_cliente_mantiene_estado_pagada(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $nuevaFecha = Carbon::tomorrow()->setHour(14)->setMinute(0)->toDateTimeString();
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/reprogramar", [
+                'fecha_hora_inicio' => $nuevaFecha
+            ]);
+
+        $response->assertStatus(200);
+        $reservaFresh = $reserva->fresh();
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::PAGADA->value, $reservaFresh->estado->value);
+        $this->assertEquals($nuevaFecha, $reservaFresh->fecha_hora_inicio->toDateTimeString());
+    }
+
+    /**
+     * Test de que al reprogramar una reserva pagada desde el profesional se actualiza a CONFIRMADA.
+     */
+    public function test_reprogramar_reserva_pagada_desde_profesional_actualiza_a_confirmada(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $nuevaFecha = Carbon::tomorrow()->setHour(15)->setMinute(0)->toDateTimeString();
+
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/reprogramar", [
+                'fecha_hora_inicio' => $nuevaFecha
+            ]);
+
+        $response->assertStatus(200);
+        $reservaFresh = $reserva->fresh();
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CONFIRMADA->value, $reservaFresh->estado->value);
+        $this->assertEquals($nuevaFecha, $reservaFresh->fecha_hora_inicio->toDateTimeString());
+    }
+
+    /**
+     * Test de que al cancelar una reserva pagada se marca su pago como reembolsado.
+     */
+    public function test_cancelar_reserva_pagada_marca_pago_como_reembolsado(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $pago = \App\Models\Pago::create([
+            'monto' => 50.00,
+            'metodo' => 'paypal',
+            'estado' => 'completado',
+            'id_reserva' => $reserva->id
+        ]);
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'cancelada'
+            ]);
+
+        $response->assertStatus(200);
+        $pago->refresh();
+        $this->assertEquals('reembolsado', $pago->estado);
+    }
+
+    /**
+     * Test de que el comando de cancelación automática cancela las reservas reprogramadas no confirmadas a tiempo.
+     */
+    public function test_comando_cancela_automaticamente_reservas_reprogramadas_no_confirmadas_a_tiempo(): void
+    {
+        // 1. Configurar servicio con 10 horas de limite de cancelación
+        $this->servicio->update(['limite_cancelacion_horas' => 10]);
+
+        // 2. Crear una reserva pagada que comienza en 9 horas (ya pasó el límite de 10 horas antes del inicio)
+        $inicio = Carbon::now()->addHours(9);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 3. Simular que fue reprogramada por el cliente guardándolo en la caché
+        \Illuminate\Support\Facades\Cache::put("reprogramada_por_cliente_{$reserva->id}", true, now()->addDays(1));
+
+        // 4. Ejecutar el comando
+        $this->artisan('turnos:cancelar-no-confirmados')
+            ->expectsOutput("Cancelando automáticamente reserva #{$reserva->id} reprogramada y no confirmada a tiempo.")
+            ->assertExitCode(0);
+
+        // 5. Verificar que la reserva fue cancelada en la base de datos (eliminada lógicamente)
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CANCELADA->value, \App\Models\Reserva::withTrashed()->find($reserva->id)->estado->value);
+        
+        // 6. Verificar que el flag de la caché fue limpiado
+        $this->assertFalse(\Illuminate\Support\Facades\Cache::has("reprogramada_por_cliente_{$reserva->id}"));
+    }
+
+    /**
+     * Test de que el comando de cancelación automática cancela las reservas pendientes no confirmadas a tiempo.
+     */
+    public function test_comando_cancela_automaticamente_reservas_pendientes_no_confirmadas_a_tiempo(): void
+    {
+        // 1. Configurar servicio con 10 horas de limite de cancelación
+        $this->servicio->update(['limite_cancelacion_horas' => 10]);
+
+        // 2. Crear una reserva pendiente que comienza en 9 horas (ya pasó el límite de 10 horas antes del inicio)
+        $inicio = Carbon::now()->addHours(9);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 3. Ejecutar el comando
+        $this->artisan('turnos:cancelar-no-confirmados')
+            ->expectsOutput("Cancelando automáticamente reserva pendiente #{$reserva->id} no pagada/confirmada a tiempo.")
+            ->assertExitCode(0);
+
+        // 4. Verificar que la reserva fue cancelada en la base de datos (eliminada lógicamente)
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::CANCELADA->value, \App\Models\Reserva::withTrashed()->find($reserva->id)->estado->value);
+    }
+
+    /**
+     * Test de que se pueden marcar todas las notificaciones como leídas.
+     */
+    public function test_usuario_puede_marcar_todas_las_notificaciones_como_leidas(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PENDIENTE,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $this->clienteUser->notify(new \App\Notifications\ReservaEstadoNotificacion(
+            $reserva, "Titulo 1", "Mensaje 1"
+        ));
+        $this->clienteUser->notify(new \App\Notifications\ReservaEstadoNotificacion(
+            $reserva, "Titulo 2", "Mensaje 2"
+        ));
+
+        $this->assertEquals(2, $this->clienteUser->unreadNotifications()->count());
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson('/api/auth/notificaciones/marcar-todas-leidas');
+
+        $response->assertStatus(200);
+        $this->assertEquals(0, $this->clienteUser->unreadNotifications()->count());
+    }
+
+    /**
+     * Test de obtener la reserva actual para cliente (solo videollamadas).
+     */
+    public function test_obtener_reserva_actual_cliente_retorna_solo_videollamada(): void
+    {
+        // 1. Crear reserva remota activa ahora
+        $inicio = Carbon::now()->subMinutes(10);
+        $fin = Carbon::now()->addMinutes(50);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => $fin,
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson('/api/reservas/actual');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.id', $reserva->id);
+
+        // 2. Modificar modalidad a presencial y verificar que no la retorna para el cliente
+        $this->servicio->update(['modalidad' => 'presencial']);
+        
+        $response2 = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson('/api/reservas/actual');
+            
+        $response2->assertStatus(200);
+        $response2->assertJsonPath('data', null);
+    }
+
+    /**
+     * Test de obtener la reserva actual para el profesional (incluye presencial).
+     */
+    public function test_obtener_reserva_actual_profesional_retorna_cualquier_modalidad(): void
+    {
+        $this->servicio->update(['modalidad' => 'presencial']);
+        $inicio = Carbon::now()->subMinutes(10);
+        $fin = Carbon::now()->addMinutes(50);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => $fin,
+            'estado' => \App\Enums\EstadoReservaEnum::CONFIRMADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $response = $this->actingAs($this->profesionalUser, 'sanctum')
+            ->getJson('/api/reservas/actual');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.id', $reserva->id);
+    }
+
+    /**
+     * Test de que el cliente puede iniciar la reserva (transición a en_curso).
+     */
+    public function test_cliente_puede_iniciar_reserva_en_curso(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::PAGADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->patchJson("/api/reservas/{$reserva->id}/estado", [
+                'estado' => 'en_curso'
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::EN_CURSO->value, $reserva->fresh()->estado->value);
+    }
+
+    /**
+     * Test del comando de auto-finalización con margen de 5 minutos.
+     */
+    public function test_comando_finaliza_reservas_expiradas_con_margen_de_5_minutos(): void
+    {
+        // 1. Reserva expirada hace 6 minutos (debe finalizar)
+        $inicio1 = Carbon::now()->subMinutes(66);
+        $fin1 = Carbon::now()->subMinutes(6);
+        $reserva1 = Reserva::create([
+            'fecha_hora_inicio' => $inicio1,
+            'fecha_hora_fin' => $fin1,
+            'estado' => \App\Enums\EstadoReservaEnum::EN_CURSO,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 2. Reserva expirada hace 3 minutos (no debe finalizar por el margen de 5 min)
+        $inicio2 = Carbon::now()->subMinutes(63);
+        $fin2 = Carbon::now()->subMinutes(3);
+        $reserva2 = Reserva::create([
+            'fecha_hora_inicio' => $inicio2,
+            'fecha_hora_fin' => $fin2,
+            'estado' => \App\Enums\EstadoReservaEnum::EN_CURSO,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        $this->artisan('turnos:finalizar-expirados')
+            ->expectsOutput("Finalizando automáticamente reserva #{$reserva1->id} por expiración de tiempo (con margen de 5 min).")
+            ->assertExitCode(0);
+
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::FINALIZADA->value, $reserva1->fresh()->estado->value);
+        $this->assertEquals(\App\Enums\EstadoReservaEnum::EN_CURSO->value, $reserva2->fresh()->estado->value);
+    }
+
+    /**
+     * Test de que ReservaResource incluye el flag calificada correctamente.
+     */
+    public function test_reserva_resource_incluye_flag_calificada(): void
+    {
+        $inicio = Carbon::tomorrow()->setHour(10)->setMinute(0);
+        $reserva = Reserva::create([
+            'fecha_hora_inicio' => $inicio,
+            'fecha_hora_fin' => (clone $inicio)->addMinutes(60),
+            'estado' => \App\Enums\EstadoReservaEnum::FINALIZADA,
+            'id_cliente' => $this->clienteUser->id,
+            'id_servicio' => $this->servicio->id
+        ]);
+
+        // 1. Verificar calificada = false
+        $response = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson("/api/reservas/{$reserva->id}");
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.calificada', false);
+
+        // 2. Crear calificacion
+        \App\Models\Calificacion::create([
+            'puntuacion' => 5,
+            'comentario' => 'Excelente servicio',
+            'id_reserva' => $reserva->id
+        ]);
+
+        // 3. Verificar calificada = true
+        $response2 = $this->actingAs($this->clienteUser, 'sanctum')
+            ->getJson("/api/reservas/{$reserva->id}");
+        $response2->assertStatus(200);
+        $response2->assertJsonPath('data.calificada', true);
     }
 }
 

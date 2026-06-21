@@ -172,11 +172,29 @@
                     </div>
                   </v-col>
                   <v-col cols="12" sm="6">
-                    <div class="d-flex align-center bg-grey-lighten-5 pa-4 rounded-lg border">
-                      <v-avatar color="error" variant="tonal" class="mr-3"><v-icon>mdi-map-marker-radius</v-icon></v-avatar>
+                    <v-tooltip v-if="profesionalDetalle.ubicacion" text="Ver en el mapa" location="top">
+                      <template v-slot:activator="{ props }">
+                        <div 
+                          v-bind="props"
+                          class="d-flex align-center bg-grey-lighten-5 pa-4 rounded-lg border cursor-pointer hover-location-box"
+                          @click="openMap(profesionalDetalle)"
+                        >
+                          <v-avatar color="error" variant="tonal" class="mr-3"><v-icon>mdi-map-marker-radius</v-icon></v-avatar>
+                          <div>
+                            <div class="text-caption text-medium-emphasis">Ubicación</div>
+                            <strong class="text-body-1 text-primary text-decoration-underline">{{ profesionalDetalle.ubicacion }}</strong>
+                          </div>
+                        </div>
+                      </template>
+                    </v-tooltip>
+                    <div 
+                      v-else
+                      class="d-flex align-center bg-grey-lighten-5 pa-4 rounded-lg border"
+                    >
+                      <v-avatar color="grey" variant="tonal" class="mr-3"><v-icon>mdi-map-marker-off</v-icon></v-avatar>
                       <div>
                         <div class="text-caption text-medium-emphasis">Ubicación</div>
-                        <strong class="text-body-1 text-grey-darken-3">{{ profesionalDetalle.ubicacion || 'No especificada' }}</strong>
+                        <strong class="text-body-1 text-grey-darken-3">No especificada</strong>
                       </div>
                     </div>
                   </v-col>
@@ -211,7 +229,7 @@
                           size="small" 
                           color="primary" 
                           class="text-none font-weight-bold rounded-lg"
-                          @click="reservarServicio(service.id)"
+                          @click="reservarServicio(service)"
                         >
                           Reservar
                         </v-btn>
@@ -268,15 +286,78 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Map Dialog -->
+    <v-dialog v-model="mapDialog" max-width="700" persistent>
+      <v-card class="rounded-xl overflow-hidden">
+        <div class="map-dialog-header pa-4 d-flex align-center justify-space-between">
+          <div class="d-flex align-center">
+            <v-icon color="white" class="mr-3" size="28">mdi-map-marker-radius</v-icon>
+            <div>
+              <div class="text-h6 font-weight-bold text-white">{{ selectedProfessional?.nombre }}</div>
+              <div class="text-caption text-white" style="opacity: 0.85;">{{ selectedProfessional?.ubicacion }}</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" @click="closeMap" size="small">
+            <v-icon color="white">mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="mapLoading" class="d-flex flex-column align-center justify-center" style="height: 400px;">
+          <v-progress-circular indeterminate color="primary" size="48" class="mb-4"></v-progress-circular>
+          <div class="text-body-1 text-medium-emphasis">Buscando ubicación...</div>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="mapError" class="d-flex flex-column align-center justify-center pa-8" style="height: 400px;">
+          <v-icon size="64" color="warning" class="mb-4">mdi-map-marker-question</v-icon>
+          <div class="text-h6 font-weight-bold text-grey-darken-2 mb-2">Ubicación no encontrada</div>
+          <div class="text-body-2 text-medium-emphasis text-center mb-4">
+            No se pudo encontrar la dirección:<br/>
+            <strong>"{{ selectedProfessional?.ubicacion }}"</strong>
+          </div>
+          <v-btn color="primary" variant="tonal" class="text-none" @click="closeMap">
+            Cerrar
+          </v-btn>
+        </div>
+
+        <!-- Map Container -->
+        <div v-else id="map-container" style="height: 400px; width: 100%;"></div>
+
+        <div v-if="!mapLoading && !mapError" class="pa-4 bg-grey-lighten-4">
+          <div class="d-flex align-center justify-space-between">
+            <div class="d-flex align-center">
+              <v-icon size="small" class="mr-2" color="primary">mdi-information-outline</v-icon>
+              <span class="text-caption text-medium-emphasis">Ubicación aproximada basada en la dirección</span>
+            </div>
+            <v-btn 
+              v-if="mapCoords" 
+              size="small" 
+              color="primary" 
+              variant="tonal" 
+              class="text-none"
+              :href="`https://www.google.com/maps/search/?api=1&query=${mapCoords.lat},${mapCoords.lng}`"
+              target="_blank"
+            >
+              <v-icon size="small" class="mr-1">mdi-google-maps</v-icon>
+              Abrir en Google Maps
+            </v-btn>
+          </div>
+        </div>
+      </v-card>
+    </v-dialog>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import ReviewCard from '../components/ReviewCard.vue'
 import { useAuth } from '../composables/useAuth.js'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -285,6 +366,7 @@ const { getAuthHeaders } = useAuth()
 const isLoading = ref(true)
 const profesionales = ref([])
 const tab = ref('about')
+const navegandoIntencionalmente = ref(false)
 
 // Detail modal states
 const dialogDetalle = ref(false)
@@ -364,7 +446,12 @@ watch(() => route.query.id, (newId) => {
 // Watch dialog close to clean query params
 watch(dialogDetalle, (isOpen) => {
   if (!isOpen && route.query.id) {
-    router.push({ name: 'profesionales' })
+    // Si se está navegando intencionalmente (ej: al presionar Reservar)
+    // no redirigir de vuelta a la lista de profesionales
+    if (!navegandoIntencionalmente.value) {
+      router.push({ name: 'profesionales' })
+    }
+    navegandoIntencionalmente.value = false
   }
 })
 
@@ -386,9 +473,153 @@ const getModalityColor = (modality) => {
   }
 }
 
-const reservarServicio = (id_servicio) => {
+const reservarServicio = (service) => {
+  // Marcar que estamos navegando intencionalmente para evitar que el
+  // watcher del diálogo sobreescriba nuestra navegación
+  navegandoIntencionalmente.value = true
   dialogDetalle.value = false
-  router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: id_servicio } })
+  // Navegar directamente a Reservas con el servicio pre-seleccionado
+  router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: service.id } })
+}
+
+// ===== Map Functions =====
+const mapDialog = ref(false)
+const mapLoading = ref(false)
+const mapError = ref(false)
+const selectedProfessional = ref(null)
+const mapCoords = ref(null)
+const mapBoundingBox = ref(null)
+let mapInstance = null
+
+const openMap = async (prof) => {
+  selectedProfessional.value = prof
+  mapDialog.value = true
+  mapLoading.value = true
+  mapError.value = false
+  mapCoords.value = null
+  mapBoundingBox.value = null
+
+  try {
+    const address = encodeURIComponent(prof.ubicacion)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${address}&limit=1`,
+      { headers: { 'Accept-Language': 'es' } }
+    )
+    const results = await response.json()
+
+    if (results.length === 0) {
+      mapError.value = true
+      return
+    }
+
+    const firstResult = results[0]
+    const { lat, lon, place_rank, boundingbox } = firstResult
+    mapCoords.value = { lat: parseFloat(lat), lng: parseFloat(lon) }
+    mapBoundingBox.value = boundingbox
+    
+    // Determinar nivel de zoom de forma inteligente para fallback:
+    // Si place_rank >= 26 es una calle o edificio específico -> zoom 16
+    // Si está entre 17 y 25 es un barrio o código postal -> zoom 14
+    // Si es 16 es una ciudad -> zoom 13
+    // Si < 16 es un departamento o país -> zoom 12
+    let zoomLevel = 16
+    if (place_rank !== undefined) {
+      if (place_rank < 16) {
+        zoomLevel = 12
+      } else if (place_rank === 16) {
+        zoomLevel = 13
+      } else if (place_rank < 26) {
+        zoomLevel = 14
+      }
+    }
+    
+    mapLoading.value = false
+
+    await nextTick()
+    setTimeout(() => initMap(zoomLevel), 100)
+  } catch (error) {
+    console.error('Geocoding error:', error)
+    mapError.value = true
+  } finally {
+    mapLoading.value = false
+  }
+}
+
+const initMap = (zoomLevel) => {
+  const container = document.getElementById('map-container')
+  if (!container || !mapCoords.value) return
+
+  if (mapInstance) {
+    mapInstance.remove()
+    mapInstance = null
+  }
+
+  const { lat, lng } = mapCoords.value
+  mapInstance = L.map('map-container')
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(mapInstance)
+
+  // Ajustar la vista con el bounding box de forma inteligente
+  if (mapBoundingBox.value && mapBoundingBox.value.length === 4) {
+    const bounds = [
+      [parseFloat(mapBoundingBox.value[0]), parseFloat(mapBoundingBox.value[2])],
+      [parseFloat(mapBoundingBox.value[1]), parseFloat(mapBoundingBox.value[3])]
+    ]
+    const latDiff = Math.abs(bounds[0][0] - bounds[1][0])
+    const lngDiff = Math.abs(bounds[0][1] - bounds[1][1])
+
+    // Si el área es muy pequeña (ej. dirección exacta/casa), centrar con zoom 16.
+    // De lo contrario, ajustar los límites al área general (fitBounds).
+    if (latDiff < 0.005 && lngDiff < 0.005) {
+      mapInstance.setView([lat, lng], 16)
+    } else {
+      mapInstance.fitBounds(bounds, { maxZoom: 16, padding: [10, 10] })
+    }
+  } else {
+    mapInstance.setView([lat, lng], zoomLevel)
+  }
+
+  const customIcon = L.divIcon({
+    html: `<div class="custom-marker">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="#8C6D46">
+               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+             </svg>
+           </div>`,
+    className: 'custom-div-icon',
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+  })
+
+  const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance)
+
+  const popupContent = `
+    <div style="font-family: Inter, sans-serif; min-width: 200px;">
+      <div style="font-weight: 700; font-size: 14px; color: #333; margin-bottom: 4px;">
+        ${selectedProfessional.value.nombre}
+      </div>
+      <div style="font-size: 12px; color: #666;">
+        📍 ${selectedProfessional.value.ubicacion}
+      </div>
+    </div>
+  `
+  marker.bindPopup(popupContent).openPopup()
+
+  setTimeout(() => mapInstance.invalidateSize(), 200)
+}
+
+const closeMap = () => {
+  mapDialog.value = false
+  if (mapInstance) {
+    mapInstance.remove()
+    mapInstance = null
+  }
+  selectedProfessional.value = null
+  mapCoords.value = null
+  mapBoundingBox.value = null
 }
 </script>
 
@@ -441,5 +672,30 @@ const reservarServicio = (id_servicio) => {
 }
 .italic {
   font-style: italic;
+}
+.hover-location-box {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.hover-location-box:hover {
+  background-color: rgba(var(--v-theme-primary), 0.08) !important;
+  border-color: rgba(140, 109, 70, 0.3) !important;
+}
+.map-dialog-header {
+  background: linear-gradient(135deg, #8C6D46 0%, #6B5235 100%);
+}
+/* Leaflet overrides */
+.custom-div-icon {
+  background: transparent;
+  border: none;
+}
+.custom-marker {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));
+  animation: marker-bounce 0.5s ease-out;
+}
+@keyframes marker-bounce {
+  0% { transform: translateY(-20px); opacity: 0; }
+  60% { transform: translateY(4px); }
+  100% { transform: translateY(0); opacity: 1; }
 }
 </style>

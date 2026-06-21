@@ -27,6 +27,7 @@ class StoreDisponibilidadRequest extends FormRequest
             'dia_semana' => ['required', Rule::enum(DiaSemanaEnum::class)],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
+            'pausa_inicio' => ['nullable', 'date_format:H:i'],
             'pausa_minutos' => ['nullable', 'integer', 'min:0'],
             'buffer_minutos' => ['nullable', 'integer', 'min:0'],
         ];

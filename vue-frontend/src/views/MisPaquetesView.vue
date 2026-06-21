@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout title="Mis Paquetes Adquiridos">
+  <DashboardLayout title="Paquetes Adquiridos">
     <!-- Header visual -->
     <v-row class="mb-6">
       <v-col cols="12">
@@ -9,9 +9,9 @@
               <v-icon size="36" color="primary">mdi-briefcase-account</v-icon>
             </v-avatar>
             <div>
-              <h1 class="text-h4 font-weight-bold mb-2">Mi Inventario de Paquetes</h1>
+              <h1 class="text-h4 font-weight-bold mb-2">Inventario de Paquetes</h1>
               <p class="text-body-1 opacity-80 mb-0">
-                Consulta tus paquetes activos, revisa tus sesiones disponibles y haz seguimiento a tus transacciones.
+                Consulta tus paquetes adquiridos, revisa tus sesiones disponibles por servicio y haz seguimiento a tus transacciones.
               </p>
             </div>
           </div>
@@ -60,21 +60,38 @@
               </v-chip>
             </div>
 
-            <!-- Sessions remaining visual tracker -->
-            <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-4 text-center">
-              <div class="text-caption text-medium-emphasis font-weight-bold mb-1">SESIONES DISPONIBLES</div>
-              <div class="d-flex justify-center align-baseline mb-2">
-                <span class="text-h3 font-weight-black text-primary">{{ compra.sesiones_disponibles }}</span>
-                <span class="text-h6 text-medium-emphasis font-weight-bold mx-1">/</span>
-                <span class="text-h5 text-medium-emphasis font-weight-medium">{{ compra.paquete?.cantidad_sesiones || 0 }}</span>
-              </div>
-              <v-progress-linear
-                :model-value="(compra.sesiones_disponibles / (compra.paquete?.cantidad_sesiones || 1)) * 100"
-                color="primary"
-                height="6"
-                rounded
-                class="mt-1"
-              ></v-progress-linear>
+            <!-- Sessions remaining breakdown per service -->
+            <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-4">
+              <template v-if="compra.servicios_tracker && compra.servicios_tracker.length > 0">
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2 text-center">SESIONES DISPONIBLES POR SERVICIO</div>
+                <div v-for="tracker in compra.servicios_tracker" :key="tracker.id" class="mb-3">
+                  <div class="d-flex justify-space-between align-center text-body-2 mb-1">
+                    <span class="font-weight-medium text-grey-darken-3">{{ tracker.nombre }}</span>
+                    <span class="font-weight-bold text-primary">{{ tracker.sesiones_disponibles }} / {{ tracker.sesiones_totales }}</span>
+                  </div>
+                  <v-progress-linear
+                    :model-value="(tracker.sesiones_disponibles / (tracker.sesiones_totales || 1)) * 100"
+                    color="primary"
+                    height="6"
+                    rounded
+                  ></v-progress-linear>
+                </div>
+              </template>
+              <template v-else>
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2 text-center">SESIONES DISPONIBLES</div>
+                <div v-for="s in compra.paquete?.servicios || []" :key="s.id" class="mb-3">
+                  <div class="d-flex justify-space-between align-center text-body-2 mb-1">
+                    <span class="font-weight-medium text-grey-darken-3">{{ s.nombre }}</span>
+                    <span class="font-weight-bold text-medium-emphasis">0 / {{ s.cantidad_sesiones }} (Pendiente)</span>
+                  </div>
+                  <v-progress-linear
+                    :model-value="0"
+                    color="grey"
+                    height="6"
+                    rounded
+                  ></v-progress-linear>
+                </div>
+              </template>
             </div>
 
             <!-- Date and payment details -->
@@ -98,7 +115,8 @@
                   size="x-small"
                   color="secondary"
                   variant="tonal"
-                  class="font-weight-medium"
+                  class="font-weight-medium cursor-pointer"
+                  @click.stop="buscarServicio(s.nombre)"
                 >
                   {{ s.nombre }}
                 </v-chip>
@@ -138,25 +156,55 @@
                   variant="outlined"
                   class="text-none font-weight-bold rounded-lg"
                   prepend-icon="mdi-trash-can-outline"
-                  @click="cancelarCompra(compra.id)"
+                  @click="abrirCancelarCompra(compra.id)"
                   :loading="isSubmitting"
                 >
                   Cancelar
                 </v-btn>
               </div>
             </template>
+            <template v-else-if="compra.estado === 'activo'">
+              <div class="d-flex flex-column gap-2 w-100">
+                <v-btn
+                  block
+                  color="secondary"
+                  variant="tonal"
+                  class="text-none font-weight-bold rounded-lg"
+                  prepend-icon="mdi-calendar-clock"
+                  :disabled="compra.sesiones_disponibles <= 0"
+                  @click="abrirAgendarServicio(compra)"
+                >
+                  Elegir fecha del servicio
+                </v-btn>
+                <v-btn
+                  block
+                  color="error"
+                  variant="outlined"
+                  class="text-none font-weight-bold rounded-lg mt-1"
+                  prepend-icon="mdi-cancel"
+                  @click="abrirCancelarPaquete(compra)"
+                >
+                  Cancelar Paquete
+                </v-btn>
+              </div>
+            </template>
             <template v-else>
-              <v-btn
-                block
-                color="secondary"
-                variant="tonal"
-                class="text-none font-weight-bold rounded-lg"
-                prepend-icon="mdi-calendar-plus"
-                to="/mis-reservas"
-                :disabled="compra.estado !== 'activo' || compra.sesiones_disponibles <= 0"
-              >
-                Reservar con Paquete
-              </v-btn>
+              <div class="d-flex flex-column gap-2 w-100">
+                <div class="text-center text-caption text-medium-emphasis py-1 font-weight-bold text-uppercase mb-1">
+                  Paquete {{ compra.estado }}
+                </div>
+                <v-btn
+                  block
+                  color="grey-darken-1"
+                  variant="outlined"
+                  class="text-none font-weight-bold rounded-lg"
+                  prepend-icon="mdi-delete-sweep-outline"
+                  @click="abrirLimpiarPaquete(compra.id)"
+                  :loading="isSubmitting"
+                >
+                  Limpiar del Historial
+                </v-btn>
+              </div>
             </template>
           </div>
         </v-card>
@@ -302,20 +350,6 @@
                 </div>
               </v-expand-transition>
 
-              <!-- Error simulation switch -->
-              <v-divider class="my-4"></v-divider>
-              <div class="d-flex align-center justify-space-between bg-red-lighten-5 pa-3 rounded-lg border-red">
-                <div>
-                  <div class="text-caption font-weight-bold text-red-darken-3">Simulador de Pruebas</div>
-                  <div class="text-caption text-red-darken-2">Activa para probar flujo de pago fallido</div>
-                </div>
-                <v-switch
-                  v-model="simulateError"
-                  color="error"
-                  hide-details
-                  density="compact"
-                ></v-switch>
-              </div>
             </div>
           </v-card-text>
 
@@ -344,6 +378,247 @@
       </v-card>
     </v-dialog>
 
+    <!-- MODAL CANCELAR PAQUETE ACTIVO -->
+    <v-dialog v-model="cancelarDialog" max-width="500" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header-error bg-red pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-alert-circle-outline</v-icon>
+          <h3 class="text-h5 font-weight-bold">Cancelar Paquete</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Esta acción no se puede deshacer</p>
+        </div>
+
+        <v-card-text class="pa-6">
+          <v-alert type="warning" variant="tonal" class="mb-4 rounded-lg text-left" color="warning">
+            <strong>Atención:</strong> Al cancelar este paquete, se anularán de forma definitiva todas las sesiones restantes sin derecho a reembolso o reclamo.
+          </v-alert>
+
+          <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-6" v-if="selectedCancelPurchase">
+            <div class="d-flex justify-space-between align-center mb-2">
+              <span class="text-body-2 text-medium-emphasis">Paquete:</span>
+              <strong class="text-body-1 text-grey-darken-3">{{ selectedCancelPurchase.paquete?.nombre }}</strong>
+            </div>
+            <div class="d-flex justify-space-between align-center mb-2">
+              <span class="text-body-2 text-medium-emphasis">Sesiones Restantes:</span>
+              <strong class="text-body-1 text-red font-weight-bold">{{ selectedCancelPurchase.sesiones_disponibles }} sesiones</strong>
+            </div>
+          </div>
+
+          <v-checkbox
+            v-model="confirmCancelCheckbox"
+            color="error"
+            label="Comprendo que perderé las sesiones restantes y confirmo la cancelación definitiva del paquete."
+            hide-details
+            class="mt-2"
+          ></v-checkbox>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmitting"
+            @click="cancelarDialog = false"
+          >
+            Cerrar
+          </v-btn>
+          <v-btn
+            color="error"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmitting"
+            :disabled="!confirmCancelCheckbox"
+            @click="ejecutarCancelarPaquete"
+          >
+            Confirmar Cancelación
+            <v-icon end>mdi-check-circle-outline</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL AGENDAR SERVICIO DE PAQUETE -->
+    <v-dialog v-model="dialogAgendar" max-width="550" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-calendar-clock</v-icon>
+          <h3 class="text-h5 font-weight-bold">Elegir fecha del servicio</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Reserva una sesión usando tu paquete</p>
+        </div>
+
+        <v-card-text class="pa-6" style="max-height: 70vh; overflow-y: auto;">
+          <v-alert v-if="errorAgendar" type="error" variant="tonal" class="mb-4 rounded-lg">
+            {{ errorAgendar }}
+          </v-alert>
+
+          <div v-if="selectedAgendarCompra">
+            <!-- Paso 1: Seleccionar Servicio -->
+            <div class="mb-4">
+              <label class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2 d-block">1. Selecciona el servicio a utilizar:</label>
+              <v-select
+                v-model="selectedServiceId"
+                :items="serviciosDisponiblesParaReserva"
+                item-title="nombre"
+                item-value="id"
+                label="Servicios disponibles en este paquete"
+                variant="outlined"
+                density="comfortable"
+                color="primary"
+                no-data-text="No hay servicios con sesiones disponibles"
+              ></v-select>
+            </div>
+
+            <!-- Paso 2: Seleccionar Fecha -->
+            <v-expand-transition>
+              <div v-if="selectedServiceId" class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2 d-block">2. Selecciona la fecha:</label>
+                <v-text-field
+                  v-model="selectedDate"
+                  type="date"
+                  label="Fecha de la reserva"
+                  variant="outlined"
+                  density="comfortable"
+                  color="primary"
+                  :min="minDate"
+                  @change="buscarTurnosDisponibles"
+                ></v-text-field>
+              </div>
+            </v-expand-transition>
+
+            <!-- Paso 3: Seleccionar Hora -->
+            <v-expand-transition>
+              <div v-if="selectedServiceId && selectedDate" class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold text-grey-darken-3 mb-2 d-block">3. Selecciona la hora:</label>
+                
+                <div v-if="cargandoSlots" class="text-center py-4">
+                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                  <div class="text-caption text-primary mt-2">Buscando horarios disponibles...</div>
+                </div>
+                
+                <div v-else-if="slotsDisponibles.length > 0">
+                  <div class="d-flex flex-wrap gap-2 justify-start">
+                    <v-btn
+                      v-for="slot in slotsDisponibles"
+                      :key="slot"
+                      :color="selectedTime === slot ? 'primary' : 'grey-lighten-3'"
+                      variant="flat"
+                      class="text-none font-weight-bold rounded-lg"
+                      @click="selectedTime = slot"
+                    >
+                      {{ slot }}
+                    </v-btn>
+                  </div>
+                </div>
+
+                <v-alert v-else type="info" variant="tonal" class="rounded-lg" color="warning">
+                  No hay horarios disponibles para esta fecha. Por favor, selecciona otro día o revisa la disponibilidad del profesional.
+                </v-alert>
+              </div>
+            </v-expand-transition>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmittingAgendar"
+            @click="cerrarAgendarServicio"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="secondary"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmittingAgendar"
+            :disabled="!selectedServiceId || !selectedDate || !selectedTime"
+            @click="confirmarAgendarServicio"
+          >
+            Confirmar Cita
+            <v-icon end>mdi-calendar-check</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL CONFIRMAR LIMPIAR PAQUETE -->
+    <v-dialog v-model="limpiarDialog" max-width="500" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header-warning pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-delete-alert-outline</v-icon>
+          <h3 class="text-h5 font-weight-bold">Remover del Inventario</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Confirma la eliminación del paquete</p>
+        </div>
+
+        <v-card-text class="pa-6 text-center text-body-1 text-grey-darken-3">
+          ¿Estás seguro de que deseas remover este paquete de tu inventario?
+          <div class="text-caption text-medium-emphasis mt-2">
+            Esta acción lo quitará definitivamente de tu historial de adquisiciones y no se podrá deshacer.
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmitting"
+            @click="limpiarDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="warning"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmitting"
+            @click="ejecutarLimpiarPaquete"
+          >
+            Remover
+            <v-icon end>mdi-delete</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL CONFIRMAR CANCELAR COMPRA PENDIENTE -->
+    <v-dialog v-model="cancelarCompraPendienteDialog" max-width="500" persistent>
+      <v-card class="rounded-xl overflow-hidden pa-0">
+        <div class="dialog-header-error pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-alert-circle-outline</v-icon>
+          <h3 class="text-h5 font-weight-bold">Cancelar Adquisición</h3>
+          <p class="text-subtitle-2 opacity-80 mb-0">Confirma la cancelación</p>
+        </div>
+
+        <v-card-text class="pa-6 text-center text-body-1 text-grey-darken-3">
+          ¿Estás seguro de que deseas cancelar la adquisición de este paquete?
+          <div class="text-caption text-medium-emphasis mt-2">
+            Esta acción cancelará la solicitud de compra y eliminará el paquete pendiente de tu lista.
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 pt-0 d-flex justify-end">
+          <v-btn
+            variant="outlined"
+            color="grey-darken-1"
+            class="mr-3 px-6 text-none font-weight-bold"
+            :disabled="isSubmitting"
+            @click="cancelarCompraPendienteDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="error"
+            class="px-8 text-none font-weight-bold elevation-2 text-white"
+            :loading="isSubmitting"
+            @click="ejecutarCancelarCompra"
+          >
+            Confirmar
+            <v-icon end>mdi-check-circle-outline</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Global Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" location="top">
       {{ snackbar.text }}
@@ -355,9 +630,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
+const router = useRouter()
 const isLoading = ref(true)
 const purchases = ref([])
 
@@ -379,6 +656,28 @@ const datosPago = ref({
 const paypalLoaded = ref(false)
 const cargandoPaypalSdk = ref(false)
 const paypalClientId = ref('')
+
+// Cancellation states
+const cancelarDialog = ref(false)
+const selectedCancelPurchase = ref(null)
+const confirmCancelCheckbox = ref(false)
+
+// Booking / Agendar states
+const dialogAgendar = ref(false)
+const selectedAgendarCompra = ref(null)
+const selectedServiceId = ref(null)
+const selectedDate = ref('')
+const selectedTime = ref('')
+const cargandoSlots = ref(false)
+const slotsDisponibles = ref([])
+const errorAgendar = ref('')
+const isSubmittingAgendar = ref(false)
+
+const minDate = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]
+
+const buscarServicio = (nombre) => {
+  router.push({ name: 'search', query: { q: nombre } })
+}
 
 const loadPurchases = async () => {
   isLoading.value = true
@@ -467,7 +766,7 @@ const processPurchase = async () => {
       snackbar.value = {
         show: true,
         text: paymentMethod.value === 'efectivo'
-          ? '¡Solicitud de pago en efectivo registrada! El paquete ha sido habilitado.'
+          ? '¡Solicitud de pago en efectivo registrada! Esperando aprobación del profesional.'
           : '¡Pago completado con éxito! El paquete ha sido habilitado.',
         color: 'success'
       }
@@ -484,12 +783,20 @@ const processPurchase = async () => {
   }
 }
 
-const cancelarCompra = async (id) => {
-  if (!confirm('¿Estás seguro de que deseas cancelar la adquisición de este paquete?')) return
+const cancelarCompraPendienteDialog = ref(false)
+const compraPendienteACancelarId = ref(null)
+
+const abrirCancelarCompra = (id) => {
+  compraPendienteACancelarId.value = id
+  cancelarCompraPendienteDialog.value = true
+}
+
+const ejecutarCancelarCompra = async () => {
+  if (!compraPendienteACancelarId.value) return
   isSubmitting.value = true
   const token = localStorage.getItem('auth_token')
   try {
-    const res = await fetch(`/api/mis-paquetes/${id}`, {
+    const res = await fetch(`/api/mis-paquetes/${compraPendienteACancelarId.value}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -500,6 +807,42 @@ const cancelarCompra = async (id) => {
     if (!res.ok) throw new Error((await res.json()).message || 'Error al cancelar la compra')
 
     snackbar.value = { show: true, text: 'Compra de paquete cancelada y eliminada.', color: 'error' }
+    cancelarCompraPendienteDialog.value = false
+    compraPendienteACancelarId.value = null
+    loadPurchases()
+  } catch (err) {
+    snackbar.value = { show: true, text: err.message, color: 'error' }
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const limpiarDialog = ref(false)
+const packageToLimpiarId = ref(null)
+
+const abrirLimpiarPaquete = (id) => {
+  packageToLimpiarId.value = id
+  limpiarDialog.value = true
+}
+
+const ejecutarLimpiarPaquete = async () => {
+  if (!packageToLimpiarId.value) return
+  isSubmitting.value = true
+  const token = localStorage.getItem('auth_token')
+  try {
+    const res = await fetch(`/api/mis-paquetes/${packageToLimpiarId.value}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!res.ok) throw new Error((await res.json()).message || 'Error al eliminar el paquete')
+
+    snackbar.value = { show: true, text: 'El paquete ha sido eliminado de tu historial.', color: 'success' }
+    limpiarDialog.value = false
+    packageToLimpiarId.value = null
     loadPurchases()
   } catch (err) {
     snackbar.value = { show: true, text: err.message, color: 'error' }
@@ -534,7 +877,139 @@ const cancelarCompraDesdePago = async () => {
   }
 }
 
-import { watch } from 'vue'
+// Active Package Cancellation methods
+const abrirCancelarPaquete = (compra) => {
+  selectedCancelPurchase.value = compra
+  confirmCancelCheckbox.value = false
+  cancelarDialog.value = true
+}
+
+const ejecutarCancelarPaquete = async () => {
+  if (!selectedCancelPurchase.value || !confirmCancelCheckbox.value) return
+  isSubmitting.value = true
+  const token = localStorage.getItem('auth_token')
+  try {
+    const res = await fetch(`/api/mis-paquetes/${selectedCancelPurchase.value.id}/cancelar`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.message || 'Error al cancelar el paquete')
+
+    snackbar.value = { show: true, text: 'El paquete ha sido cancelado. Sesiones restantes anuladas.', color: 'error' }
+    cancelarDialog.value = false
+    selectedCancelPurchase.value = null
+    loadPurchases()
+  } catch (err) {
+    snackbar.value = { show: true, text: err.message, color: 'error' }
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// Booking / Agendar methods
+const abrirAgendarServicio = (compra) => {
+  selectedAgendarCompra.value = compra
+  selectedServiceId.value = null
+  selectedDate.value = ''
+  selectedTime.value = ''
+  slotsDisponibles.value = []
+  errorAgendar.value = ''
+  dialogAgendar.value = true
+}
+
+const cerrarAgendarServicio = () => {
+  dialogAgendar.value = false
+  selectedAgendarCompra.value = null
+  selectedServiceId.value = null
+  selectedDate.value = ''
+  selectedTime.value = ''
+  slotsDisponibles.value = []
+  errorAgendar.value = ''
+}
+
+const serviciosDisponiblesParaReserva = computed(() => {
+  if (!selectedAgendarCompra.value) return []
+  return (selectedAgendarCompra.value.servicios_tracker || []).filter(t => t.sesiones_disponibles > 0).map(t => ({
+    id: t.id,
+    nombre: `${t.nombre} (${t.sesiones_disponibles} de ${t.sesiones_totales} sesiones libres)`
+  }))
+})
+
+const buscarTurnosDisponibles = async () => {
+  if (!selectedServiceId.value || !selectedDate.value) return
+  cargandoSlots.value = true
+  slotsDisponibles.value = []
+  selectedTime.value = ''
+
+  const token = localStorage.getItem('auth_token')
+  try {
+    const res = await fetch(`/api/servicios/${selectedServiceId.value}/turnos?fecha=${selectedDate.value}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      slotsDisponibles.value = data.data || []
+    } else {
+      throw new Error('No se pudieron obtener los turnos disponibles.')
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    cargandoSlots.value = false
+  }
+}
+
+watch(selectedServiceId, () => {
+  buscarTurnosDisponibles()
+})
+
+const confirmarAgendarServicio = async () => {
+  if (!selectedServiceId.value || !selectedDate.value || !selectedTime.value || !selectedAgendarCompra.value) return
+  isSubmittingAgendar.value = true
+  errorAgendar.value = ''
+
+  const token = localStorage.getItem('auth_token')
+  const payload = {
+    id_servicio: selectedServiceId.value,
+    fecha_hora_inicio: `${selectedDate.value} ${selectedTime.value}:00`,
+    id_compra_paquete: selectedAgendarCompra.value.id
+  }
+
+  try {
+    const res = await fetch('/api/reservas', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.message || 'Error al agendar la cita')
+
+    snackbar.value = {
+      show: true,
+      text: '¡Cita agendada exitosamente con tu paquete!',
+      color: 'success'
+    }
+    cerrarAgendarServicio()
+    loadPurchases()
+  } catch (err) {
+    errorAgendar.value = err.message || 'No se pudo reservar el turno. Intenta nuevamente.'
+  } finally {
+    isSubmittingAgendar.value = false
+  }
+}
 
 const cargarPaypalSdk = async () => {
   if (paypalLoaded.value) return true
@@ -660,6 +1135,7 @@ const getStatusColor = (status) => {
     case 'activo': return 'success'
     case 'agotado': return 'grey'
     case 'vencido': return 'error'
+    case 'cancelado': return 'error'
     default: return 'warning'
   }
 }
@@ -700,6 +1176,12 @@ const formatDate = (dateStr) => {
 }
 .dialog-header {
   background: linear-gradient(135deg, #8C6D46 0%, #A6987A 100%);
+}
+.dialog-header-warning {
+  background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%);
+}
+.dialog-header-error {
+  background: #f44336;
 }
 .border-red {
   border: 1px solid rgba(244, 67, 54, 0.2);

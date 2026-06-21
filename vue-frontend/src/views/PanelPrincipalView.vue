@@ -220,41 +220,71 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Accesos Rápidos (Solo Profesionales) -->
+    <v-row class="mt-6" v-if="isProfesional && !isAdmin">
+      <v-col cols="12">
+        <h3 class="text-h5 font-weight-bold mb-2 text-grey-darken-4">Accesos Rápidos</h3>
+      </v-col>
+
+      <!-- Crear Servicio -->
+      <v-col cols="12" sm="4">
+        <v-card class="pa-6 rounded-xl elevation-1 h-100 d-flex flex-column card-hover cursor-pointer" @click="router.push('/services')">
+          <div class="d-flex align-center mb-4">
+            <v-avatar color="primary-lighten-4" size="48" class="mr-2">
+              <v-icon color="primary" size="24">mdi-briefcase-plus-outline</v-icon>
+            </v-avatar>
+            <h4 class="text-h6 font-weight-bold text-grey-darken-4 ml-2">Mis Servicios</h4>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-0 flex-grow-1">Crea y gestiona los servicios que ofreces a tus clientes.</p>
+        </v-card>
+      </v-col>
+
+      <!-- Mi Agenda -->
+      <v-col cols="12" sm="4">
+        <v-card class="pa-6 rounded-xl elevation-1 h-100 d-flex flex-column card-hover cursor-pointer" @click="router.push('/mi-agenda')">
+          <div class="d-flex align-center mb-4">
+            <v-avatar color="secondary-lighten-4" size="48" class="mr-2">
+              <v-icon color="secondary" size="24">mdi-calendar-multiselect-outline</v-icon>
+            </v-avatar>
+            <h4 class="text-h6 font-weight-bold text-grey-darken-4 ml-2">Mi Agenda</h4>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-0 flex-grow-1">Visualiza todos tus turnos programados en tu agenda diaria.</p>
+        </v-card>
+      </v-col>
+
+      <!-- Videollamadas -->
+      <v-col cols="12" sm="4">
+        <v-card class="pa-6 rounded-xl elevation-1 h-100 d-flex flex-column card-hover cursor-pointer" @click="router.push('/videollamadas')">
+          <div class="d-flex align-center mb-4">
+            <v-avatar color="info-lighten-4" size="48" class="mr-2">
+              <v-icon color="info" size="24">mdi-video-outline</v-icon>
+            </v-avatar>
+            <h4 class="text-h6 font-weight-bold text-grey-darken-4 ml-2">Videollamadas</h4>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-0 flex-grow-1">Accede a tus sesiones remotas programadas con clientes.</p>
+        </v-card>
+      </v-col>
+    </v-row>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import { useAuth } from '../composables/useAuth.js'
 
 const router = useRouter()
+const { isCliente, isProfesional, isAdmin, user, getAuthHeaders } = useAuth()
 
-const getInitialName = () => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      if (user.nombre) return user.nombre.split(' ')[0]
-    } catch(e) {}
+const userName = computed(() => {
+  if (user.value && user.value.nombre) {
+    return user.value.nombre.split(' ')[0]
   }
   return ''
-}
+})
 
-const getUserRole = () => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      return user.role || ''
-    } catch(e) {}
-  }
-  return ''
-}
-
-const userName = ref(getInitialName())
-const isProfesional = ref(getUserRole() === 'profesional')
-const isAdmin = ref(getUserRole() === 'admin')
 const activeServicesCount = ref(0)
 const avgRating = ref('0.0')
 const searchQuery = ref('')
@@ -279,14 +309,9 @@ const handleSearch = () => {
   }
 }
 
-onMounted(async () => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) return
-
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/json'
-  }
+const cargarDatosDashboard = async () => {
+  const headers = getAuthHeaders()
+  if (!headers.Authorization) return
 
   try {
     // Fetch user info
@@ -294,11 +319,7 @@ onMounted(async () => {
 
     if (authResponse.ok) {
       const data = await authResponse.json()
-      if (data.user && data.user.nombre) {
-        userName.value = data.user.nombre.split(' ')[0]
-        isProfesional.value = data.user.role === 'profesional'
-        isAdmin.value = data.user.role === 'admin'
-        
+      if (data.user) {
         if (isProfesional.value && data.user.profesional) {
           avgRating.value = Number(data.user.profesional.reputacion).toFixed(1)
         }
@@ -319,16 +340,12 @@ onMounted(async () => {
 
     // Profesional: fetch services count
     if (isProfesional.value && !isAdmin.value) {
-      const userStr = localStorage.getItem('user')
-      if (userStr) {
+      if (user.value && user.value.id) {
         try {
-          const user = JSON.parse(userStr)
-          if (user.id) {
-            const servResponse = await fetch(`/api/servicios?id_profesional=${user.id}`, { headers })
-            if (servResponse.ok) {
-              const servData = await servResponse.json()
-              activeServicesCount.value = servData.data ? servData.data.length : 0
-            }
+          const servResponse = await fetch(`/api/servicios?id_profesional=${user.value.id}`, { headers })
+          if (servResponse.ok) {
+            const servData = await servResponse.json()
+            activeServicesCount.value = servData.data ? servData.data.length : 0
           }
         } catch (e) {}
       }
@@ -336,6 +353,20 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching dashboard data:', error)
   }
+}
+
+const handleReservaActualizada = (event) => {
+  console.log('Real-time event received in PanelPrincipalView:', event.detail)
+  cargarDatosDashboard()
+}
+
+onMounted(async () => {
+  await cargarDatosDashboard()
+  window.addEventListener('reserva-actualizada', handleReservaActualizada)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reserva-actualizada', handleReservaActualizada)
 })
 </script>
 

@@ -31,7 +31,6 @@
       </v-list-item>
 
       <v-divider></v-divider>
-
       <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-view-dashboard" title="Panel Principal" value="dashboard" to="/dashboard"></v-list-item>
         <!-- Admin Menu -->
@@ -42,28 +41,52 @@
 
         <!-- Cliente / Profesional Menu -->
         <template v-else>
-          <v-list-item v-if="isProfesional" prepend-icon="mdi-account-details" title="Mi Perfil" value="profile" to="/profile"></v-list-item>
+          <v-list-item v-if="isProfesional" prepend-icon="mdi-account-details" title="Perfil" value="profile" to="/profile"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-magnify" title="Buscar Servicios" value="search" to="/buscar"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-account-group" title="Profesionales" value="profesionales" to="/profesionales"></v-list-item>
           <v-list-item v-if="!isProfesional" prepend-icon="mdi-package-variant" title="Comprar Paquetes" value="comprar-paquetes" to="/comprar-paquetes"></v-list-item>
-          <v-list-item v-if="!isProfesional" prepend-icon="mdi-briefcase-account" title="Mis Paquetes" value="mis-paquetes" to="/mis-paquetes"></v-list-item>
-          <v-list-item v-if="isProfesional" prepend-icon="mdi-briefcase-edit" title="Mis Servicios" value="services" to="/services"></v-list-item>
-          <v-list-item v-if="isProfesional" prepend-icon="mdi-package-variant-closed" title="Mis Paquetes" value="packages" to="/packages"></v-list-item>
-          <v-list-item v-if="isProfesional" prepend-icon="mdi-calendar-clock" title="Mis Horarios" value="schedule" to="/mis-horarios"></v-list-item>
-          <v-list-item prepend-icon="mdi-calendar-check" title="Mis Reservas" value="reservas" to="/mis-reservas"></v-list-item>
-          <v-list-item prepend-icon="mdi-calendar-multiselect" title="Mi Agenda" value="agenda" to="/mi-agenda"></v-list-item>
-          <v-list-item prepend-icon="mdi-video" title="Videollamadas" value="videollamadas" to="/videollamadas"></v-list-item>
-          <!-- Opción para instalar la PWA -->
-          <v-list-item
-            v-if="canInstall"
-            prepend-icon="mdi-download"
-            title="Instalar App"
-            value="install-pwa"
-            @click="instalarPwa"
-            class="bg-amber-darken-3 font-weight-bold text-white mt-4"
-          ></v-list-item>
+          <v-list-item v-if="!isProfesional" prepend-icon="mdi-briefcase-account" title="Paquetes" value="mis-paquetes" to="/mis-paquetes"></v-list-item>
+          <v-list-item v-if="isProfesional" prepend-icon="mdi-briefcase-edit" title="Servicios" value="services" to="/services"></v-list-item>
+          
+          <v-list-item v-if="isProfesional" prepend-icon="mdi-package-variant-closed" title="Paquetes" value="packages" to="/packages">
+            <template v-slot:append v-if="countPaquetesPendientes > 0">
+              <v-avatar color="success" size="20" class="text-caption text-white font-weight-bold ml-2">
+                {{ countPaquetesPendientes }}
+              </v-avatar>
+            </template>
+          </v-list-item>
+
+          <v-list-item v-if="isProfesional" prepend-icon="mdi-calendar-clock" title="Horarios" value="schedule" to="/mis-horarios"></v-list-item>
+          
+          <v-list-item prepend-icon="mdi-calendar-check" title="Reservas" value="reservas" to="/mis-reservas">
+            <template v-slot:append v-if="isProfesional && countReservasPendientes > 0">
+              <v-avatar color="success" size="20" class="text-caption text-white font-weight-bold ml-2">
+                {{ countReservasPendientes }}
+              </v-avatar>
+            </template>
+          </v-list-item>
+
+          <v-list-item prepend-icon="mdi-calendar-multiselect" title="Agenda" value="agenda" to="/mi-agenda"></v-list-item>
+          
+          <v-list-item prepend-icon="mdi-video" title="Videollamadas" value="videollamadas" to="/videollamadas">
+            <template v-slot:append v-if="minutesToNextVideollamada !== null">
+              <span class="d-flex align-center text-caption text-amber-lighten-3 font-weight-bold ml-2">
+                <v-icon size="14" class="mr-1" color="amber-lighten-3">mdi-clock-outline</v-icon>
+                {{ minutesToNextVideollamada }} min
+              </span>
+            </template>
+          </v-list-item>
         </template>
 
+        <!-- Opción para instalar la PWA -->
+        <v-list-item
+          v-if="canInstall"
+          prepend-icon="mdi-download"
+          title="Instalar App"
+          value="install-pwa"
+          @click="instalarPwa"
+          class="bg-amber-darken-3 font-weight-bold text-white mt-4"
+        ></v-list-item>
       </v-list>
 
       <template v-slot:append>
@@ -91,7 +114,8 @@
           v-model="menuNotificaciones"
           :close-on-content-click="false"
           location="bottom end"
-          width="350"
+          :max-width="$vuetify.display.xs ? 300 : 350"
+          :width="$vuetify.display.xs ? 300 : 350"
         >
           <template v-slot:activator="{ props }">
             <v-btn icon v-bind="props" class="mr-2">
@@ -104,7 +128,19 @@
           <v-card class="rounded-lg elevation-4 border-card">
             <v-card-title class="d-flex justify-space-between align-center pa-4 bg-grey-lighten-4">
               <span class="text-subtitle-1 font-weight-bold">Notificaciones</span>
-              <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
+              <div class="d-flex align-center" style="gap: 8px;">
+                <v-btn
+                  v-if="notificaciones.length > 0"
+                  icon="mdi-check-all"
+                  variant="text"
+                  density="comfortable"
+                  color="secondary"
+                  class="mr-1"
+                  title="Limpiar todas"
+                  @click="marcarTodasComoLeidas"
+                ></v-btn>
+                <v-chip size="small" color="primary" variant="flat" v-if="notificaciones.length > 0">{{ notificaciones.length }} nuevas</v-chip>
+              </div>
             </v-card-title>
             <v-divider></v-divider>
             
@@ -112,8 +148,7 @@
               variant="accordion"
               class="pa-0 elevation-0"
               v-if="notificaciones.length > 0"
-              max-height="400"
-              style="overflow-y: auto;"
+              style="max-height: 290px; overflow-y: auto;"
             >
               <v-expansion-panel
                 v-for="notif in notificaciones"
@@ -165,6 +200,22 @@
               <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-bell-sleep</v-icon>
               <p class="mb-0 text-body-2">No tienes notificaciones nuevas</p>
             </div>
+
+            <template v-if="notificaciones.length > 0">
+              <v-divider></v-divider>
+              <v-card-actions class="pa-2 bg-grey-lighten-4 d-flex justify-center">
+                <v-btn
+                  variant="text"
+                  color="secondary"
+                  size="small"
+                  class="text-none font-weight-bold"
+                  prepend-icon="mdi-check-all"
+                  @click="marcarTodasComoLeidas"
+                >
+                  Limpiar notificaciones
+                </v-btn>
+              </v-card-actions>
+            </template>
           </v-card>
         </v-menu>
         <v-avatar
@@ -180,6 +231,19 @@
       </v-app-bar>
 
       <v-container fluid class="px-4 px-md-8 py-4">
+        <!-- Banner de cuenta deshabilitada -->
+        <v-alert
+          v-if="user && user.activo === false"
+          type="error"
+          variant="elevated"
+          density="comfortable"
+          class="mb-6 rounded-lg font-weight-bold elevation-1"
+          color="red-darken-3"
+          icon="mdi-account-off-outline"
+        >
+          Tu cuenta está actualmente deshabilitada. Algunas acciones como reservar citas o comprar paquetes están bloqueadas. Si crees que es un error, por favor contacta al soporte.
+        </v-alert>
+
         <slot></slot>
       </v-container>
     </v-main>
@@ -195,12 +259,96 @@
       @confirm="logout"
     />
 
+    <!-- Diálogo Emergente de Sesión Activa -->
+    <v-dialog v-model="dialogSesionActiva" max-width="500" persistent>
+      <v-card class="rounded-xl pa-2" elevation="10">
+        <v-card-title class="d-flex align-center pa-4 bg-primary-darken-1 text-white rounded-t-lg">
+          <v-icon start class="mr-2">mdi-clock-fast</v-icon>
+          <span class="font-weight-bold">¡Tu sesión ha comenzado!</span>
+        </v-card-title>
+        
+        <v-card-text class="pa-6 text-body-1 text-grey-darken-3">
+          <p class="mb-4">
+            Tu cita para <strong>{{ activeSession?.servicio?.nombre }}</strong> está programada para ahora.
+          </p>
+          <p class="mb-2" v-if="isProfesional">
+            Cliente: <strong>{{ activeSession?.cliente?.nombre }}</strong>
+          </p>
+          <p class="mb-2" v-else>
+            Profesional: <strong>{{ activeSession?.servicio?.profesional?.nombre || 'Profesional' }}</strong>
+          </p>
+          <p class="mb-0">
+            Modalidad: <v-chip size="small" :color="activeSession?.servicio?.modalidad === 'presencial' ? 'orange' : 'primary'" class="font-weight-bold">{{ activeSession?.servicio?.modalidad === 'presencial' ? 'Presencial' : 'Remota/Híbrida' }}</v-chip>
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 d-flex flex-wrap justify-end gap-2">
+          <!-- Opciones para Profesional -->
+          <template v-if="isProfesional">
+            <v-btn
+              v-if="activeSession?.servicio?.modalidad !== 'presencial'"
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-video"
+              class="text-none font-weight-bold rounded-pill px-4"
+              @click="ingresarVideollamada"
+            >
+              Ingresar a Videollamada
+            </v-btn>
+            <v-btn
+              v-else
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-play"
+              class="text-none font-weight-bold rounded-pill px-4"
+              :loading="loadingStartSession"
+              @click="comenzarSesionPresencial"
+            >
+              Comenzar Sesión
+            </v-btn>
+            <v-btn
+              color="error"
+              variant="outlined"
+              prepend-icon="mdi-account-off-outline"
+              class="text-none font-weight-bold rounded-pill px-4"
+              :loading="loadingNoAttendance"
+              @click="marcarComoNoAsistida"
+            >
+              No Asistió
+            </v-btn>
+          </template>
+
+          <!-- Opciones para Cliente -->
+          <template v-else>
+            <v-btn
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-video"
+              class="text-none font-weight-bold rounded-pill px-4"
+              @click="ingresarVideollamada"
+            >
+              Ingresar a Videollamada
+            </v-btn>
+          </template>
+
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            class="text-none font-weight-bold rounded-pill px-4"
+            @click="descartarEmergente"
+          >
+            Cerrar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-layout>
 </template>
 
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuth } from '../composables/useAuth'
 import ConfirmationDialog from './ConfirmationDialog.vue'
@@ -214,6 +362,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 const { mdAndUp } = useDisplay()
 const drawer = ref(mdAndUp.value)
 
@@ -236,6 +385,98 @@ const userAvatar = computed(() => user.value?.profesional?.foto_perfil_url || nu
 const dialogLogout = ref(false)
 const confirmarLogout = () => {
   dialogLogout.value = true
+}
+
+// Dialogo y variables de Sesión Activa
+const dialogSesionActiva = ref(false)
+const activeSession = ref(null)
+const loadingStartSession = ref(false)
+const loadingNoAttendance = ref(false)
+let sessionCheckInterval = null
+
+const chequearSesionActiva = async () => {
+  if (!user.value || dialogSesionActiva.value) return
+  if (route.path.includes('/videollamada') || route.path.includes('/videollamadas')) return
+  
+  try {
+    const res = await fetch('/api/reservas/actual', { headers: getAuthHeaders() })
+    if (res.ok) {
+      const data = await res.json()
+      const reserva = data.data
+      if (reserva) {
+        if (!sessionStorage.getItem('reserva_descartada_' + reserva.id)) {
+          activeSession.value = reserva
+          dialogSesionActiva.value = true
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error al chequear sesión activa:', err)
+  }
+}
+
+const ingresarVideollamada = () => {
+  if (!activeSession.value) return
+  const id = activeSession.value.id
+  dialogSesionActiva.value = false
+  router.push(`/videollamada/${id}`)
+}
+
+const comenzarSesionPresencial = async () => {
+  if (!activeSession.value) return
+  loadingStartSession.value = true
+  try {
+    const res = await fetch(`/api/reservas/${activeSession.value.id}/estado`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ estado: 'en_curso' })
+    })
+    if (res.ok) {
+      dialogSesionActiva.value = false
+    } else {
+      const err = await res.json()
+      alert(err.message || 'Error al iniciar sesión')
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingStartSession.value = false
+  }
+}
+
+const marcarComoNoAsistida = async () => {
+  if (!activeSession.value) return
+  loadingNoAttendance.value = true
+  try {
+    const res = await fetch(`/api/reservas/${activeSession.value.id}/estado`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ estado: 'no_asistida' })
+    })
+    if (res.ok) {
+      dialogSesionActiva.value = false
+    } else {
+      const err = await res.json()
+      alert(err.message || 'Error al marcar inasistencia')
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingNoAttendance.value = false
+  }
+}
+
+const descartarEmergente = () => {
+  if (activeSession.value) {
+    sessionStorage.setItem('reserva_descartada_' + activeSession.value.id, 'true')
+  }
+  dialogSesionActiva.value = false
 }
 
 const bubbleHidden = ref(false)
@@ -355,6 +596,19 @@ const marcarComoLeida = async (id) => {
   }
 }
 
+const marcarTodasComoLeidas = async () => {
+  try {
+    await fetch('/api/auth/notificaciones/marcar-todas-leidas', {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    })
+    notificaciones.value = []
+    menuNotificaciones.value = false
+  } catch (err) {
+    console.error('Error al marcar todas como leídas', err)
+  }
+}
+
 const getIconoNotificacion = (tipo) => {
   const iconMap = {
     'confirmacion': 'mdi-check-circle',
@@ -397,6 +651,9 @@ const escucharCanalPrivado = (userId) => {
       // Añadir la nueva notificación al inicio de la lista
       notificaciones.value.unshift(newNotif)
       bubbleHidden.value = false
+
+      // Despachar evento global para que las vistas activas se actualicen en tiempo real
+      window.dispatchEvent(new CustomEvent('reserva-actualizada', { detail: notification }))
       
       // Lanzar notificación nativa PWA si se tienen permisos
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
@@ -419,16 +676,108 @@ const dejarCanalPrivado = () => {
 watch(() => user.value?.id, (newId) => {
   if (newId) {
     escucharCanalPrivado(newId)
+    cargarContadoresPendientes()
   } else {
     dejarCanalPrivado()
+    countPaquetesPendientes.value = 0
+    countReservasPendientes.value = 0
+    minutesToNextVideollamada.value = null
+    reservasRegistros.value = []
   }
 }, { immediate: true })
 
+const countPaquetesPendientes = ref(0)
+const countReservasPendientes = ref(0)
+const minutesToNextVideollamada = ref(null)
+const reservasRegistros = ref([])
+let countdownTimer = null
+let contadoresInterval = null
+
+const updateVideollamadaCountdown = () => {
+  if (reservasRegistros.value.length === 0) {
+    minutesToNextVideollamada.value = null
+    return
+  }
+  const now = new Date()
+  let minDiff = null
+
+  for (const r of reservasRegistros.value) {
+    if (!r.servicio || (r.servicio.modalidad !== 'remota' && r.servicio.modalidad !== 'hibrida')) {
+      continue
+    }
+    if (!['confirmada', 'pagada', 'pendiente', 'en_curso'].includes(r.estado)) {
+      continue
+    }
+
+    const startTime = new Date(r.fecha_hora_inicio)
+    const diffMins = Math.ceil((startTime - now) / 60000)
+
+    if (diffMins >= 0 && diffMins <= 15) {
+      if (minDiff === null || diffMins < minDiff) {
+        minDiff = diffMins
+      }
+    }
+  }
+  minutesToNextVideollamada.value = minDiff
+}
+
+const cargarContadoresPendientes = async () => {
+  if (!user.value) return
+  
+  if (isProfesional.value) {
+    try {
+      const resPaquetes = await fetch('/api/paquetes-pendientes', { headers: getAuthHeaders() })
+      if (resPaquetes.ok) {
+        const data = await resPaquetes.json()
+        countPaquetesPendientes.value = (data.data || []).length
+      }
+    } catch (err) {
+      console.error('Error al cargar paquetes pendientes:', err)
+    }
+  } else {
+    countPaquetesPendientes.value = 0
+  }
+
+  try {
+    const resReservas = await fetch('/api/reservas', { headers: getAuthHeaders() })
+    if (resReservas.ok) {
+      const data = await resReservas.json()
+      reservasRegistros.value = data.data || []
+      if (isProfesional.value) {
+        countReservasPendientes.value = reservasRegistros.value.filter(r => 
+          r.estado === 'pagada' || 
+          (r.estado === 'pendiente' && r.pago && r.pago.metodo === 'efectivo')
+        ).length
+      } else {
+        countReservasPendientes.value = 0
+      }
+      updateVideollamadaCountdown()
+    }
+  } catch (err) {
+    console.error('Error al cargar reservas pendientes:', err)
+  }
+}
+
 onMounted(() => {
   cargarNotificaciones()
+  chequearSesionActiva()
+  cargarContadoresPendientes()
   
   // Polling como fallback para actualizar notificaciones cada 30 segundos si websockets fallan
   pollingInterval = setInterval(cargarNotificaciones, 30000)
+  
+  // Chequear sesiones activas cada 30 segundos
+  sessionCheckInterval = setInterval(chequearSesionActiva, 30000)
+
+  // Polling contadores cada 30 segundos
+  contadoresInterval = setInterval(cargarContadoresPendientes, 30000)
+
+  // Actualizar countdown cada 10 segundos
+  countdownTimer = setInterval(updateVideollamadaCountdown, 10000)
+
+  // Listeners para actualizaciones en tiempo real
+  window.addEventListener('reserva-actualizada', cargarContadoresPendientes)
+  window.addEventListener('update-pending-counts', cargarContadoresPendientes)
 
   // PWA listeners
   window.addEventListener('online', actualizarEstadoConexion)
@@ -441,6 +790,17 @@ onUnmounted(() => {
   if (pollingInterval) {
     clearInterval(pollingInterval)
   }
+  if (sessionCheckInterval) {
+    clearInterval(sessionCheckInterval)
+  }
+  if (contadoresInterval) {
+    clearInterval(contadoresInterval)
+  }
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+  }
+  window.removeEventListener('reserva-actualizada', cargarContadoresPendientes)
+  window.removeEventListener('update-pending-counts', cargarContadoresPendientes)
   window.removeEventListener('online', actualizarEstadoConexion)
   window.removeEventListener('offline', actualizarEstadoConexion)
   window.removeEventListener('beforeinstallprompt', capturarPromptInstalacion)
@@ -475,5 +835,20 @@ const logout = async () => {
   background-color: rgba(255, 255, 255, 0.15) !important;
   border-color: rgba(255, 255, 255, 0.9) !important;
   color: #ffffff !important;
+}
+
+:deep(.v-navigation-drawer .v-list-item-title) {
+  font-size: 1.05rem !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  padding-bottom: 2px !important;
+}
+</style>
+
+<style>
+/* Forzar que la barra lateral permanezca fija en pantalla y no se desplace con el scroll general */
+.v-navigation-drawer {
+  position: fixed !important;
+  height: 100vh !important;
 }
 </style>

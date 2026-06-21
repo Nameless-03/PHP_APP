@@ -1,9 +1,9 @@
 <template>
-  <DashboardLayout title="Mis Horarios">
+  <DashboardLayout title="Horarios">
     
     <!-- VISTA PRINCIPAL (MENÚ) -->
     <v-fade-transition leave-absolute>
-      <v-row v-if="currentView === 'menu'" justify="center" align="start" class="mt-4">
+      <v-row v-if="currentView === 'menu'" justify="center" align="start" class="mt-n4">
         <v-col cols="12" md="10" lg="8">
           <v-card class="elevation-4 rounded-xl overflow-hidden border-card">
             <v-card-text class="pa-0">
@@ -47,12 +47,12 @@
 
     <!-- VISTA: DISPONIBILIDAD SEMANAL -->
     <v-fade-transition leave-absolute>
-      <v-row v-if="currentView === 'disponibilidad'" justify="center" align="start" class="mt-4">
+      <v-row v-if="currentView === 'disponibilidad'" justify="center" align="start" class="mt-n4">
         <v-col cols="12" md="10" lg="8">
           <v-btn
             variant="text"
             prepend-icon="mdi-arrow-left"
-            class="mb-4 text-none font-weight-bold"
+            class="mb-2 text-none font-weight-bold"
             @click="currentView = 'menu'"
           >
             Volver al menú
@@ -87,14 +87,17 @@
 
                     <v-expansion-panel-text v-if="dia.activo">
                       <v-row class="mt-2">
-                        <v-col cols="12" sm="6" md="3">
+                        <v-col cols="12" sm="6" md="2">
                           <v-text-field v-model="dia.hora_inicio" label="Hora Inicio" type="time" variant="outlined" density="comfortable" color="primary" :rules="[v => !!v || 'Requerido']"></v-text-field>
                         </v-col>
-                        <v-col cols="12" sm="6" md="3">
+                        <v-col cols="12" sm="6" md="2">
                           <v-text-field v-model="dia.hora_fin" label="Hora Fin" type="time" variant="outlined" density="comfortable" color="primary" :rules="[v => !!v || 'Requerido', v => !dia.hora_inicio || v > dia.hora_inicio || 'Mayor a inicio']"></v-text-field>
                         </v-col>
+                        <v-col cols="12" sm="6" md="2">
+                          <v-text-field v-model="dia.pausa_inicio" label="Inicio Pausa" type="time" variant="outlined" density="comfortable" color="primary" hint="Descanso (Opcional)"></v-text-field>
+                        </v-col>
                         <v-col cols="12" sm="6" md="3">
-                          <v-text-field v-model="dia.pausa_minutos" label="Pausa (min)" type="number" variant="outlined" density="comfortable" color="primary" min="0" hint="Descanso"></v-text-field>
+                          <v-text-field v-model="dia.pausa_minutos" label="Duración Pausa (min)" type="number" variant="outlined" density="comfortable" color="primary" min="0" hint="Tiempo de descanso"></v-text-field>
                         </v-col>
                         <v-col cols="12" sm="6" md="3">
                           <v-text-field v-model="dia.buffer_minutos" label="Buffer (min)" type="number" variant="outlined" density="comfortable" color="primary" min="0" hint="Tiempo entre turnos"></v-text-field>
@@ -120,12 +123,12 @@
 
     <!-- VISTA: REGLAS DE AGENDA (EXCEPCIONES) -->
     <v-fade-transition leave-absolute>
-      <v-row v-if="currentView === 'excepciones'" justify="center" align="start" class="mt-4">
+      <v-row v-if="currentView === 'excepciones'" justify="center" align="start" class="mt-n4">
         <v-col cols="12" md="10" lg="8">
           <v-btn
             variant="text"
             prepend-icon="mdi-arrow-left"
-            class="mb-4 text-none font-weight-bold"
+            class="mb-2 text-none font-weight-bold"
             @click="currentView = 'menu'"
           >
             Volver al menú
@@ -280,13 +283,13 @@ const formDisponibilidad = ref(null)
 const error = ref('')
 
 const diasSemana = ref([
-  { value: 'lunes', label: 'Lunes', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_minutos: 0, buffer_minutos: 0 },
-  { value: 'martes', label: 'Martes', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_minutos: 0, buffer_minutos: 0 },
-  { value: 'miercoles', label: 'Miércoles', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_minutos: 0, buffer_minutos: 0 },
-  { value: 'jueves', label: 'Jueves', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_minutos: 0, buffer_minutos: 0 },
-  { value: 'viernes', label: 'Viernes', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_minutos: 0, buffer_minutos: 0 },
-  { value: 'sabado', label: 'Sábado', activo: false, id: null, hora_inicio: '10:00', hora_fin: '14:00', pausa_minutos: 0, buffer_minutos: 0 },
-  { value: 'domingo', label: 'Domingo', activo: false, id: null, hora_inicio: '10:00', hora_fin: '14:00', pausa_minutos: 0, buffer_minutos: 0 },
+  { value: 'lunes', label: 'Lunes', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_inicio: '', pausa_minutos: 0, buffer_minutos: 0 },
+  { value: 'martes', label: 'Martes', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_inicio: '', pausa_minutos: 0, buffer_minutos: 0 },
+  { value: 'miercoles', label: 'Miércoles', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_inicio: '', pausa_minutos: 0, buffer_minutos: 0 },
+  { value: 'jueves', label: 'Jueves', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_inicio: '', pausa_minutos: 0, buffer_minutos: 0 },
+  { value: 'viernes', label: 'Viernes', activo: false, id: null, hora_inicio: '09:00', hora_fin: '17:00', pausa_inicio: '', pausa_minutos: 0, buffer_minutos: 0 },
+  { value: 'sabado', label: 'Sábado', activo: false, id: null, hora_inicio: '10:00', hora_fin: '14:00', pausa_inicio: '', pausa_minutos: 0, buffer_minutos: 0 },
+  { value: 'domingo', label: 'Domingo', activo: false, id: null, hora_inicio: '10:00', hora_fin: '14:00', pausa_inicio: '', pausa_minutos: 0, buffer_minutos: 0 },
 ])
 
 const cargarHorarios = async () => {
@@ -307,6 +310,7 @@ const cargarHorarios = async () => {
           diaObj.id = disp.id
           diaObj.hora_inicio = disp.hora_inicio.substring(0, 5)
           diaObj.hora_fin = disp.hora_fin.substring(0, 5)
+          diaObj.pausa_inicio = disp.pausa_inicio ? disp.pausa_inicio.substring(0, 5) : ''
           diaObj.pausa_minutos = disp.pausa_minutos || 0
           diaObj.buffer_minutos = disp.buffer_minutos || 0
         }
@@ -336,8 +340,9 @@ const saveHorarios = async () => {
           dia_semana: dia.value,
           hora_inicio: dia.hora_inicio,
           hora_fin: dia.hora_fin,
-          pausa_minutos: parseInt(dia.pausa_minutos),
-          buffer_minutos: parseInt(dia.buffer_minutos)
+          pausa_inicio: dia.pausa_inicio || null,
+          pausa_minutos: parseInt(dia.pausa_minutos) || 0,
+          buffer_minutos: parseInt(dia.buffer_minutos) || 0
         }
 
         const url = dia.id ? `/api/disponibilidad/${dia.id}` : `/api/disponibilidad`
