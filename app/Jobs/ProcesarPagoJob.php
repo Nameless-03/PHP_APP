@@ -53,14 +53,14 @@ class ProcesarPagoJob implements ShouldQueue
                     $cliente = $reserva->cliente->usuario;
                     $mensaje = "El pago de tu reserva para '{$reserva->servicio->nombre}' ha sido rechazado. Por favor, reintenta el pago o cancela la operación.";
                     
-                    // Laravel Database & Mail Notification
+                    // Notificación en base de datos de Laravel y correo electrónico
                     $cliente->notify(new \App\Notifications\PagoNotificacion(
                         "Pago de Reserva Rechazado",
                         $mensaje,
                         'cancelada'
                     ));
 
-                    // Custom notificaciones table log
+                    // Registro personalizado en tabla de notificaciones
                     \App\Models\Notificacion::create([
                         'titulo' => 'Pago de Reserva Rechazado',
                         'mensaje' => $mensaje,
@@ -77,14 +77,14 @@ class ProcesarPagoJob implements ShouldQueue
                     $cliente = $compra->cliente->usuario;
                     $mensaje = "El pago para la compra del paquete '{$compra->paquete->nombre}' ha sido rechazado. Por favor, reintenta el pago o cancela la compra.";
                     
-                    // Laravel Database & Mail Notification
+                    // Notificación en base de datos de Laravel y correo electrónico
                     $cliente->notify(new \App\Notifications\PagoNotificacion(
                         "Pago de Paquete Rechazado",
                         $mensaje,
                         'cancelada'
                     ));
 
-                    // Custom notificaciones table log
+                    // Registro personalizado en tabla de notificaciones
                     \App\Models\Notificacion::create([
                         'titulo' => 'Pago de Paquete Rechazado',
                         'mensaje' => $mensaje,
@@ -111,14 +111,14 @@ class ProcesarPagoJob implements ShouldQueue
                     $cliente = $reserva->cliente->usuario;
                     $mensaje = "El pago de tu reserva para '{$reserva->servicio->nombre}' fue aprobado con éxito. ¡Tu turno está pagado!";
                     
-                    // Laravel Database & Mail Notification
+                    // Notificación en base de datos de Laravel y correo electrónico
                     $cliente->notify(new \App\Notifications\PagoNotificacion(
                         "Pago de Reserva Aprobado",
                         $mensaje,
                         'confirmacion'
                     ));
 
-                    // Custom notificaciones table log
+                    // Registro personalizado en tabla de notificaciones
                     \App\Models\Notificacion::create([
                         'titulo' => 'Pago de Reserva Aprobado',
                         'mensaje' => $mensaje,
@@ -147,14 +147,14 @@ class ProcesarPagoJob implements ShouldQueue
                     $cliente = $compra->cliente->usuario;
                     $mensaje = "Tu pago para el paquete '{$compra->paquete->nombre}' fue aprobado. El paquete está habilitado con {$compra->paquete->cantidad_sesiones} sesiones.";
                     
-                    // Laravel Database & Mail Notification
+                    // Notificación en base de datos de Laravel y correo electrónico
                     $cliente->notify(new \App\Notifications\PagoNotificacion(
                         "Compra de Paquete Exitosa",
                         $mensaje,
                         'confirmacion'
                     ));
 
-                    // Custom notificaciones table log
+                    // Registro personalizado en tabla de notificaciones
                     \App\Models\Notificacion::create([
                         'titulo' => 'Compra de Paquete Exitosa',
                         'mensaje' => $mensaje,
