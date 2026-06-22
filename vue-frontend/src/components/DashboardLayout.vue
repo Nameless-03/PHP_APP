@@ -685,6 +685,13 @@ const dejarCanalPrivado = () => {
   }
 }
 
+const countPaquetesPendientes = ref(0)
+const countReservasPendientes = ref(0)
+const minutesToNextVideollamada = ref(null)
+const reservasRegistros = ref([])
+let countdownTimer = null
+let contadoresInterval = null
+
 watch(() => user.value?.id, (newId) => {
   if (newId) {
     escucharCanalPrivado(newId)
@@ -697,13 +704,6 @@ watch(() => user.value?.id, (newId) => {
     reservasRegistros.value = []
   }
 }, { immediate: true })
-
-const countPaquetesPendientes = ref(0)
-const countReservasPendientes = ref(0)
-const minutesToNextVideollamada = ref(null)
-const reservasRegistros = ref([])
-let countdownTimer = null
-let contadoresInterval = null
 
 const updateVideollamadaCountdown = () => {
   if (reservasRegistros.value.length === 0) {
