@@ -462,7 +462,8 @@ class ReservaTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals(\App\Enums\EstadoReservaEnum::CONFIRMADA->value, $reserva->fresh()->estado->value);
 
-        // 3. CONFIRMADA -> EN_CURSO (Valida)
+        // 3. CONFIRMADA -> EN_CURSO (Valida, pero requiere que sea hora de inicio)
+        \Carbon\Carbon::setTestNow($inicio->copy()->addMinutes(5));
         $response = $this->actingAs($this->profesionalUser, 'sanctum')
             ->patchJson("/api/reservas/{$reserva->id}/estado", [
                 'estado' => 'en_curso'
@@ -491,6 +492,8 @@ class ReservaTest extends TestCase
                 'estado' => 'cancelada'
             ]);
         $response->assertStatus(422);
+
+        \Carbon\Carbon::setTestNow(); // Restaurar el tiempo
     }
 
     /**
@@ -923,6 +926,8 @@ class ReservaTest extends TestCase
             'id_servicio' => $this->servicio->id
         ]);
 
+        \Carbon\Carbon::setTestNow($inicio->copy()->addMinutes(5));
+
         $response = $this->actingAs($this->clienteUser, 'sanctum')
             ->patchJson("/api/reservas/{$reserva->id}/estado", [
                 'estado' => 'en_curso'
@@ -930,6 +935,8 @@ class ReservaTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertEquals(\App\Enums\EstadoReservaEnum::EN_CURSO->value, $reserva->fresh()->estado->value);
+
+        \Carbon\Carbon::setTestNow();
     }
 
     /**

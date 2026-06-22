@@ -10,9 +10,8 @@ use App\Notifications\ReservaEstadoNotificacion;
 use App\Models\Notificacion;
 use App\Enums\TipoNotificacionEnum;
 
-class NotificarCambioReserva implements ShouldQueue
+class NotificarCambioReserva
 {
-    use InteractsWithQueue;
 
     /**
      * Maneja el evento.

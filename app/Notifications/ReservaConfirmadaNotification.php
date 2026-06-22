@@ -7,8 +7,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use App\Models\Reserva;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-class ReservaConfirmadaNotification extends Notification implements ShouldQueue
+class ReservaConfirmadaNotification extends Notification implements ShouldBroadcastNow
 {
     use Queueable;
 
