@@ -39,56 +39,62 @@
     <v-row v-else>
       <!-- Sidebar de Filtros -->
       <v-col cols="12" md="3">
-        <v-card class="pa-5 rounded-xl border-card mb-4 bg-grey-lighten-4" elevation="0">
-          <div class="d-flex align-center mb-4">
+        <v-card class="rounded-xl elevation-2 pa-4 sticky-filters">
+          <h3 class="text-h6 font-weight-bold mb-4 d-flex align-center">
             <v-icon color="primary" class="mr-2">mdi-filter-variant</v-icon>
-            <h3 class="text-h6 font-weight-bold">Filtros</h3>
-          </div>
+            Filtros
+          </h3>
+          <v-divider class="mb-4"></v-divider>
 
+          <!-- Búsqueda Principal -->
           <v-text-field
             v-model="filtroNombre"
             label="Buscar por nombre"
-            prepend-inner-icon="mdi-magnify"
+            placeholder="Ej. Juan, María..."
             variant="outlined"
             density="comfortable"
+            prepend-inner-icon="mdi-magnify"
             color="primary"
-            bg-color="white"
             class="mb-4"
-            hide-details
             clearable
+            hide-details
           ></v-text-field>
 
-          <v-select
-            v-model="filtroModalidad"
-            :items="['Cualquiera', 'presencial', 'remota', 'hibrida']"
-            label="Modalidad preferida"
-            prepend-inner-icon="mdi-laptop"
-            variant="outlined"
-            density="comfortable"
-            color="primary"
-            bg-color="white"
-            class="mb-4"
-            hide-details
-          ></v-select>
+          <!-- Modalidad -->
+          <div class="mb-4">
+            <div class="text-subtitle-2 text-medium-emphasis mb-2">Modalidad</div>
+            <v-select
+              v-model="filtroModalidad"
+              :items="['Cualquiera', 'presencial', 'remota', 'hibrida']"
+              label="Cualquiera"
+              variant="outlined"
+              density="comfortable"
+              color="primary"
+              hide-details
+              clearable
+            ></v-select>
+          </div>
 
-          <v-card-subtitle class="px-0 pt-0 pb-2 text-primary font-weight-bold">Reputación mínima</v-card-subtitle>
-          <div class="d-flex align-center justify-space-between mb-4">
+          <!-- Calificación Mínima -->
+          <div class="mb-4">
+            <div class="text-subtitle-2 text-medium-emphasis mb-2">Calificación Mínima</div>
             <v-rating
               v-model="filtroReputacion"
               color="warning"
               active-color="warning"
-              half-increments
               hover
-              size="small"
+              half-increments
               density="compact"
             ></v-rating>
-            <span class="text-caption font-weight-bold">{{ filtroReputacion }} / 5</span>
+            <div class="text-caption text-medium-emphasis text-center mt-1">
+              {{ filtroReputacion }} estrellas o más
+            </div>
           </div>
 
           <v-btn
             block
-            color="grey-darken-3"
-            variant="flat"
+            variant="tonal"
+            color="primary"
             class="text-none font-weight-bold"
             @click="limpiarFiltros"
             prepend-icon="mdi-refresh"
