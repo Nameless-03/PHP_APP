@@ -106,6 +106,18 @@
         <v-app-bar-nav-icon color="grey-darken-3" class="d-md-none mr-2" @click="drawer = !drawer"></v-app-bar-nav-icon>
         <v-app-bar-title class="text-h5 font-weight-bold text-grey-darken-3">{{ title }}</v-app-bar-title>
         <v-spacer></v-spacer>
+        
+        <!-- Etiqueta de Cuenta Bloqueada -->
+        <v-chip
+          v-if="user && user.activo === false"
+          color="error"
+          variant="flat"
+          class="font-weight-bold mr-4 text-uppercase d-none d-sm-flex"
+          prepend-icon="mdi-account-lock"
+        >
+          Su cuenta está bloqueada
+        </v-chip>
+
         <!-- Botón de permiso de notificaciones PWA -->
         <v-btn icon @click="solicitarPermisoNotificacion" class="mr-2" :title="tituloPermisoNotificacion">
           <v-icon color="grey-darken-2">{{ iconoPermisoNotificacion }}</v-icon>

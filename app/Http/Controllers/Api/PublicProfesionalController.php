@@ -46,7 +46,7 @@ class PublicProfesionalController extends Controller
             ->whereHas('usuario', function ($q) {
                 $q->where('activo', true);
             })
-            ->with(['usuario', 'servicios' => function ($q) {
+            ->with(['usuario', 'paquetes', 'servicios' => function ($q) {
                 $q->where('activo', true);
             }])
             ->firstOrFail();
@@ -72,6 +72,17 @@ class PublicProfesionalController extends Controller
                         'modalidad' => $s->modalidad?->value ?? $s->modalidad,
                         'duracion' => $s->duracion,
                         'ubicacion' => $s->ubicacion,
+                    ];
+                }),
+                'paquetes' => $profesional->paquetes->map(function ($p) {
+                    return [
+                        'id' => $p->id,
+                        'nombre' => $p->nombre,
+                        'descripcion' => $p->descripcion,
+                        'precio' => (float) $p->precio,
+                        'descuento' => (float) $p->descuento,
+                        'cantidad_sesiones' => $p->cantidad_sesiones,
+                        'vencimiento' => $p->vencimiento,
                     ];
                 }),
             ]

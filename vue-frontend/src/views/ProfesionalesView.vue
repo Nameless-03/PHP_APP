@@ -35,65 +35,138 @@
       </v-col>
     </v-row>
 
-    <!-- Grid de Profesionales -->
+    <!-- Grilla y Filtros -->
     <v-row v-else>
-      <v-col cols="12" sm="6" md="4" lg="3" v-for="prof in profesionales" :key="prof.id_usuario">
-        <v-card 
-          class="rounded-xl elevation-1 h-100 d-flex flex-column card-hover position-relative overflow-hidden"
-          @click="verDetalleProfesional(prof.id_usuario)"
-        >
-          <div class="pa-5 flex-grow-1 text-center">
-            <!-- Avatar -->
-            <v-avatar size="100" class="elevation-3 mb-4 mx-auto border-avatar" color="primary">
-              <v-img v-if="prof.foto_perfil" :src="prof.foto_perfil" alt="Foto de perfil"></v-img>
-              <span v-else class="text-h4 text-white font-weight-bold">{{ prof.nombre.substring(0, 2).toUpperCase() }}</span>
-            </v-avatar>
-
-            <!-- Info -->
-            <h3 class="text-h6 font-weight-bold text-grey-darken-4 mb-1 line-clamp-1">
-              {{ prof.nombre }}
-            </h3>
-            
-            <div class="d-flex align-center justify-center text-warning font-weight-bold text-caption mb-3">
-              <v-icon size="small" class="mr-1">mdi-star</v-icon>
-              {{ prof.reputacion?.toFixed(1) || '0.0' }}
-            </div>
-
-            <v-chip size="x-small" color="primary" variant="tonal" class="mb-3 font-weight-bold text-uppercase">
-              <v-icon start size="12">mdi-laptop</v-icon>
-              {{ prof.modalidad_preferida }}
-            </v-chip>
-
-            <p class="text-body-2 text-medium-emphasis mb-4 line-clamp-3 text-left-align" style="min-height: 60px;">
-              {{ prof.descripcion || 'Sin descripción disponible.' }}
-            </p>
-
-            <v-divider class="mb-4"></v-divider>
-
-            <div class="d-flex align-center text-caption text-medium-emphasis justify-space-between px-1">
-              <span class="d-flex align-center">
-                <v-icon size="small" color="primary" class="mr-1">mdi-briefcase-outline</v-icon>
-                {{ prof.experiencia || 'N/D' }}
-              </span>
-              <span class="d-flex align-center text-truncate" style="max-width: 130px;">
-                <v-icon size="small" color="error" class="mr-1">mdi-map-marker-outline</v-icon>
-                {{ prof.ubicacion || 'No especificada' }}
-              </span>
-            </div>
+      <!-- Sidebar de Filtros -->
+      <v-col cols="12" md="3">
+        <v-card class="pa-5 rounded-xl border-card mb-4 bg-grey-lighten-4" elevation="0">
+          <div class="d-flex align-center mb-4">
+            <v-icon color="primary" class="mr-2">mdi-filter-variant</v-icon>
+            <h3 class="text-h6 font-weight-bold">Filtros</h3>
           </div>
 
-          <div class="pa-4 bg-grey-lighten-5 mt-auto">
-            <v-btn 
-              block 
-              color="primary" 
-              variant="flat" 
-              class="text-none font-weight-bold rounded-lg"
-            >
-              Ver Perfil y Servicios
-              <v-icon end size="16">mdi-chevron-right</v-icon>
-            </v-btn>
+          <v-text-field
+            v-model="filtroNombre"
+            label="Buscar por nombre"
+            prepend-inner-icon="mdi-magnify"
+            variant="outlined"
+            density="comfortable"
+            color="primary"
+            bg-color="white"
+            class="mb-4"
+            hide-details
+            clearable
+          ></v-text-field>
+
+          <v-select
+            v-model="filtroModalidad"
+            :items="['Cualquiera', 'presencial', 'remota', 'hibrida']"
+            label="Modalidad preferida"
+            prepend-inner-icon="mdi-laptop"
+            variant="outlined"
+            density="comfortable"
+            color="primary"
+            bg-color="white"
+            class="mb-4"
+            hide-details
+          ></v-select>
+
+          <v-card-subtitle class="px-0 pt-0 pb-2 text-primary font-weight-bold">Reputación mínima</v-card-subtitle>
+          <div class="d-flex align-center justify-space-between mb-4">
+            <v-rating
+              v-model="filtroReputacion"
+              color="warning"
+              active-color="warning"
+              half-increments
+              hover
+              size="small"
+              density="compact"
+            ></v-rating>
+            <span class="text-caption font-weight-bold">{{ filtroReputacion }} / 5</span>
           </div>
+
+          <v-btn
+            block
+            color="grey-darken-3"
+            variant="flat"
+            class="text-none font-weight-bold"
+            @click="limpiarFiltros"
+            prepend-icon="mdi-refresh"
+          >
+            Limpiar Filtros
+          </v-btn>
         </v-card>
+      </v-col>
+
+      <!-- Resultados -->
+      <v-col cols="12" md="9">
+        <v-row v-if="filteredProfesionales.length > 0">
+          <v-col cols="12" sm="6" lg="4" v-for="prof in filteredProfesionales" :key="prof.id_usuario">
+            <v-card 
+              class="rounded-xl elevation-1 h-100 d-flex flex-column card-hover position-relative overflow-hidden"
+              @click="verDetalleProfesional(prof.id_usuario)"
+            >
+              <div class="pa-5 flex-grow-1 text-center">
+                <!-- Avatar -->
+                <v-avatar size="100" class="elevation-3 mb-4 mx-auto border-avatar" color="primary">
+                  <v-img v-if="prof.foto_perfil" :src="prof.foto_perfil" alt="Foto de perfil"></v-img>
+                  <span v-else class="text-h4 text-white font-weight-bold">{{ prof.nombre.substring(0, 2).toUpperCase() }}</span>
+                </v-avatar>
+
+                <!-- Info -->
+                <h3 class="text-h6 font-weight-bold text-grey-darken-4 mb-1 line-clamp-1">
+                  {{ prof.nombre }}
+                </h3>
+                
+                <div class="d-flex align-center justify-center text-warning font-weight-bold text-caption mb-3">
+                  <v-icon size="small" class="mr-1">mdi-star</v-icon>
+                  {{ prof.reputacion?.toFixed(1) || '0.0' }}
+                </div>
+
+                <v-chip size="x-small" color="primary" variant="tonal" class="mb-3 font-weight-bold text-uppercase">
+                  <v-icon start size="12">mdi-laptop</v-icon>
+                  {{ prof.modalidad_preferida }}
+                </v-chip>
+
+                <p class="text-body-2 text-medium-emphasis mb-4 line-clamp-3 text-left-align" style="min-height: 60px;">
+                  {{ prof.descripcion || 'Sin descripción disponible.' }}
+                </p>
+
+                <v-divider class="mb-4"></v-divider>
+
+                <div class="d-flex align-center text-caption text-medium-emphasis justify-space-between px-1">
+                  <span class="d-flex align-center">
+                    <v-icon size="small" color="primary" class="mr-1">mdi-briefcase-outline</v-icon>
+                    {{ prof.experiencia || 'N/D' }}
+                  </span>
+                  <span class="d-flex align-center text-truncate" style="max-width: 130px;">
+                    <v-icon size="small" color="error" class="mr-1">mdi-map-marker-outline</v-icon>
+                    {{ prof.ubicacion || 'No especificada' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="pa-4 bg-grey-lighten-5 mt-auto">
+                <v-btn 
+                  block 
+                  color="primary" 
+                  variant="flat" 
+                  class="text-none font-weight-bold rounded-lg"
+                >
+                  Ver Perfil
+                  <v-icon end size="16">mdi-chevron-right</v-icon>
+                </v-btn>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+        <v-row v-else justify="center">
+          <v-col cols="12" class="text-center py-12">
+            <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-magnify-close</v-icon>
+            <h3 class="text-h6 font-weight-bold text-grey-darken-2 mb-2">No se encontraron profesionales</h3>
+            <p class="text-body-2 text-medium-emphasis">Intenta ajustar los filtros de búsqueda.</p>
+          </v-col>
+        </v-row>
       </v-col>
     </v-row>
 
@@ -143,6 +216,10 @@
           <v-tab value="services" class="text-none font-weight-bold">
             <v-icon start>mdi-briefcase-outline</v-icon>
             Servicios ({{ profesionalDetalle.servicios?.length || 0 }})
+          </v-tab>
+          <v-tab value="packages" class="text-none font-weight-bold">
+            <v-icon start>mdi-package-variant-closed</v-icon>
+            Paquetes ({{ profesionalDetalle.paquetes?.length || 0 }})
           </v-tab>
           <v-tab value="reviews" class="text-none font-weight-bold">
             <v-icon start>mdi-comment-text-multiple-outline</v-icon>
@@ -241,6 +318,51 @@
               <v-card v-else class="pa-8 text-center rounded-xl border bg-white" elevation="0">
                 <v-icon size="48" color="grey" class="mb-2">mdi-briefcase-off-outline</v-icon>
                 <p class="text-body-1 text-medium-emphasis mb-0">Este profesional aún no ofrece servicios.</p>
+              </v-card>
+            </v-window-item>
+
+            <!-- Pestaña: Paquetes -->
+            <v-window-item value="packages">
+              <div v-if="profesionalDetalle.paquetes && profesionalDetalle.paquetes.length > 0">
+                <v-row>
+                  <v-col cols="12" md="6" v-for="paquete in profesionalDetalle.paquetes" :key="paquete.id">
+                    <v-card class="rounded-xl border pa-4 h-100 d-flex flex-column" elevation="0" color="white">
+                      <div class="d-flex justify-space-between align-start mb-2">
+                        <v-chip size="x-small" color="secondary" variant="tonal" class="font-weight-bold text-uppercase">
+                          <v-icon start size="12">mdi-layers</v-icon>
+                          {{ paquete.cantidad_sesiones }} Sesiones
+                        </v-chip>
+                        <div class="text-right">
+                          <span class="text-caption text-decoration-line-through text-grey mr-1" v-if="paquete.descuento > 0">${{ paquete.precio }}</span>
+                          <strong class="text-h6 text-success">${{ paquete.precio - paquete.descuento }}</strong>
+                        </div>
+                      </div>
+
+                      <h4 class="text-subtitle-1 font-weight-bold text-grey-darken-4 mb-2">{{ paquete.nombre }}</h4>
+                      <p class="text-caption text-medium-emphasis mb-4 line-clamp-3">{{ paquete.descripcion }}</p>
+
+                      <v-divider class="my-3 mt-auto"></v-divider>
+
+                      <div class="d-flex align-center justify-space-between">
+                        <span class="text-caption text-medium-emphasis">
+                          Vence en {{ paquete.vencimiento }} días
+                        </span>
+                        <v-btn 
+                          size="small" 
+                          color="primary" 
+                          class="text-none font-weight-bold rounded-lg"
+                          @click="reservarPaquete(paquete)"
+                        >
+                          Comprar / Reservar
+                        </v-btn>
+                      </div>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </div>
+              <v-card v-else class="pa-8 text-center rounded-xl border bg-white" elevation="0">
+                <v-icon size="48" color="grey" class="mb-2">mdi-package-variant-off</v-icon>
+                <p class="text-body-1 text-medium-emphasis mb-0">Este profesional aún no ofrece paquetes de sesiones.</p>
               </v-card>
             </v-window-item>
 
@@ -351,7 +473,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import ReviewCard from '../components/ReviewCard.vue'
@@ -367,6 +489,35 @@ const isLoading = ref(true)
 const profesionales = ref([])
 const tab = ref('about')
 const navegandoIntencionalmente = ref(false)
+
+// Filtros
+const filtroNombre = ref('')
+const filtroModalidad = ref('Cualquiera')
+const filtroReputacion = ref(0)
+
+const filteredProfesionales = computed(() => {
+  return profesionales.value.filter(prof => {
+    // Filtrar por nombre
+    if (filtroNombre.value && !prof.nombre.toLowerCase().includes(filtroNombre.value.toLowerCase())) {
+      return false
+    }
+    // Filtrar por modalidad
+    if (filtroModalidad.value !== 'Cualquiera' && prof.modalidad_preferida !== filtroModalidad.value) {
+      return false
+    }
+    // Filtrar por reputación
+    if (filtroReputacion.value > 0 && (prof.reputacion || 0) < filtroReputacion.value) {
+      return false
+    }
+    return true
+  })
+})
+
+const limpiarFiltros = () => {
+  filtroNombre.value = ''
+  filtroModalidad.value = 'Cualquiera'
+  filtroReputacion.value = 0
+}
 
 // Estados del modal de detalle
 const dialogDetalle = ref(false)
@@ -480,6 +631,12 @@ const reservarServicio = (service) => {
   dialogDetalle.value = false
   // Navegar directamente a Reservas con el servicio pre-seleccionado
   router.push({ name: 'mis-reservas', query: { action: 'reservar', servicio: service.id } })
+}
+
+const reservarPaquete = (paquete) => {
+  navegandoIntencionalmente.value = true
+  dialogDetalle.value = false
+  router.push({ name: 'comprar-paquetes', query: { q: paquete.nombre } })
 }
 
 // ===== Funciones del Mapa =====

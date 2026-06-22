@@ -242,6 +242,12 @@ class ReservaService
         if (!$this->esTransicionValida($reserva->estado, $nuevoEstado)) {
             throw new Exception("Transición de estado no válida de '{$reserva->estado->value}' a '{$nuevoEstado->value}'.");
         }
+
+        if ($nuevoEstado === EstadoReservaEnum::FINALIZADA || $nuevoEstado === EstadoReservaEnum::EN_CURSO) {
+            if (now()->lessThan(Carbon::parse($reserva->fecha_hora_inicio))) {
+                throw new Exception("No puedes cambiar la reserva a este estado antes de su hora de inicio.");
+            }
+        }
         
         return DB::transaction(function () use ($reserva, $nuevoEstado, $estadoAnterior) {
             // Reembolsar sesión si pasa a cancelada y no estaba ya cancelada
