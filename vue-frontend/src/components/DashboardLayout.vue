@@ -692,18 +692,6 @@ const reservasRegistros = ref([])
 let countdownTimer = null
 let contadoresInterval = null
 
-watch(() => user.value?.id, (newId) => {
-  if (newId) {
-    escucharCanalPrivado(newId)
-    cargarContadoresPendientes()
-  } else {
-    dejarCanalPrivado()
-    countPaquetesPendientes.value = 0
-    countReservasPendientes.value = 0
-    minutesToNextVideollamada.value = null
-    reservasRegistros.value = []
-  }
-}, { immediate: true })
 
 const updateVideollamadaCountdown = () => {
   if (reservasRegistros.value.length === 0) {
@@ -769,6 +757,19 @@ const cargarContadoresPendientes = async () => {
     console.error('Error al cargar reservas pendientes:', err)
   }
 }
+
+watch(() => user.value?.id, (newId) => {
+  if (newId) {
+    escucharCanalPrivado(newId)
+    cargarContadoresPendientes()
+  } else {
+    dejarCanalPrivado()
+    countPaquetesPendientes.value = 0
+    countReservasPendientes.value = 0
+    minutesToNextVideollamada.value = null
+    reservasRegistros.value = []
+  }
+}, { immediate: true })
 
 onMounted(() => {
   cargarNotificaciones()
