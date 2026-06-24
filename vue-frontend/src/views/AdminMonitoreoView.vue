@@ -597,7 +597,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import Chart from 'chart.js/auto'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import BannerHeader from '../components/BannerHeader.vue'
@@ -853,7 +853,29 @@ const fetchStats = async () => {
   }
 }
 
-onMounted(() => fetchStats())
+onMounted(() => {
+  fetchStats()
+  
+  // Suscribirse a logs en tiempo real
+  if (window.Echo) {
+    window.Echo.private('admin-logs')
+      .listen('LogCreado', (e) => {
+        if (e.log) {
+          logs.value.unshift(e.log)
+          // Limitar a los últimos 500 para evitar fugas de memoria
+          if (logs.value.length > 500) {
+            logs.value.pop()
+          }
+        }
+      })
+  }
+})
+
+onUnmounted(() => {
+  if (window.Echo) {
+    window.Echo.leave('admin-logs')
+  }
+})
 </script>
 
 <style scoped>

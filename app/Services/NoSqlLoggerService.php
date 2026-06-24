@@ -55,6 +55,10 @@ class NoSqlLoggerService
             } else {
                 Log::info('NoSQL Log (Fallback to file): ' . json_encode($logData));
             }
+
+            // Disparar evento para Websockets (Panel Admin en tiempo real)
+            \App\Events\LogCreado::dispatch($logData);
+            
         } catch (\Exception $e) {
             // Nunca interrumpir la ejecución de la petición principal si falla el logger
             Log::error('NoSQL Logging failed: ' . $e->getMessage());
