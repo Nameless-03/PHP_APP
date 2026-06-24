@@ -74,16 +74,21 @@ export function useAuth() {
       routerRedirect('/login')
     }
     if (currentToken) {
+      // Realizar la llamada de logout en segundo plano con keepalive para evitar que el navegador
+      // aborte o bloquee la petición durante la redirección (especialmente en Brave con Shields)
       try {
-        await fetch('/api/auth/logout', {
+        fetch('/api/auth/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${currentToken}`,
             'Accept': 'application/json'
-          }
+          },
+          keepalive: true
+        }).catch((e) => {
+          console.error('Error al revocar el token en el servidor:', e)
         })
       } catch (e) {
-        console.error('Error al revocar el token en el servidor:', e)
+        console.error('Error al enviar la petición de logout con keepalive (ej. bloqueado por Brave Shields):', e)
       }
     }
   }
