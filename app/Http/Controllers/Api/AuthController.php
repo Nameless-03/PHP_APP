@@ -216,18 +216,23 @@ class AuthController extends Controller
 
             // Verificar que la cuenta esté activa
             if (!$usuario->activo) {
+                app(\App\Services\NoSqlLoggerService::class)->log("Intento de inicio de sesión en cuenta desactivada (Google)", 'warning', ['email' => $usuario->email], $usuario->id);
                 return redirect($frontendUrl . '/login?error=account_deactivated');
             }
 
             // Create Sanctum token
             $token = $usuario->createToken('auth_token')->plainTextToken;
             $userJson = json_encode((new UsuarioResource($usuario))->resolve());
+            
+            app(\App\Services\NoSqlLoggerService::class)->log("Inicio de sesión exitoso con Google", 'info', ['email' => $usuario->email], $usuario->id);
+
             $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token) . '&user=' . rawurlencode($userJson);
 
             return redirect($redirectUrl);
 
         } catch (\Exception $e) {
             logger()->error('Google user login processing error: ' . $e->getMessage());
+            app(\App\Services\NoSqlLoggerService::class)->log("Error al procesar inicio de sesión con Google", 'error', ['error' => $e->getMessage()]);
             return redirect($frontendUrl . '/login?error=database_error');
         }
     }

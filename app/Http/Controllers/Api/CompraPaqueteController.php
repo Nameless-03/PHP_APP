@@ -96,6 +96,13 @@ class CompraPaqueteController extends Controller
             ], 422);
         }
 
+        app(\App\Services\NoSqlLoggerService::class)->log("Compra de paquete de sesiones", 'info', [
+            'compra_id' => $compra->id,
+            'paquete' => $paquete->titulo,
+            'monto' => $paquete->precio,
+            'metodo' => $request->metodo
+        ], $request->user()->id);
+
         return response()->json([
             'message' => 'Compra de paquete registrada y proceso de pago iniciado.',
             'data' => new CompraPaqueteResource($compra),

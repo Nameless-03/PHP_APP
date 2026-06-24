@@ -152,11 +152,14 @@ class ReservaService
             // Disparar Evento de Dominio
             ReservaCreada::dispatch($reserva);
 
-            $this->logger->log("Creación de reserva", 'info', [
+            $accionLog = isset($data['id_compra_paquete']) ? "Reserva agendada (Uso de Sesión de Paquete)" : "Creación de reserva";
+            
+            $this->logger->log($accionLog, 'info', [
                 'reserva_id' => $reserva->id,
                 'servicio' => $servicio->nombre,
                 'fecha_inicio' => $reserva->fecha_hora_inicio->toIso8601String(),
-                'monto' => $servicio->precio
+                'monto' => isset($data['id_compra_paquete']) ? 0 : $servicio->precio,
+                'uso_paquete' => isset($data['id_compra_paquete'])
             ], $reserva->id_cliente);
 
             return $reserva->load(['servicio', 'cliente.usuario', 'videollamada']);
