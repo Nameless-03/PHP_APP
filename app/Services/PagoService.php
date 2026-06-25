@@ -26,7 +26,7 @@ class PagoService
             
             // Validaciones lógicas
             if (isset($data['id_reserva'])) {
-                $reserva = Reserva::findOrFail($data['id_reserva']);
+                $reserva = Reserva::with('servicio.profesional.usuario')->findOrFail($data['id_reserva']);
                 if ($reserva->estado === EstadoReservaEnum::PAGADA) {
                     throw new Exception("Esta reserva ya está pagada.");
                 }
@@ -41,8 +41,31 @@ class PagoService
                 'id_compra' => $data['id_compra'] ?? null,
             ]);
 
-            // Enviar el trabajo a la cola si no es en efectivo
             $metodoVal = $data['metodo'] instanceof \App\Enums\MetodoPagoEnum ? $data['metodo']->value : $data['metodo'];
+
+            // Si es una reserva y el pago es en efectivo, notificar al profesional de inmediato para que pueda confirmarlo
+            if (isset($data['id_reserva']) && $metodoVal === 'efectivo' && isset($reserva)) {
+                $profesional = $reserva->servicio->profesional;
+                if ($profesional && $profesional->usuario) {
+                    $clienteName = auth()->check() ? auth()->user()->nombre : ($reserva->cliente->usuario->nombre ?? 'Cliente');
+                    $mensajeProf = "El cliente '{$clienteName}' ha elegido pagar en efectivo para la reserva de '{$reserva->servicio->nombre}'. Ya puedes confirmar el turno.";
+                    
+                    $profesional->usuario->notify(new \App\Notifications\ReservaEstadoNotificacion(
+                        $reserva,
+                        "Pago en Efectivo Seleccionado",
+                        $mensajeProf
+                    ));
+                    
+                    \App\Models\Notificacion::create([
+                        'titulo'     => 'Pago en Efectivo Seleccionado',
+                        'mensaje'    => $mensajeProf,
+                        'tipo'       => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
+                        'id_usuario' => $profesional->id_usuario,
+                    ]);
+                }
+            }
+
+            // Enviar el trabajo a la cola si no es en efectivo
             if ($metodoVal !== 'efectivo') {
                 $simularError = isset($data['simular_error']) ? (bool)$data['simular_error'] : false;
                 ProcesarPagoJob::dispatch($pago, $simularError);
