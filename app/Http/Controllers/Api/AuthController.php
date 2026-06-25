@@ -225,12 +225,11 @@ class AuthController extends Controller
 
             app(\App\Services\NoSqlLoggerService::class)->log("Inicio de sesión exitoso con Google", 'info', ['email' => $usuario->email], $usuario->id);
 
-            // Usar cookies en vez de pasar token+user en la URL (evita headers enormes que causan 502 en Nginx)
+            // Solo enviamos el token en una cookie (sin datos del usuario para evitar headers grandes)
             $redirectUrl = $frontendUrl . '/login?google_auth=1';
 
             return redirect($redirectUrl)
-                ->withCookie(cookie()->forever('google_auth_token', $token, 0, '/', null, true, false, false, 'Lax'))
-                ->withCookie(cookie()->forever('google_auth_user', json_encode((new UsuarioResource($usuario))->resolve()), 0, '/', null, true, false, false, 'Lax'));
+                ->withCookie(cookie()->forever('google_auth_token', $token, 0, '/', null, true, false, false, 'Lax'));
 
         } catch (\Exception $e) {
             logger()->error('Google user login processing error: ' . $e->getMessage());

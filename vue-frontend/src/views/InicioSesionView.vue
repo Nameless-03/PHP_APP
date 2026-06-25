@@ -192,34 +192,37 @@ onMounted(() => {
     // Clean query parameters from URL
     router.replace({ query: {} })
   } else if (googleAuth === '1') {
-    // Read token and user from cookies (set by Laravel to avoid huge Location headers)
+    // Leer solo el token de la cookie (los datos del usuario se buscan por API)
     const getCookie = (name) => {
       const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'))
       return match ? decodeURIComponent(match[1]) : null
     }
 
     const token = getCookie('google_auth_token')
-    const userRaw = getCookie('google_auth_user')
 
-    if (token && userRaw) {
-      try {
-        const userData = JSON.parse(userRaw)
-        localStorage.setItem('auth_token', token)
-        localStorage.setItem('user', JSON.stringify(userData))
+    if (token) {
+      // Guardar el token
+      localStorage.setItem('auth_token', token)
 
-        // Limpiar las cookies temporales
-        document.cookie = 'google_auth_token=; Max-Age=0; path=/'
-        document.cookie = 'google_auth_user=; Max-Age=0; path=/'
+      // Limpiar la cookie temporal
+      document.cookie = 'google_auth_token=; Max-Age=0; path=/'
 
-        // Despachar evento para notificar cambio de sesión
-        window.dispatchEvent(new Event('user-updated'))
-
-        console.log('Login con Google exitoso:', userData)
-        router.push('/dashboard')
-      } catch (err) {
-        error.value = 'Error al procesar la información de inicio de sesión.'
-        console.error(err)
-      }
+      // Buscar los datos del usuario por API (igual que el login normal)
+      fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      })
+        .then(res => res.json())
+        .then(userData => {
+          localStorage.setItem('user', JSON.stringify(userData))
+          window.dispatchEvent(new Event('user-updated'))
+          router.push('/dashboard')
+        })
+        .catch(() => {
+          error.value = 'Error al obtener los datos del usuario.'
+        })
     } else {
       error.value = 'No se pudo completar el inicio de sesión con Google.'
     }

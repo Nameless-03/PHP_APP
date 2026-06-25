@@ -275,24 +275,14 @@ class AutenticacionTest extends TestCase
 
         // Debería redirigir al login del frontend con ?google_auth=1
         $response->assertStatus(302);
-        
+
         $location = $response->headers->get('Location');
         $this->assertStringContainsString('/login', $location);
         $this->assertStringContainsString('google_auth=1', $location);
 
-        // El token y los datos del usuario se envían como cookies (no en la URL)
+        // Solo el token viaja en cookie (sin datos del usuario para evitar headers grandes)
         $response->assertCookieNotExpired('google_auth_token');
-        $response->assertCookieNotExpired('google_auth_user');
-
-        // Verificamos que el cookie del usuario tenga la estructura correcta
-        $userCookieRaw = $response->getCookie('google_auth_user', false);
-        if ($userCookieRaw) {
-            $userData = json_decode(urldecode($userCookieRaw->getValue()), true);
-            $this->assertArrayHasKey('id', $userData);
-            $this->assertArrayNotHasKey('data', $userData);
-            $this->assertEquals('mock_google@example.com', $userData['email']);
-            $this->assertEquals('cliente', $userData['role']);
-        }
+        $response->assertCookieMissing('google_auth_user');
     }
 
     /**
