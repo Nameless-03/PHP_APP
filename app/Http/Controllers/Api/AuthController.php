@@ -227,7 +227,7 @@ class AuthController extends Controller
             app(\App\Services\NoSqlLoggerService::class)->log("Inicio de sesión exitoso con Google", 'info', ['email' => $usuario->email], $usuario->id);
 
             logger()->info('Redirect URL length: ' . strlen($redirectUrl));
-            $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token);
+            $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token) . '&user=' . rawurlencode($userJson);
 
             return redirect($redirectUrl);
 
