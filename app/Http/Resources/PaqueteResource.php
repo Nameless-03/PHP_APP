@@ -34,6 +34,11 @@ class PaqueteResource extends JsonResource
             'id_profesional' => (int) $this->id_profesional,
             'profesional_nombre' => $this->profesional && $this->profesional->usuario ? $this->profesional->usuario->nombre : 'Profesional',
             'profesional_reputacion' => $this->profesional ? (float) ($this->profesional->reputacion ?? 0.00) : 0.00,
+            'profesional_foto' => $this->profesional && $this->profesional->foto_perfil
+                ? (str_starts_with($this->profesional->foto_perfil, 'data:') || filter_var($this->profesional->foto_perfil, FILTER_VALIDATE_URL)
+                    ? $this->profesional->foto_perfil
+                    : asset('storage/' . $this->profesional->foto_perfil))
+                : null,
             'activo' => $activo,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

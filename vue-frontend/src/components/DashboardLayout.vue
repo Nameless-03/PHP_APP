@@ -676,6 +676,11 @@ const escucharCanalPrivado = (userId) => {
         })
       }
     })
+    .listen('.paquete.actualizado', (e) => {
+      console.log('Evento de paquete recibido en tiempo real:', e)
+      window.dispatchEvent(new CustomEvent('paquete-actualizado', { detail: e }))
+      cargarContadoresPendientes()
+    })
 }
 
 const dejarCanalPrivado = () => {

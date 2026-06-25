@@ -126,12 +126,18 @@ class ServicioService
      */
     public function eliminar(Servicio $servicio): bool
     {
+        // Eliminar permanentemente las reservas asociadas a este servicio
+        \App\Models\Reserva::where('id_servicio', $servicio->id)->forceDelete();
+
         $res = $servicio->delete();
 
         $this->logger->log("Eliminación de servicio", 'info', [
             'servicio_id' => $servicio->id,
             'nombre' => $servicio->nombre
         ], $servicio->id_profesional);
+
+        // Despachar evento para actualización en tiempo real vía WebSockets
+        \App\Events\ServicioActualizado::dispatch('cancelacion', ['id_servicio' => $servicio->id]);
 
         return $res;
     }

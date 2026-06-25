@@ -108,6 +108,10 @@ class ReservaService
 
                 // Al agendar con un paquete ya activo, la reserva se autoconfirma directamente
                 $estadoReserva = EstadoReservaEnum::CONFIRMADA;
+
+                // Despachar evento de uso de paquete en tiempo real para cliente y profesional
+                \App\Events\PaqueteActualizado::dispatch($compra->id_cliente, 'uso', ['id_compra' => $compra->id]);
+                \App\Events\PaqueteActualizado::dispatch($compra->paquete->id_profesional, 'uso', ['id_compra' => $compra->id]);
             }
 
             $reserva = Reserva::create([
@@ -266,6 +270,10 @@ class ReservaService
                         ->where('id_compra_paquete', $reserva->id_compra_paquete)
                         ->where('id_servicio', $reserva->id_servicio)
                         ->increment('sesiones_disponibles');
+
+                    // Despachar evento de uso de paquete en tiempo real para cliente y profesional
+                    \App\Events\PaqueteActualizado::dispatch($compra->id_cliente, 'uso', ['id_compra' => $compra->id]);
+                    \App\Events\PaqueteActualizado::dispatch($compra->paquete->id_profesional, 'uso', ['id_compra' => $compra->id]);
                 }
             }
 

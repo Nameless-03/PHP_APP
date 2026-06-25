@@ -156,11 +156,19 @@ class CompraPaqueteController extends Controller
             ], 422);
         }
 
+        $id_cliente = $compraPaquete->id_cliente;
+        $id_profesional = $compraPaquete->paquete->id_profesional;
+        $id_compra = $compraPaquete->id;
+
         DB::transaction(function () use ($compraPaquete) {
             $compraPaquete->pagos()->delete();
             DB::table('compra_paquete_servicio')->where('id_compra_paquete', $compraPaquete->id)->delete();
             $compraPaquete->delete();
         });
+
+        // Despachar evento de eliminación de paquete para actualizar en tiempo real
+        \App\Events\PaqueteActualizado::dispatch($id_cliente, 'eliminacion', ['id_compra' => $id_compra]);
+        \App\Events\PaqueteActualizado::dispatch($id_profesional, 'eliminacion', ['id_compra' => $id_compra]);
 
         return response()->json([
             'message' => 'El paquete ha sido eliminado del inventario con éxito.'
@@ -194,6 +202,10 @@ class CompraPaqueteController extends Controller
                 ->where('id_compra_paquete', $compraPaquete->id)
                 ->update(['sesiones_disponibles' => 0]);
         });
+
+        // Despachar evento de cancelación de paquete para actualizar en tiempo real
+        \App\Events\PaqueteActualizado::dispatch($compraPaquete->id_cliente, 'cancelacion', ['id_compra' => $compraPaquete->id]);
+        \App\Events\PaqueteActualizado::dispatch($compraPaquete->paquete->id_profesional, 'cancelacion', ['id_compra' => $compraPaquete->id]);
 
         return response()->json([
             'message' => 'El paquete ha sido cancelado con éxito. Las sesiones restantes han sido anuladas.'
@@ -284,6 +296,10 @@ class CompraPaqueteController extends Controller
             'tipo' => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
             'id_usuario' => $cliente->id,
         ]);
+
+        // Despachar evento de compra/activación de paquete en tiempo real
+        \App\Events\PaqueteActualizado::dispatch($compraPaquete->id_cliente, 'compra', ['id_compra' => $compraPaquete->id]);
+        \App\Events\PaqueteActualizado::dispatch($compraPaquete->paquete->id_profesional, 'compra', ['id_compra' => $compraPaquete->id]);
 
         return response()->json([
             'message' => 'Pago aprobado y paquete activado exitosamente.',

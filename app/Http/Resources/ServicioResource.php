@@ -34,6 +34,11 @@ class ServicioResource extends JsonResource
                     'reputacion' => (float) $this->profesional->reputacion,
                     'telefono' => $this->profesional->telefono,
                     'nombre' => $this->profesional->usuario ? $this->profesional->usuario->nombre : null,
+                    'foto_perfil' => $this->profesional->foto_perfil
+                        ? (str_starts_with($this->profesional->foto_perfil, 'data:') || filter_var($this->profesional->foto_perfil, FILTER_VALIDATE_URL)
+                            ? $this->profesional->foto_perfil
+                            : asset('storage/' . $this->profesional->foto_perfil))
+                        : null,
                 ] : null,
             'categoria' => $this->whenLoaded('categoria', function () {
                 return [

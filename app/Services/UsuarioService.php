@@ -72,17 +72,34 @@ class UsuarioService
     }
 
     /**
-     * Eliminación lógica (soft delete) de un usuario.
+     * Eliminación física (hard delete) de un usuario.
      */
     public function eliminar(int $id): bool
     {
-        $usuario = Usuario::findOrFail($id);
+        $usuario = Usuario::withTrashed()->findOrFail($id);
+        
         if ($usuario->esProfesional()) {
             // Eliminar paquetes
             \App\Models\Paquete::where('id_profesional', $usuario->id)->delete();
-            // Eliminar servicios (soft deletes)
-            \App\Models\Servicio::where('id_profesional', $usuario->id)->delete();
+            
+            // Eliminar todos los servicios y sus reservas asociadas
+            $servicesIds = \App\Models\Servicio::where('id_profesional', $usuario->id)->pluck('id');
+            \App\Models\Reserva::whereIn('id_servicio', $servicesIds)->forceDelete();
+            \App\Models\Servicio::where('id_profesional', $usuario->id)->forceDelete();
+            
+            // Eliminar disponibilidades y excepciones de agenda
+            \App\Models\Disponibilidad::where('id_profesional', $usuario->id)->delete();
+            \App\Models\ExcepcionAgenda::where('id_profesional', $usuario->id)->delete();
         }
-        return $usuario->delete();
+        
+        if ($usuario->esCliente()) {
+            // Eliminar todas las reservas del cliente
+            \App\Models\Reserva::where('id_cliente', $usuario->id)->forceDelete();
+        }
+
+        // Eliminar las notificaciones del usuario
+        \App\Models\Notificacion::where('id_usuario', $usuario->id)->delete();
+
+        return (bool) $usuario->forceDelete();
     }
 }

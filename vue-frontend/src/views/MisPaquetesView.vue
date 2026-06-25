@@ -60,6 +60,22 @@
               </v-chip>
             </div>
 
+            <!-- Profesional Info -->
+            <div class="d-flex align-center mb-4" v-if="compra.paquete?.id_profesional">
+              <v-avatar size="36" class="mr-3 border" color="primary-lighten-1">
+                <v-img 
+                  v-if="compra.paquete?.profesional_foto" 
+                  :src="compra.paquete.profesional_foto"
+                  alt="Foto del Profesional"
+                ></v-img>
+                <v-icon v-else size="20" color="white">mdi-account</v-icon>
+              </v-avatar>
+              <div>
+                <span class="text-caption text-medium-emphasis d-block" style="line-height: 1.1;">Ofrecido por</span>
+                <span class="text-body-2 font-weight-bold text-grey-darken-3">{{ compra.paquete?.profesional_nombre || 'Profesional' }}</span>
+              </div>
+            </div>
+
             <!-- Sessions remaining breakdown per service -->
             <div class="bg-grey-lighten-4 pa-4 rounded-xl border mb-4">
               <template v-if="compra.servicios_tracker && compra.servicios_tracker.length > 0">

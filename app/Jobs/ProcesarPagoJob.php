@@ -161,6 +161,10 @@ class ProcesarPagoJob implements ShouldQueue
                         'tipo' => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
                         'id_usuario' => $cliente->id,
                     ]);
+
+                    // Despachar evento de compra/activación de paquete en tiempo real
+                    \App\Events\PaqueteActualizado::dispatch($compra->id_cliente, 'compra', ['id_compra' => $compra->id]);
+                    \App\Events\PaqueteActualizado::dispatch($compra->paquete->id_profesional, 'compra', ['id_compra' => $compra->id]);
                 }
             }
         }
