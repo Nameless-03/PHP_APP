@@ -169,6 +169,25 @@ class NotificarCambioReserva
                 return;
             }
 
+            // === RESERVA PAGADA (notificar al profesional) ===
+            if ($nuevoEstado === 'pagada') {
+                $profesional = $reserva->servicio->profesional;
+                if ($profesional && $profesional->usuario) {
+                    $mensajeProf = "La reserva de '{$reserva->cliente->usuario->nombre}' para '{$reserva->servicio->nombre}' ha sido pagada. Ya puedes confirmarla.";
+                    $profesional->usuario->notify(new ReservaEstadoNotificacion(
+                        $reserva,
+                        "Reserva Pagada – Confirmación Requerida",
+                        $mensajeProf
+                    ));
+                    Notificacion::create([
+                        'titulo'     => 'Reserva Pagada – Confirmar',
+                        'mensaje'    => $mensajeProf,
+                        'tipo'       => TipoNotificacionEnum::CONFIRMACION,
+                        'id_usuario' => $profesional->id_usuario,
+                    ]);
+                }
+            }
+
             // === OTROS CAMBIOS DE ESTADO ===
             $nuevoEstadoLabel = match ($nuevoEstado) {
                 'pendiente' => 'Pendiente',

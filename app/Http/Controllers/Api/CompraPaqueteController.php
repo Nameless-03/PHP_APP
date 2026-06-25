@@ -103,6 +103,26 @@ class CompraPaqueteController extends Controller
             'metodo' => $request->metodo
         ], $request->user()->id);
 
+        // Notificar al Profesional sobre la nueva compra del paquete
+        $profesional = $paquete->profesional;
+        if ($profesional && $profesional->usuario) {
+            $metodoLabel = $request->metodo === 'efectivo' ? 'efectivo' : 'PayPal';
+            $mensajeProf = "El cliente '{$request->user()->nombre}' ha solicitado adquirir el paquete '{$paquete->nombre}' (Pago en {$metodoLabel} pendiente).";
+            
+            $profesional->usuario->notify(new \App\Notifications\PagoNotificacion(
+                "Nueva Compra de Paquete",
+                $mensajeProf,
+                'confirmacion'
+            ));
+
+            \App\Models\Notificacion::create([
+                'titulo'     => 'Nueva Compra de Paquete',
+                'mensaje'    => $mensajeProf,
+                'tipo'       => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
+                'id_usuario' => $profesional->id_usuario,
+            ]);
+        }
+
         return response()->json([
             'message' => 'Compra de paquete registrada y proceso de pago iniciado.',
             'data' => new CompraPaqueteResource($compra),

@@ -376,7 +376,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import BannerHeader from '../components/BannerHeader.vue'
 import ConfirmationDialog from '../components/ConfirmationDialog.vue'
@@ -506,9 +506,19 @@ const loadComprasPendientes = async () => {
   }
 }
 
+const handleRealtimeUpdate = (event) => {
+  console.log('Real-time event received in GestionPaquetesView:', event.detail)
+  loadComprasPendientes()
+}
+
 onMounted(async () => {
   await loadData()
   await loadComprasPendientes()
+  window.addEventListener('reserva-actualizada', handleRealtimeUpdate)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reserva-actualizada', handleRealtimeUpdate)
 })
 
 const savePackage = async () => {

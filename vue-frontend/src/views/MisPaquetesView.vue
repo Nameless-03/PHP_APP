@@ -646,7 +646,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 
@@ -719,8 +719,18 @@ const loadPurchases = async () => {
   }
 }
 
+const handleRealtimeUpdate = (event) => {
+  console.log('Real-time event received in MisPaquetesView:', event.detail)
+  loadPurchases()
+}
+
 onMounted(async () => {
   await loadPurchases()
+  window.addEventListener('reserva-actualizada', handleRealtimeUpdate)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reserva-actualizada', handleRealtimeUpdate)
 })
 
 const abrirPagarPaquete = (compra) => {
