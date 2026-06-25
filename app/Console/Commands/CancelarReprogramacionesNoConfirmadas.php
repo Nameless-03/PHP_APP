@@ -27,7 +27,7 @@ class CancelarReprogramacionesNoConfirmadas extends Command
     protected $description = 'Cancela automáticamente las reservas reprogramadas por el cliente si el profesional no las confirma antes del límite de cancelación';
 
     /**
-     * Execute the console command.
+     * Ejecuta el comando de consola.
      */
     public function handle(ReservaService $reservaService): void
     {

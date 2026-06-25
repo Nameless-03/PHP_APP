@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -33,7 +33,7 @@ class DisponibilidadController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un recurso recién creado en el almacenamiento.
      */
     public function store(StoreDisponibilidadRequest $request): JsonResponse
     {
@@ -55,7 +55,7 @@ class DisponibilidadController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza el recurso especificado en el almacenamiento.
      */
     public function update(StoreDisponibilidadRequest $request, Disponibilidad $disponibilidad): JsonResponse
     {
@@ -78,7 +78,7 @@ class DisponibilidadController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina el recurso especificado del almacenamiento.
      */
     public function destroy(Disponibilidad $disponibilidad): JsonResponse
     {
@@ -89,3 +89,4 @@ class DisponibilidadController extends Controller
         return response()->json(null, 204);
     }
 }
+

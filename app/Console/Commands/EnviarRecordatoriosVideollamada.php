@@ -24,7 +24,7 @@ class EnviarRecordatoriosVideollamada extends Command
     protected $description = 'Envía recordatorios de turnos inminentes 10 minutos antes del inicio';
 
     /**
-     * Execute the console command.
+     * Ejecuta el comando de consola.
      */
     public function handle(): void
     {

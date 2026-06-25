@@ -26,7 +26,7 @@ class FinalizarReservasExpiradas extends Command
     protected $description = 'Finaliza automáticamente las reservas cuya hora de fin más 5 minutos de margen ha pasado';
 
     /**
-     * Execute the console command.
+     * Ejecuta el comando de consola.
      */
     public function handle(ReservaService $reservaService): void
     {

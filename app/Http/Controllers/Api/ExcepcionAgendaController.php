@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -32,7 +32,7 @@ class ExcepcionAgendaController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un recurso recién creado en el almacenamiento.
      */
     public function store(StoreExcepcionAgendaRequest $request): JsonResponse
     {
@@ -54,7 +54,7 @@ class ExcepcionAgendaController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina el recurso especificado del almacenamiento.
      */
     public function destroy(ExcepcionAgenda $excepcion_agenda): JsonResponse
     {
@@ -66,3 +66,4 @@ class ExcepcionAgendaController extends Controller
         return response()->json(null, 204);
     }
 }
+

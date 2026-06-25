@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 class PasswordResetController extends Controller
 {
     /**
-     * Send a reset link to the given user.
+     * Envía un enlace de restablecimiento al usuario dado.
      */
     public function sendResetLinkEmail(Request $request)
     {
@@ -28,7 +28,7 @@ class PasswordResetController extends Controller
     }
 
     /**
-     * Reset the given user's password.
+     * Restablece la contraseña del usuario dado.
      */
     public function reset(Request $request)
     {

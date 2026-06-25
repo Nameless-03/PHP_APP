@@ -25,7 +25,7 @@ class EnviarRecordatoriosTurnos extends Command
     protected $description = 'Envía recordatorios a clientes y profesionales 24hs antes del turno';
 
     /**
-     * Execute the console command.
+     * Ejecuta el comando de consola.
      */
     public function handle()
     {

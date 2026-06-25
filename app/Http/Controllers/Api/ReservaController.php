@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -44,7 +44,7 @@ class ReservaController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un recurso recién creado en el almacenamiento.
      */
     public function store(StoreReservaRequest $request): JsonResponse
     {
@@ -72,7 +72,7 @@ class ReservaController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Muestra el recurso especificado.
      */
     public function show(Reserva $reserva): JsonResponse
     {
@@ -196,3 +196,4 @@ class ReservaController extends Controller
         }
     }
 }
+

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 class PaqueteController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra una lista del recurso.
      */
     public function index(Request $request): JsonResponse
     {
@@ -56,7 +56,7 @@ class PaqueteController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un recurso recién creado en el almacenamiento.
      */
     public function store(StorePaqueteRequest $request): JsonResponse
     {
@@ -102,7 +102,7 @@ class PaqueteController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina el recurso especificado del almacenamiento.
      */
     public function destroy(Request $request, Paquete $paquete): JsonResponse
     {
@@ -117,3 +117,4 @@ class PaqueteController extends Controller
         return response()->json(null, 204);
     }
 }
+

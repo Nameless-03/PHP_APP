@@ -21,7 +21,7 @@ class ServicioController extends Controller
     ) {}
 
     /**
-     * Display a listing of the resource.
+     * Muestra una lista del recurso.
      */
     public function index(Request $request): JsonResponse
     {
@@ -33,7 +33,7 @@ class ServicioController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un recurso recién creado en el almacenamiento.
      */
     public function store(StoreServicioRequest $request): JsonResponse
     {
@@ -49,7 +49,7 @@ class ServicioController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Muestra el recurso especificado.
      */
     public function show(int $id): JsonResponse
     {
@@ -61,7 +61,7 @@ class ServicioController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza el recurso especificado en el almacenamiento.
      */
     public function update(UpdateServicioRequest $request, Servicio $servicio): JsonResponse
     {
@@ -76,7 +76,7 @@ class ServicioController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina el recurso especificado del almacenamiento.
      */
     public function destroy(Servicio $servicio): JsonResponse
     {
@@ -87,3 +87,4 @@ class ServicioController extends Controller
         return response()->json(null, 204);
     }
 }
+

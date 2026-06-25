@@ -20,7 +20,7 @@ class AuthService
         private NoSqlLoggerService $logger
     ) {}
     /**
-     * Authenticate a user and generate a token.
+     * Autentica a un usuario y genera un token.
      */
     public function login(array $credentials): array
     {

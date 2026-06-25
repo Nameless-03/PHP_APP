@@ -25,7 +25,7 @@ class AuthController extends Controller
     ) {}
 
     /**
-     * Handle user login.
+     * Maneja el inicio de sesión del usuario.
      */
     public function login(LoginRequest $request): JsonResponse
     {
@@ -39,7 +39,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle Cliente registration.
+     * Maneja el registro de Cliente.
      */
     public function registerCliente(RegisterClienteRequest $request): JsonResponse
     {
@@ -58,7 +58,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle Profesional registration.
+     * Maneja el registro de Profesional.
      */
     public function registerProfesional(RegisterProfesionalRequest $request): JsonResponse
     {
@@ -77,7 +77,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle user logout.
+     * Maneja el cierre de sesión del usuario.
      */
     public function logout(Request $request): JsonResponse
     {
@@ -89,7 +89,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Get the authenticated user.
+     * Obtiene el usuario autenticado.
      */
     public function me(Request $request): JsonResponse
     {
@@ -99,7 +99,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Redirect the user to the Google authentication page.
+     * Redirige al usuario a la página de autenticación de Google.
      */
     public function redirectToGoogle(Request $request)
     {
@@ -123,7 +123,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Obtain the user information from Google.
+     * Obtiene la información del usuario desde Google.
      */
     public function handleGoogleCallback(Request $request)
     {
@@ -197,13 +197,13 @@ class AuthController extends Controller
 
             // Si la cuenta ya existe, iniciamos sesiÃ³n normalmente
             $usuario = DB::transaction(function () use ($user, $googleUser) {
-                // Update google_id if missing
+                // Actualiza el google_id si falta
                 if (empty($user->google_id)) {
                     $user->google_id = $googleUser['id'];
                     $user->save();
                 }
 
-                // Update client picture if it exists and is empty
+                // Actualiza la foto del cliente si está vacía
                 if ($user->esCliente() && $user->cliente) {
                     if (empty($user->cliente->foto_perfil) && !empty($googleUser['picture'])) {
                         $user->cliente->foto_perfil = $googleUser['picture'];

@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 class PublicProfesionalController extends Controller
 {
     /**
-     * List all active professionals.
+     * Lista todos los profesionales activos.
      */
     public function index(): JsonResponse
     {
@@ -38,7 +38,7 @@ class PublicProfesionalController extends Controller
     }
 
     /**
-     * Show detailed profile of a single professional with their active services.
+     * Muestra el perfil detallado de un profesional junto con sus servicios activos.
      */
     public function show(int $id): JsonResponse
     {

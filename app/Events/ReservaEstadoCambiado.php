@@ -16,7 +16,7 @@ class ReservaEstadoCambiado
     public $porQuien;
 
     /**
-     * Create a new event instance.
+     * Crea una nueva instancia del evento.
      */
     public function __construct(Reserva $reserva, string $estadoAnterior)
     {

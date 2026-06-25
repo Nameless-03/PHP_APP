@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 class CategoriaController extends Controller
 {
     /**
-     * List all categories, auto-seeding defaults if the table is empty.
+     * Obtiene una lista de todas las categorías, auto-llenando la tabla si está vacía.
      */
     public function index(): JsonResponse
     {

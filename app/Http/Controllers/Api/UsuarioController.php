@@ -23,7 +23,7 @@ class UsuarioController extends Controller
     ) {}
 
     /**
-     * Display a listing of the users (Admin only).
+     * Muestra una lista de usuarios (Solo Administradores).
      */
     public function index(): JsonResponse
     {
@@ -35,7 +35,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Display the specified user.
+     * Muestra el usuario especificado.
      */
     public function show(int $id, Request $request): JsonResponse
     {
@@ -52,7 +52,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Update the specified user in storage.
+     * Actualiza el usuario especificado en el almacenamiento.
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -101,7 +101,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Remove the specified user from storage.
+     * Elimina el usuario especificado del almacenamiento.
      */
     public function destroy(int $id): JsonResponse
     {
@@ -242,7 +242,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Get system activity logs from NoSQL.
+     * Obtiene los registros de actividad del sistema desde NoSQL.
      */
     public function systemLogs(NoSqlLoggerService $loggerService): JsonResponse
     {
