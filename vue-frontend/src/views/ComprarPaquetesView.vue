@@ -224,7 +224,7 @@
                 color="primary"
                 class="text-none font-weight-bold rounded-lg elevation-1 py-5 d-flex align-center justify-center"
                 prepend-icon="mdi-cart-outline"
-                @click="openPurchaseDialog(item)"
+                @click="openPreviewDialog(item)"
               >
                 Adquirir Paquete
               </v-btn>
@@ -235,6 +235,84 @@
     </v-row>
       </v-col>
     </v-row>
+
+    <!-- Preview Dialog -->
+    <v-dialog v-model="previewDialog" max-width="600" scrollable>
+      <v-card class="rounded-xl overflow-hidden">
+        <div class="dialog-header pa-6 text-white text-center">
+          <v-icon size="48" class="mb-2">mdi-package-variant</v-icon>
+          <h3 class="text-h5 font-weight-bold">Detalles del Paquete</h3>
+        </div>
+        
+        <v-card-text class="pa-6" style="max-height: 70vh; overflow-y: auto;">
+          <h2 class="text-h4 font-weight-black text-grey-darken-4 mb-2">{{ selectedPackage?.nombre }}</h2>
+          <div class="d-flex align-center mb-4 gap-2 flex-wrap">
+             <v-chip color="primary" variant="flat" class="font-weight-bold">
+               {{ selectedPackage?.cantidad_sesiones }} sesiones
+             </v-chip>
+             <v-chip :color="selectedPackage?.vencimiento ? 'orange' : 'green'" variant="tonal" class="font-weight-bold">
+               <v-icon start size="small">{{ selectedPackage?.vencimiento ? 'mdi-clock-alert-outline' : 'mdi-infinity' }}</v-icon>
+               {{ selectedPackage?.vencimiento ? `Vence en ${selectedPackage?.vencimiento} días` : 'Sin Vencimiento' }}
+             </v-chip>
+          </div>
+          
+          <div class="text-h5 font-weight-black text-success mb-4">
+            ${{ selectedPackage?.precio }} <span class="text-caption text-medium-emphasis">USD</span>
+          </div>
+          
+          <v-divider class="mb-4"></v-divider>
+          
+          <div class="mb-6">
+            <h4 class="text-subtitle-1 font-weight-bold mb-2">Descripción Completa</h4>
+            <p class="text-body-1 text-grey-darken-3" style="white-space: pre-wrap;">{{ selectedPackage?.descripcion }}</p>
+          </div>
+          
+          <div v-if="selectedPackage?.id_profesional" class="mb-6 bg-grey-lighten-4 pa-4 rounded-lg border">
+            <h4 class="text-subtitle-2 font-weight-bold mb-2">Ofrecido por</h4>
+            <div class="d-flex align-center">
+              <v-avatar size="48" color="primary-lighten-1" class="mr-3 text-white font-weight-bold">
+                {{ selectedPackage?.profesional_nombre ? selectedPackage.profesional_nombre.substring(0, 2).toUpperCase() : 'PR' }}
+              </v-avatar>
+              <div>
+                <div class="text-subtitle-1 font-weight-bold">{{ selectedPackage?.profesional_nombre }}</div>
+                <div class="d-flex align-center text-caption text-warning font-weight-bold">
+                  <v-icon size="small" class="mr-1">mdi-star</v-icon>
+                  {{ selectedPackage?.profesional_reputacion ? selectedPackage.profesional_reputacion.toFixed(1) : '0.0' }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="text-subtitle-1 font-weight-bold mb-3">Servicios Válidos</h4>
+            <v-list class="bg-transparent pa-0">
+              <v-list-item 
+                v-for="s in selectedPackage?.servicios" 
+                :key="s.id"
+                class="px-0 mb-2 border rounded-lg bg-white"
+              >
+                <template v-slot:prepend>
+                  <v-avatar color="secondary" variant="tonal" class="mr-3">
+                    <v-icon>mdi-briefcase-check</v-icon>
+                  </v-avatar>
+                </template>
+                <v-list-item-title class="font-weight-bold">{{ s.nombre }}</v-list-item-title>
+                <v-list-item-subtitle>Consume {{ s.cantidad_sesiones }} {{ s.cantidad_sesiones === 1 ? 'sesión' : 'sesiones' }} por turno</v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+          </div>
+        </v-card-text>
+        
+        <v-card-actions class="pa-4 bg-grey-lighten-4 border-t">
+          <v-spacer></v-spacer>
+          <v-btn variant="outlined" color="grey-darken-1" class="text-none mr-3" @click="previewDialog = false">Cerrar</v-btn>
+          <v-btn color="primary" class="text-none font-weight-bold px-6 elevation-2" @click="proceedToPurchase">
+            Proceder al Pago
+            <v-icon end>mdi-arrow-right</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Purchase Dialog -->
     <v-dialog v-model="purchaseDialog" max-width="500" persistent>
@@ -479,6 +557,7 @@ const resetFilters = () => {
 }
 
 // Dialog and flow states
+const previewDialog = ref(false)
 const purchaseDialog = ref(false)
 const selectedPackage = ref(null)
 const paymentMethod = ref('paypal')
@@ -535,8 +614,13 @@ onMounted(async () => {
   await loadPackages()
 })
 
-const openPurchaseDialog = (pkg) => {
+const openPreviewDialog = (pkg) => {
   selectedPackage.value = pkg
+  previewDialog.value = true
+}
+
+const proceedToPurchase = () => {
+  previewDialog.value = false
   paymentMethod.value = 'paypal'
   simulateError.value = false
   dialogError.value = ''
