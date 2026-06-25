@@ -222,13 +222,15 @@ class AuthController extends Controller
 
             // Create Sanctum token
             $token = $usuario->createToken('auth_token')->plainTextToken;
-            $userJson = json_encode((new UsuarioResource($usuario))->resolve());
-            
-            app(\App\Services\NoSqlLoggerService::class)->log("Inicio de sesión exitoso con Google", 'info', ['email' => $usuario->email], $usuario->id);
-            
-            $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token) . '&user=' . rawurlencode($userJson);
 
-            return redirect($redirectUrl);
+            app(\App\Services\NoSqlLoggerService::class)->log("Inicio de sesión exitoso con Google", 'info', ['email' => $usuario->email], $usuario->id);
+
+            // Usar cookies en vez de pasar token+user en la URL (evita headers enormes que causan 502 en Nginx)
+            $redirectUrl = $frontendUrl . '/login?google_auth=1';
+
+            return redirect($redirectUrl)
+                ->withCookie(cookie()->forever('google_auth_token', $token, 0, '/', null, true, false, false, 'Lax'))
+                ->withCookie(cookie()->forever('google_auth_user', json_encode((new UsuarioResource($usuario))->resolve()), 0, '/', null, true, false, false, 'Lax'));
 
         } catch (\Exception $e) {
             logger()->error('Google user login processing error: ' . $e->getMessage());

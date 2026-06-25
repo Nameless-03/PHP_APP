@@ -175,9 +175,8 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
-  // Check if there are token and user params in URL (returned from Google callback)
-  const token = route.query.token
-  const userParam = route.query.user
+  // Check for Google OAuth callback parameters in URL
+  const googleAuth = route.query.google_auth
   const urlError = route.query.error
 
   if (urlError) {
@@ -185,32 +184,46 @@ onMounted(() => {
       error.value = 'Hubo un problema al autenticar con Google. Por favor, intenta de nuevo.'
     } else if (urlError === 'database_error') {
       error.value = 'Error al registrar el usuario en la base de datos.'
+    } else if (urlError === 'account_deactivated') {
+      error.value = 'Tu cuenta está desactivada. Contacta al administrador.'
     } else {
       error.value = 'Error de autenticación con redes sociales.'
     }
     // Clean query parameters from URL
     router.replace({ query: {} })
-  } else if (token && userParam) {
-    try {
-      let decodedUser = userParam
-      try {
-        decodedUser = decodeURIComponent(userParam)
-      } catch (e) {
-        console.warn('Failed to decodeURIComponent userParam, using raw value:', e)
-      }
-      const userData = JSON.parse(decodedUser)
-      localStorage.setItem('auth_token', token)
-      localStorage.setItem('user', JSON.stringify(userData))
-      
-      // Despachar evento para notificar cambio de sesión
-      window.dispatchEvent(new Event('user-updated'))
-      
-      console.log('Login con Google exitoso:', userData)
-      router.push('/dashboard')
-    } catch (err) {
-      error.value = 'Error al procesar la información de inicio de sesión.'
-      console.error(err)
+  } else if (googleAuth === '1') {
+    // Read token and user from cookies (set by Laravel to avoid huge Location headers)
+    const getCookie = (name) => {
+      const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'))
+      return match ? decodeURIComponent(match[1]) : null
     }
+
+    const token = getCookie('google_auth_token')
+    const userRaw = getCookie('google_auth_user')
+
+    if (token && userRaw) {
+      try {
+        const userData = JSON.parse(userRaw)
+        localStorage.setItem('auth_token', token)
+        localStorage.setItem('user', JSON.stringify(userData))
+
+        // Limpiar las cookies temporales
+        document.cookie = 'google_auth_token=; Max-Age=0; path=/'
+        document.cookie = 'google_auth_user=; Max-Age=0; path=/'
+
+        // Despachar evento para notificar cambio de sesión
+        window.dispatchEvent(new Event('user-updated'))
+
+        console.log('Login con Google exitoso:', userData)
+        router.push('/dashboard')
+      } catch (err) {
+        error.value = 'Error al procesar la información de inicio de sesión.'
+        console.error(err)
+      }
+    } else {
+      error.value = 'No se pudo completar el inicio de sesión con Google.'
+    }
+    router.replace({ query: {} })
   }
 })
 
