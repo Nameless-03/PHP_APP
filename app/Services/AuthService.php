@@ -19,6 +19,7 @@ class AuthService
     public function __construct(
         private NoSqlLoggerService $logger
     ) {}
+    
     /**
      * Autentica a un usuario y genera un token.
      */
@@ -41,9 +42,7 @@ class AuthService
             ]);
         }
 
-        // Genera un token usando Sanctum (asumiendo que Sanctum está instalado)
-        // Ya que no tenemos Sanctum instalado en este esqueleto, escribiremos el código para ello
-        // y funcionará una vez que Sanctum esté configurado.
+        
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
         $this->logger->log("Inicio de sesión exitoso", 'info', ['email' => $usuario->email], $usuario->id);
