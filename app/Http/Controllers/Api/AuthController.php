@@ -25,7 +25,7 @@ class AuthController extends Controller
     ) {}
 
     /**
-     * Maneja el inicio de sesión del usuario.
+     * Maneja el inicio de sesiï¿½n del usuario.
      */
     public function login(LoginRequest $request): JsonResponse
     {
@@ -77,7 +77,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Maneja el cierre de sesión del usuario.
+     * Maneja el cierre de sesiï¿½n del usuario.
      */
     public function logout(Request $request): JsonResponse
     {
@@ -99,7 +99,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Redirige al usuario a la página de autenticación de Google.
+     * Redirige al usuario a la pï¿½gina de autenticaciï¿½n de Google.
      */
     public function redirectToGoogle(Request $request)
     {
@@ -123,7 +123,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Obtiene la información del usuario desde Google.
+     * Obtiene la informaciï¿½n del usuario desde Google.
      */
     public function handleGoogleCallback(Request $request)
     {
@@ -203,7 +203,7 @@ class AuthController extends Controller
                     $user->save();
                 }
 
-                // Actualiza la foto del cliente si está vacía
+                // Actualiza la foto del cliente si estï¿½ vacï¿½a
                 if ($user->esCliente() && $user->cliente) {
                     if (empty($user->cliente->foto_perfil) && !empty($googleUser['picture'])) {
                         $user->cliente->foto_perfil = $googleUser['picture'];
@@ -226,7 +226,8 @@ class AuthController extends Controller
             
             app(\App\Services\NoSqlLoggerService::class)->log("Inicio de sesiÃ³n exitoso con Google", 'info', ['email' => $usuario->email], $usuario->id);
 
-            $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token) . '&user=' . rawurlencode($userJson);
+            logger()->info('Redirect URL length: ' . strlen($redirectUrl));
+            $redirectUrl = $frontendUrl . '/login?token=' . rawurlencode($token);
 
             return redirect($redirectUrl);
 
