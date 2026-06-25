@@ -494,7 +494,7 @@ const loadComprasPendientes = async () => {
   if (!token.value || !user.value) return
   loadingPendientes.value = true
   try {
-    const res = await fetch('/api/paquetes-pendientes', { headers: getAuthHeaders() })
+    const res = await fetch(`/api/paquetes-pendientes?t=${Date.now()}`, { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       comprasPendientesList.value = data.data || []
@@ -515,10 +515,12 @@ onMounted(async () => {
   await loadData()
   await loadComprasPendientes()
   window.addEventListener('reserva-actualizada', handleRealtimeUpdate)
+  window.addEventListener('paquete-actualizado', handleRealtimeUpdate)
 })
 
 onUnmounted(() => {
   window.removeEventListener('reserva-actualizada', handleRealtimeUpdate)
+  window.removeEventListener('paquete-actualizado', handleRealtimeUpdate)
 })
 
 const savePackage = async () => {

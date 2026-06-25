@@ -329,7 +329,7 @@ const cargarDatosDashboard = async () => {
     // Admin: obtener estadísticas
     if (isAdmin.value) {
       try {
-        const statsRes = await fetch('/api/admin/stats', { headers })
+        const statsRes = await fetch(`/api/admin/stats?t=${Date.now()}`, { headers })
         if (statsRes.ok) {
           adminStats.value = await statsRes.json()
         }
@@ -363,10 +363,12 @@ const handleReservaActualizada = (event) => {
 onMounted(async () => {
   await cargarDatosDashboard()
   window.addEventListener('reserva-actualizada', handleReservaActualizada)
+  window.addEventListener('paquete-actualizado', handleReservaActualizada)
 })
 
 onUnmounted(() => {
   window.removeEventListener('reserva-actualizada', handleReservaActualizada)
+  window.removeEventListener('paquete-actualizado', handleReservaActualizada)
 })
 </script>
 

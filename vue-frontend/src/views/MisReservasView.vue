@@ -1109,16 +1109,19 @@ const procesarQueryParameters = () => {
 const handleReservaActualizada = (event) => {
   console.log('Real-time event received in MisReservasView:', event.detail)
   cargarRegistros()
+  cargarMisPaquetes()
 }
 
 onMounted(async () => {
   await cargarRegistros() // Cargar registros al inicio
   procesarQueryParameters()
   window.addEventListener('reserva-actualizada', handleReservaActualizada)
+  window.addEventListener('paquete-actualizado', handleReservaActualizada)
 })
 
 onUnmounted(() => {
   window.removeEventListener('reserva-actualizada', handleReservaActualizada)
+  window.removeEventListener('paquete-actualizado', handleReservaActualizada)
 })
 
 // Watch route query to process changes reactively on the same component instance
@@ -1169,7 +1172,7 @@ const reservasPendientesDePago = computed(() => {
 const cargarRegistros = async () => {
   cargandoRegistros.value = true
   try {
-    const res = await fetch('/api/reservas', { headers: getAuthHeaders() })
+    const res = await fetch(`/api/reservas?t=${Date.now()}`, { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       // Sort by date ascending for active/pendientes, descending for history
@@ -1192,7 +1195,7 @@ const cargarServicios = async () => {
 
 const cargarMisPaquetes = async () => {
   try {
-    const res = await fetch('/api/mis-paquetes', { headers: getAuthHeaders() })
+    const res = await fetch(`/api/mis-paquetes?t=${Date.now()}`, { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       misPaquetesList.value = data.data || []

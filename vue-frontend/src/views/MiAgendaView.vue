@@ -359,7 +359,7 @@ const getAuthHeaders = () => ({
 const cargarReservas = async () => {
   cargando.value = true
   try {
-    const res = await fetch('/api/reservas', { headers: getAuthHeaders() })
+    const res = await fetch(`/api/reservas?t=${Date.now()}`, { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       reservas.value = data.data || []
@@ -604,10 +604,12 @@ const handleReservaActualizada = (event) => {
 onMounted(() => {
   cargarReservas()
   window.addEventListener('reserva-actualizada', handleReservaActualizada)
+  window.addEventListener('paquete-actualizado', handleReservaActualizada)
 })
 
 onUnmounted(() => {
   window.removeEventListener('reserva-actualizada', handleReservaActualizada)
+  window.removeEventListener('paquete-actualizado', handleReservaActualizada)
 })
 </script>
 

@@ -125,23 +125,6 @@ class ProcesarPagoJob implements ShouldQueue
                         'tipo' => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
                         'id_usuario' => $cliente->id,
                     ]);
-
-                    // Notificar al Profesional
-                    $profesional = $compra->paquete->profesional;
-                    if ($profesional && $profesional->usuario) {
-                        $mensajeProf = "El pago del cliente '{$compra->cliente->usuario->nombre}' para el paquete '{$compra->paquete->nombre}' fue aprobado.";
-                        $profesional->usuario->notify(new \App\Notifications\PagoNotificacion(
-                            "Pago de Paquete Aprobado",
-                            $mensajeProf,
-                            'confirmacion'
-                        ));
-                        \App\Models\Notificacion::create([
-                            'titulo'     => 'Pago de Paquete Aprobado',
-                            'mensaje'    => $mensajeProf,
-                            'tipo'       => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
-                            'id_usuario' => $profesional->id_usuario,
-                        ]);
-                    }
                 }
             }
 
@@ -178,6 +161,23 @@ class ProcesarPagoJob implements ShouldQueue
                         'tipo' => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
                         'id_usuario' => $cliente->id,
                     ]);
+
+                    // Notificar al Profesional
+                    $profesional = $compra->paquete->profesional;
+                    if ($profesional && $profesional->usuario) {
+                        $mensajeProf = "El pago del cliente '{$compra->cliente->usuario->nombre}' para el paquete '{$compra->paquete->nombre}' fue aprobado.";
+                        $profesional->usuario->notify(new \App\Notifications\PagoNotificacion(
+                            "Pago de Paquete Aprobado",
+                            $mensajeProf,
+                            'confirmacion'
+                        ));
+                        \App\Models\Notificacion::create([
+                            'titulo'     => 'Pago de Paquete Aprobado',
+                            'mensaje'    => $mensajeProf,
+                            'tipo'       => \App\Enums\TipoNotificacionEnum::CONFIRMACION,
+                            'id_usuario' => $profesional->id_usuario,
+                        ]);
+                    }
 
                     // Despachar evento de compra/activación de paquete en tiempo real
                     \App\Events\PaqueteActualizado::dispatch($compra->id_cliente, 'compra', ['id_compra' => $compra->id]);

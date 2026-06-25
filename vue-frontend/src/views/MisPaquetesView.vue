@@ -701,7 +701,7 @@ const loadPurchases = async () => {
   if (!token) return
 
   try {
-    const response = await fetch('/api/mis-paquetes', {
+    const response = await fetch(`/api/mis-paquetes?t=${Date.now()}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -727,10 +727,12 @@ const handleRealtimeUpdate = (event) => {
 onMounted(async () => {
   await loadPurchases()
   window.addEventListener('reserva-actualizada', handleRealtimeUpdate)
+  window.addEventListener('paquete-actualizado', handleRealtimeUpdate)
 })
 
 onUnmounted(() => {
   window.removeEventListener('reserva-actualizada', handleRealtimeUpdate)
+  window.removeEventListener('paquete-actualizado', handleRealtimeUpdate)
 })
 
 const abrirPagarPaquete = (compra) => {

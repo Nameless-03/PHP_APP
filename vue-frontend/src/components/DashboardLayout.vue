@@ -411,7 +411,7 @@ const chequearSesionActiva = async () => {
   if (route.path.includes('/videollamada') || route.path.includes('/videollamadas')) return
   
   try {
-    const res = await fetch('/api/reservas/actual', { headers: getAuthHeaders() })
+    const res = await fetch(`/api/reservas/actual?t=${Date.now()}`, { headers: getAuthHeaders() })
     if (res.ok) {
       const data = await res.json()
       const reserva = data.data
@@ -567,7 +567,7 @@ const lanzarNotificacionPrueba = () => {
 
 const cargarNotificaciones = async () => {
   try {
-    const res = await fetch('/api/auth/notificaciones', { headers: getAuthHeaders() })
+    const res = await fetch(`/api/auth/notificaciones?t=${Date.now()}`, { headers: getAuthHeaders() })
     if (res.status === 401) {
       logout()
       return
@@ -731,7 +731,7 @@ const cargarContadoresPendientes = async () => {
   
   if (isProfesional.value) {
     try {
-      const resPaquetes = await fetch('/api/paquetes-pendientes', { headers: getAuthHeaders() })
+      const resPaquetes = await fetch(`/api/paquetes-pendientes?t=${Date.now()}`, { headers: getAuthHeaders() })
       if (resPaquetes.ok) {
         const data = await resPaquetes.json()
         countPaquetesPendientes.value = (data.data || []).length
@@ -744,7 +744,7 @@ const cargarContadoresPendientes = async () => {
   }
 
   try {
-    const resReservas = await fetch('/api/reservas', { headers: getAuthHeaders() })
+    const resReservas = await fetch(`/api/reservas?t=${Date.now()}`, { headers: getAuthHeaders() })
     if (resReservas.ok) {
       const data = await resReservas.json()
       reservasRegistros.value = data.data || []
@@ -795,6 +795,7 @@ onMounted(() => {
 
   // Listeners para actualizaciones en tiempo real
   window.addEventListener('reserva-actualizada', cargarContadoresPendientes)
+  window.addEventListener('paquete-actualizado', cargarContadoresPendientes)
   window.addEventListener('update-pending-counts', cargarContadoresPendientes)
 
   // PWA listeners
@@ -818,6 +819,7 @@ onUnmounted(() => {
     clearInterval(countdownTimer)
   }
   window.removeEventListener('reserva-actualizada', cargarContadoresPendientes)
+  window.removeEventListener('paquete-actualizado', cargarContadoresPendientes)
   window.removeEventListener('update-pending-counts', cargarContadoresPendientes)
   window.removeEventListener('online', actualizarEstadoConexion)
   window.removeEventListener('offline', actualizarEstadoConexion)
