@@ -175,8 +175,9 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
-  // Check for Google OAuth callback parameters in URL
-  const googleAuth = route.query.google_auth
+  // Check if there are token and user params in URL (returned from Google callback)
+  const token = route.query.token
+  const userParam = route.query.user
   const urlError = route.query.error
 
   if (urlError) {
@@ -184,49 +185,32 @@ onMounted(() => {
       error.value = 'Hubo un problema al autenticar con Google. Por favor, intenta de nuevo.'
     } else if (urlError === 'database_error') {
       error.value = 'Error al registrar el usuario en la base de datos.'
-    } else if (urlError === 'account_deactivated') {
-      error.value = 'Tu cuenta está desactivada. Contacta al administrador.'
     } else {
       error.value = 'Error de autenticación con redes sociales.'
     }
     // Clean query parameters from URL
     router.replace({ query: {} })
-  } else if (googleAuth === '1') {
-    // Leer solo el token de la cookie (los datos del usuario se buscan por API)
-    const getCookie = (name) => {
-      const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'))
-      return match ? decodeURIComponent(match[1]) : null
-    }
-
-    const token = getCookie('google_auth_token')
-
-    if (token) {
-      // Guardar el token
+  } else if (token && userParam) {
+    try {
+      let decodedUser = userParam
+      try {
+        decodedUser = decodeURIComponent(userParam)
+      } catch (e) {
+        console.warn('Failed to decodeURIComponent userParam, using raw value:', e)
+      }
+      const userData = JSON.parse(decodedUser)
       localStorage.setItem('auth_token', token)
-
-      // Limpiar la cookie temporal
-      document.cookie = 'google_auth_token=; Max-Age=0; path=/'
-
-      // Buscar los datos del usuario por API (igual que el login normal)
-      fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      })
-        .then(res => res.json())
-        .then(userData => {
-          localStorage.setItem('user', JSON.stringify(userData))
-          window.dispatchEvent(new Event('user-updated'))
-          router.push('/dashboard')
-        })
-        .catch(() => {
-          error.value = 'Error al obtener los datos del usuario.'
-        })
-    } else {
-      error.value = 'No se pudo completar el inicio de sesión con Google.'
+      localStorage.setItem('user', JSON.stringify(userData))
+      
+      // Despachar evento para notificar cambio de sesión
+      window.dispatchEvent(new Event('user-updated'))
+      
+      console.log('Login con Google exitoso:', userData)
+      router.push('/dashboard')
+    } catch (err) {
+      error.value = 'Error al procesar la información de inicio de sesión.'
+      console.error(err)
     }
-    router.replace({ query: {} })
   }
 })
 

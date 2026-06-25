@@ -273,16 +273,26 @@ class AutenticacionTest extends TestCase
         // Hacemos el GET al callback con el code mock
         $response = $this->get('/api/auth/google/callback?code=mock_code');
 
-        // Debería redirigir al login del frontend con ?google_auth=1
+        // Debería redirigir al login del frontend
         $response->assertStatus(302);
-
+        
         $location = $response->headers->get('Location');
         $this->assertStringContainsString('/login', $location);
-        $this->assertStringContainsString('google_auth=1', $location);
+        $this->assertStringContainsString('token=', $location);
+        $this->assertStringContainsString('user=', $location);
 
-        // Solo el token viaja en cookie (sin datos del usuario para evitar headers grandes)
-        $response->assertCookieNotExpired('google_auth_token');
-        $response->assertCookieMissing('google_auth_user');
+        // Extraemos y parseamos el user query parameter para verificar que no tenga la envoltura 'data'
+        $parsedUrl = parse_url($location);
+        parse_str($parsedUrl['query'], $queryParams);
+        
+        $userParam = $queryParams['user'];
+        $userData = json_decode($userParam, true);
+
+        // Validamos la estructura plana
+        $this->assertArrayHasKey('id', $userData);
+        $this->assertArrayNotHasKey('data', $userData);
+        $this->assertEquals('mock_google@example.com', $userData['email']);
+        $this->assertEquals('cliente', $userData['role']);
     }
 
     /**
